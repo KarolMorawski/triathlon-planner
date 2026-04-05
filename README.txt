@@ -41,6 +41,106 @@ To recreate the venv from scratch:
 
 
 ==========================================================
+STRAVA MCP — CONNECTING TO CLAUDE CODE
+==========================================================
+
+Strava MCP lets Claude read your Strava activities directly.
+You can ask: "How far did I run this month?" or "Analyze my last ride."
+
+REQUIREMENTS
+  - Node.js 18+ LTS  (https://nodejs.org)
+  - Claude Code CLI  (https://claude.ai/code)
+
+STEP 1 — Create a Strava API application (one-time)
+  1. Go to: strava.com/settings/api
+  2. Click "Create an App"
+  3. Fill in the form:
+       Application Name:           anything (e.g. "Claude Assistant")
+       Category:                   anything
+       Website:                    http://localhost
+       Authorization Callback Domain: localhost   ← important!
+  4. Copy your Client ID and Client Secret
+
+STEP 2 — Register the MCP server in Claude Code
+  Run this command once in any terminal:
+
+    claude mcp add --transport stdio strava -- npx @r-huijts/strava-mcp-server
+
+  Verify it was registered:
+
+    claude mcp list
+    # Expected output:
+    # strava: npx @r-huijts/strava-mcp-server - ✓ Connected
+
+STEP 3 — Authorize with Strava
+  Open Claude Code in any project directory, then type:
+
+    "Connect my Strava account"
+
+  A browser window opens. Enter your Client ID and Client Secret,
+  click "Continue to Strava", authorize, and close the browser.
+  Credentials are saved at: ~/.config/strava-mcp/config.json
+
+  From now on Strava stays connected across sessions.
+  To check: "Am I connected to Strava?"
+  To reconnect if needed: "Connect my Strava account"
+
+NOTE: The MCP server is registered globally in Claude Code (not per project).
+The .mcp.json file in this repo is gitignored — it may point to a locally
+built version of the server and is not required for the npx setup above.
+
+---
+
+STRAVA MCP — PODŁĄCZENIE DO CLAUDE CODE
+==========================================================
+
+Strava MCP pozwala Claude czytać Twoje aktywności bezpośrednio ze Stravy.
+Możesz pytać: "Ile km przebiegłem w tym miesiącu?" lub "Przeanalizuj ostatni trening."
+
+WYMAGANIA
+  - Node.js 18+ LTS  (https://nodejs.org)
+  - Claude Code CLI  (https://claude.ai/code)
+
+KROK 1 — Utwórz aplikację Strava API (jednorazowo)
+  1. Wejdź na: strava.com/settings/api
+  2. Kliknij "Create an App"
+  3. Wypełnij formularz:
+       Application Name:              cokolwiek (np. "Claude Assistant")
+       Category:                      cokolwiek
+       Website:                       http://localhost
+       Authorization Callback Domain: localhost   ← ważne!
+  4. Skopiuj Client ID i Client Secret
+
+KROK 2 — Zarejestruj serwer MCP w Claude Code
+  Wykonaj raz w terminalu:
+
+    claude mcp add --transport stdio strava -- npx @r-huijts/strava-mcp-server
+
+  Sprawdź czy działa:
+
+    claude mcp list
+    # Oczekiwany wynik:
+    # strava: npx @r-huijts/strava-mcp-server - ✓ Connected
+
+KROK 3 — Autoryzacja ze Stravą
+  Otwórz Claude Code w dowolnym projekcie i napisz:
+
+    "Connect my Strava account"
+
+  Otworzy się przeglądarka. Wpisz Client ID i Client Secret,
+  kliknij "Continue to Strava", autoryzuj i zamknij przeglądarkę.
+  Dane logowania są zapisywane w: ~/.config/strava-mcp/config.json
+
+  Od tej pory Strava pozostaje połączona między sesjami.
+  Sprawdzenie: "Am I connected to Strava?"
+  Ponowne połączenie: "Connect my Strava account"
+
+UWAGA: Serwer MCP jest zarejestrowany globalnie w Claude Code (nie per projekt).
+Plik .mcp.json w tym repo jest gitignorowany — może wskazywać na lokalnie
+skompilowaną wersję serwera i nie jest wymagany przy podejściu z npx.
+
+
+==========================================================
 TRAINING PLAN ASSUMPTIONS
 ==========================================================
 
