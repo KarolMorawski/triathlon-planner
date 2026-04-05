@@ -43,7 +43,12 @@ class TestGarminSessionPersistence(unittest.TestCase):
         """
         # ── Step 1: fresh login ───────────────────────────────────────────
         print("\nStep 1: Logging in to Garmin (credentials required)...")
-        client1 = season_plan.login()
+        try:
+            client1 = season_plan.login()
+        except Exception as e:
+            if "429" in str(e) or "Rate Limit" in str(e):
+                self.skipTest("Garmin rate limit (429) — wait a few minutes and retry")
+            raise
         self.assertIsNotNone(client1, "login() should return a client object")
 
         self.assertTrue(os.path.isfile(SESSION_STAMP),
