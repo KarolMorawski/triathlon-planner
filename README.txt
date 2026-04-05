@@ -208,6 +208,36 @@ VOLUME PROGRESSION
   Peak vol reaches ~1.0 only in the last build week before taper.
 
 
+TARGET FINISH TIME (optional)
+------------------------------
+  Both scripts ask for a target finish time during interactive setup.
+  It is optional — you can also provide run pace directly instead.
+
+  When target time is provided, the script back-calculates:
+    - Run pace (MM:SS/km) — derived from run split
+    - Bike race zone ZR   — derived from required bike power (physics model)
+    - Also shown: swim split, T1+T2 estimate, bike speed
+
+  What target time AFFECTS in the plan:
+    Run pace in ALL run sessions (Tempo, Long Run, Easy Run, Pre-Race).
+      Faster target → higher m/s in every run step.
+    ZR bike zone used in Race Sim sessions (Tue quality rotation).
+      Faster target → higher % FTP for Race Sim intervals.
+
+  What target time does NOT affect:
+    Zones Z1–Z5 — these depend only on FTP input, not finish time.
+    Session volumes, distances, durations — controlled by periodization.
+    Swim sessions — no pace target in Garmin swim format.
+
+  If no target time is given, ZR defaults to the profile value:
+    sprint 95% FTP | olympic 88% FTP | 70.3 82% FTP | full 72% FTP
+
+  Example: Full Ironman target 11:00:00, FTP=234W, weight=75kg
+    → Swim: ~1:20  T1+T2: ~0:10  Bike: ~5:45 @ ~171W (73% FTP)
+    → Run:  ~3:45  @ 5:20/km
+    Bike sessions Race Sim use ZR = 70–76% FTP instead of 69–75%.
+
+
 ==========================================================
 ZAŁOŻENIA PLANU TRENINGOWEGO
 ==========================================================
@@ -374,3 +404,33 @@ PROGRESJA OBJĘTOŚCI
 
   Wzór: vol = min(1.0, 0.6 + numer_tygodnia / tydzień_startu_taperu × 0.4)
   Szczyt vol ~1.0 osiągany tylko w ostatnim tygodniu budowy przed taperem.
+
+
+PLANOWANY CZAS UKOŃCZENIA (opcjonalny)
+----------------------------------------
+  Oba skrypty pytają o planowany czas ukończenia wyścigu podczas konfiguracji.
+  Jest opcjonalny — zamiast niego można podać bezpośrednio tempo biegu.
+
+  Gdy podany jest czas ukończenia, skrypt wylicza wstecz:
+    - Tempo biegu (MM:SS/km) — z podziału czasu na bieg
+    - Strefę rowerową ZR     — z wymaganej mocy (model fizyczny)
+    - Wyświetla też: czas pływania, szacunek T1+T2, prędkość rowerową
+
+  Na co czas ukończenia MA wpływ w planie:
+    Tempo biegu we WSZYSTKICH sesjach biegowych (Tempo, Długi, Łatwy, Pre-Race).
+      Szybszy cel → wyższe m/s w każdym stepie biegowym.
+    Strefa ZR w sesjach Race Sim (rotacja jakościowa Wt).
+      Szybszy cel → wyższy % FTP w interwałach Race Sim.
+
+  Na co czas ukończenia NIE MA wpływu:
+    Strefy Z1–Z5 — zależą wyłącznie od FTP, nie od czasu docelowego.
+    Objętości sesji, dystanse, czasy trwania — kontrolowane przez periodyzację.
+    Sesje pływackie — format pływania Garmin nie obsługuje celu tempa.
+
+  Jeśli nie podano czasu, ZR przyjmuje domyślne wartości profilowe:
+    sprint 95% FTP | olympic 88% FTP | 70.3 82% FTP | full 72% FTP
+
+  Przykład: Full Ironman cel 11:00:00, FTP=234W, waga=75kg
+    → Pływanie: ~1:20  T1+T2: ~0:10  Rower: ~5:45 @ ~171W (73% FTP)
+    → Bieg:     ~3:45  @ 5:20/km
+    Sesje Race Sim używają ZR = 70–76% FTP zamiast domyślnych 69–75%.
