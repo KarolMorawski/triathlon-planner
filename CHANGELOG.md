@@ -5,6 +5,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0] — 2026-04-05
+
+### Dodane
+
+#### Angielskie wersje skryptów
+- `generate_plan_en.py` — angielski odpowiednik `generate_plan.py`
+- `season_plan_en.py` — angielski odpowiednik `season_plan.py`
+- Wersje różnią się wyłącznie napisami wyświetlanymi użytkownikowi (komunikaty, podsumowania splitów)
+- Przetłumaczone napisy: `Cel/Pływanie/Rower/Bieg` → `Target/Swim/Bike/Run`, `biegi/pływanie/rower` → `run/swim/bike`
+- Logika, strefy, periodyzacja — identyczne w obu wersjach
+
+#### `CLAUDE.md` — reguła dwujęzyczności skryptów
+- Każda zmiana logiki lub komunikatów musi być wprowadzona jednocześnie w polskiej i angielskiej wersji skryptu
+
+---
+
 ## [1.4.0] — 2026-04-05
 
 ### Dodane

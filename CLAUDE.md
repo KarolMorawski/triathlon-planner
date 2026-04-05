@@ -100,6 +100,11 @@ client.connectapi(f"/calendar-service/year/{year}/month/{0_indexed_month}")
 - Po każdej sekcji angielskiej dodawaj jej polskie tłumaczenie
 - Zawsze obie wersje: najpierw angielska, bezpośrednio pod nią polska
 
+### Wersje językowe skryptów
+- Każdy skrypt istnieje w dwóch wersjach: polska (`season_plan.py`, `generate_plan.py`) i angielska (`season_plan_en.py`, `generate_plan_en.py`)
+- Każda zmiana logiki lub komunikatów musi być wprowadzona w obu wersjach jednocześnie
+- Wersja angielska różni się tylko napisami wyświetlanymi użytkownikowi — logika identyczna
+
 ### Pliki testowe
 - Po napisaniu testów i potwierdzeniu, że wszystkie przechodzą — usuń plik testowy
 - Testy służą do weryfikacji logiki podczas developmentu, nie są częścią produktu końcowego
