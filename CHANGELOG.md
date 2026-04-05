@@ -5,6 +5,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.4.0] — 2026-04-05
+
+### Dodane
+
+#### `README.txt` — Instrukcja Strava MCP dla Claude Code (EN + PL)
+- Nowa sekcja: STRAVA MCP — CONNECTING TO CLAUDE CODE / PODŁĄCZENIE DO CLAUDE CODE
+- Krok po kroku: tworzenie aplikacji Strava API (strava.com/settings/api, Callback Domain = `localhost`)
+- Rejestracja serwera: `claude mcp add --transport stdio strava -- npx @r-huijts/strava-mcp-server`
+- Autoryzacja OAuth przez przeglądarkę komendą `"Connect my Strava account"` w Claude Code
+- Uwaga o gitignorowanym `.mcp.json` i podejściu z `npx` jako zalecanym
+
+#### `README.txt` — Sekcja planowanego czasu ukończenia (EN + PL)
+- Nowa sekcja: TARGET FINISH TIME / PLANOWANY CZAS UKOŃCZENIA
+- Wyjaśnia co czas ukończenia wpływa w planie: tempo biegu we wszystkich sesjach biegowych + strefa ZR w Race Sim
+- Wyjaśnia co NIE jest pod wpływem: strefy Z1–Z5, objętości, sesje pływackie
+- Domyślne wartości ZR per dystans gdy brak czasu docelowego
+- Przykład liczbowy: Full Ironman 11:00:00, FTP=234W, waga=75kg
+
+---
+
 ## [1.3.0] — 2026-04-05
 
 ### Zmienione
