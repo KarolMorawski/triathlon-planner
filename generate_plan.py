@@ -620,11 +620,11 @@ def main():
         s = splits
         pct_str = f"{s['bike_pct_ftp']*100:.0f}% FTP"
         warn = "  ⚠ >100% FTP!" if s['bike_pct_ftp'] > 1.0 else ""
-        print(f"\n  Cel:       {args.target_time}  →  splity:")
-        print(f"    Pływanie: {_fmt_hm(s['swim_min'])}  @ {s['swim_pace']}")
+        print(f"\n  Target:    {args.target_time}  →  splits:")
+        print(f"    Swim:     {_fmt_hm(s['swim_min'])}  @ {s['swim_pace']}")
         print(f"    T1+T2:    {_fmt_hm(s['t1t2_min'])}")
-        print(f"    Rower:    {_fmt_hm(s['bike_min'])}  @ {s['bike_kmh']} km/h  →  ~{s['bike_watts']}W ({pct_str}){warn}")
-        print(f"    Bieg:     {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
+        print(f"    Bike:     {_fmt_hm(s['bike_min'])}  @ {s['bike_kmh']} km/h  →  ~{s['bike_watts']}W ({pct_str}){warn}")
+        print(f"    Run:      {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
     else:
         print(f"  Run pace:  {args.run_pace}/km")
     print(f"{'='*60}\n")
