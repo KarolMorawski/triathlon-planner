@@ -100,6 +100,11 @@ client.connectapi(f"/calendar-service/year/{year}/month/{0_indexed_month}")
 - Po każdej sekcji angielskiej dodawaj jej polskie tłumaczenie
 - Zawsze obie wersje: najpierw angielska, bezpośrednio pod nią polska
 
+### Pliki testowe
+- Po napisaniu testów i potwierdzeniu, że wszystkie przechodzą — usuń plik testowy
+- Testy służą do weryfikacji logiki podczas developmentu, nie są częścią produktu końcowego
+- Wyjątek: nie usuwaj jeśli użytkownik wyraźnie prosi o zachowanie testów
+
 ### Format commitów git
 - feat: nowa funkcja
 - fix: naprawa błędu
