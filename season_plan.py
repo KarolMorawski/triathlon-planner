@@ -28,10 +28,20 @@ import sys
 import time
 import json
 import getpass
+import os
 from datetime import date, timedelta
 from collections import defaultdict
 
 # ─── GARMIN LOGIN ────────────────────────────────────────────────────────────
+
+SESSION_DIR = os.path.expanduser("~/.garmin_session")
+SESSION_STAMP = os.path.join(SESSION_DIR, ".timestamp")
+SESSION_MAX_AGE = 8 * 3600  # 8 hours in seconds
+
+def _session_valid():
+    if not os.path.isfile(SESSION_STAMP):
+        return False
+    return (time.time() - os.path.getmtime(SESSION_STAMP)) < SESSION_MAX_AGE
 
 def login():
     try:
@@ -40,6 +50,16 @@ def login():
         print("ERROR: garminconnect not installed.")
         print("Fix: pip install garminconnect")
         sys.exit(1)
+
+    if _session_valid():
+        try:
+            client = Garmin(tokenstore=SESSION_DIR)
+            client.login()
+            print("✓ Logged in to Garmin Connect (cached session)\n")
+            return client
+        except Exception:
+            pass  # session expired or invalid — fall through to fresh login
+
     email    = input("Garmin email: ").strip()
     password = getpass.getpass("Garmin password: ")
     client   = Garmin(email=email, password=password)
@@ -50,6 +70,10 @@ def login():
             client.login(mfa_code=input("MFA/2FA code: ").strip())
         else:
             raise
+
+    os.makedirs(SESSION_DIR, exist_ok=True)
+    client.garth.dump(SESSION_DIR)
+    open(SESSION_STAMP, "w").close()  # update timestamp
     print("✓ Logged in to Garmin Connect\n")
     return client
 
