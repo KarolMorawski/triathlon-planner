@@ -665,9 +665,9 @@ def main():
         for wkt, _ in wkts:
             by_sport[wkt["sportType"]["sportTypeKey"]] += 1
         print(f"    Sessions: {len(wkts)} total — "
-              f"🏃{by_sport['running']} biegi  "
-              f"🏊{by_sport['swimming']} pływanie  "
-              f"🚲{by_sport['cycling']} rower")
+              f"🏃{by_sport['running']} run  "
+              f"🏊{by_sport['swimming']} swim  "
+              f"🚲{by_sport['cycling']} bike")
         print()
 
         for wkt, d in wkts:
