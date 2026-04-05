@@ -333,17 +333,18 @@ class TestSessionCounts(unittest.TestCase):
                     f"{dist}: run={counts.get('running')} != swim={counts.get('swimming')}")
 
     def test_total_sessions_reasonable(self):
-        """At least 3 sessions/week on average (1/sport), but generate_plan
-        uses 1 session/sport/week = 3/week total."""
+        """At least 3 sessions/week on average (1/sport).
+        With full periodization: base=6/wk, build=9/wk, taper=6/wk, race=3.
+        Average across all weeks: ~7–8 for full/70.3, ~6–7 for sprint/olympic."""
         for dist in PROFILES:
             with self.subTest(distance=dist):
                 weeks = PROFILES[dist]["weeks"]
                 wkts = workouts_for(dist)
                 total = len(wkts)
                 per_week = total / weeks
-                self.assertGreaterEqual(per_week, 2.0,
+                self.assertGreaterEqual(per_week, 3.0,
                     f"{dist}: {per_week:.1f} sessions/week is too few")
-                self.assertLessEqual(per_week, 6.0,
+                self.assertLessEqual(per_week, 10.0,
                     f"{dist}: {per_week:.1f} sessions/week is too many")
 
     def test_race_week_has_3_sessions(self):
@@ -352,7 +353,7 @@ class TestSessionCounts(unittest.TestCase):
             with self.subTest(distance=dist):
                 wkts = workouts_for(dist)
                 weeks = PROFILES[dist]["weeks"]
-                tag = f"TST-T{weeks}"
+                tag = f"TST-T{weeks:02d}"  # zero-padded: T08, T10, T12, T16
                 race_wkts = [wkt for wkt, _ in wkts if tag in wkt["workoutName"]]
                 self.assertEqual(len(race_wkts), 3,
                     f"{dist}: race week has {len(race_wkts)} sessions, expected 3")
@@ -363,7 +364,7 @@ class TestSessionCounts(unittest.TestCase):
             with self.subTest(distance=dist):
                 wkts = workouts_for(dist)
                 weeks = PROFILES[dist]["weeks"]
-                tag = f"TST-T{weeks}"
+                tag = f"TST-T{weeks:02d}"  # zero-padded: T08, T10, T12, T16
                 sports = [wkt["sportType"]["sportTypeKey"]
                           for wkt, _ in wkts if tag in wkt["workoutName"]]
                 self.assertIn("cycling",  sports)
@@ -398,25 +399,26 @@ class TestDatesAndScheduling(unittest.TestCase):
                     date.fromisoformat(d)
 
     def test_bike_sessions_on_consistent_days(self):
-        """Bike quality sessions (non-race-week) must all land on the same
-        weekday — the plan uses d(1) (1 day after wk_start) for all of them.
-        The actual weekday depends on the race date's day of week."""
+        """Bike sessions (non-race-week) should use at most 4 distinct weekdays.
+        Periodization schedule:
+          base  — D(1) quality + D(3) Z2             → 2 days
+          build — D(1) quality + D(3) Z2 + D(5) Long → 3 days
+          taper — D(1) Taper Z3 + D(4) Taper Spin    → D(4) adds 1 more
+        Combined across phases: D(1), D(3), D(4), D(5) → max 4 weekdays."""
         for dist in PROFILES:
             with self.subTest(distance=dist):
                 wkts = workouts_for(dist)
                 weeks = PROFILES[dist]["weeks"]
-                race_tag = f"TST-T{weeks}"
+                race_tag = f"TST-T{weeks:02d}"  # zero-padded
                 bike_days = set()
                 for wkt, d in wkts:
                     if wkt["sportType"]["sportTypeKey"] != "cycling":
                         continue
                     if race_tag in wkt["workoutName"]:
-                        continue  # race week uses d(5) — skip
+                        continue  # skip race week
                     dt = date.fromisoformat(d)
                     bike_days.add(dt.weekday())
-                # All main bike sessions should be on at most 2 weekdays
-                # (Tue quality + Thu Z2 in generate_plan uses d(1) only)
-                self.assertLessEqual(len(bike_days), 2,
+                self.assertLessEqual(len(bike_days), 4,
                     f"{dist}: bike sessions spread over too many days: {bike_days}")
 
     def test_no_workouts_after_race_date(self):

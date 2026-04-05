@@ -178,6 +178,38 @@ def _swim_step(order, type_id, type_key, dist_m, target_type=None, v1=None, v2=N
         "equipmentType": {"equipmentTypeId": 0, "equipmentTypeKey": None, "displayOrder": 0},
     }
 
+# ─── STEP CONVENIENCE WRAPPERS ───────────────────────────────────────────────
+
+def _bwu(o, mins):   return _bike_step(o, 1, "warmup",   mins, _no_target())
+def _bcd(o, mins):   return _bike_step(o, 2, "cooldown", mins, _no_target())
+def _bint(o, mins, lo, hi): return _bike_step(o, 3, "interval", mins, _power_target(lo, hi), float(lo), float(hi))
+def _brec(o, mins, lo, hi): return _bike_step(o, 4, "recovery", mins, _power_target(lo, hi), float(lo), float(hi))
+
+def _rwu(o, dist_m): return _run_step(o, 1, "warmup",   dist_m=dist_m)
+def _rcd(o, dist_m): return _run_step(o, 2, "cooldown", dist_m=dist_m)
+def _rint(o, dist_m, lo, hi):
+    return _run_step(o, 3, "interval", dist_m=dist_m,
+                    target_type=_pace_target(lo, hi), v1=lo, v2=hi)
+
+def _swu(o, dist_m): return _swim_step(o, 1, "warmup",   dist_m)
+def _scd(o, dist_m): return _swim_step(o, 2, "cooldown", dist_m)
+def _sint(o, dist_m): return _swim_step(o, 3, "interval", dist_m)
+
+def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
+    sp = sport(sport_key)
+    return {
+        "sportType": sp,
+        "workoutName": name,
+        "description": desc,
+        "workoutSegments": [{"segmentOrder": 1, "sportType": sp, "workoutSteps": steps}],
+        "estimatedDurationInSecs": dur_s or int(sum(s["endConditionValue"] for s in steps)),
+        "estimatedDistanceInMeters": dist_m,
+        "avgTrainingSpeed": None,
+        "workoutProvider": None,
+        "workoutSourceId": None,
+        "isAtp": False,
+    }
+
 # ─── PACE CONVERSION ─────────────────────────────────────────────────────────
 
 def pace_to_ms(pace_str):
@@ -194,262 +226,262 @@ def ms_to_pace(ms):
     s = int(sec_per_km % 60)
     return f"{m}:{s:02d}"
 
+# ─── TARGET TIME / SPLIT CALCULATOR ──────────────────────────────────────────
+
+SPLIT_RATIOS = {
+    "sprint":  {"t1t2_min":  5, "swim_pct": 0.13, "bike_pct": 0.47, "run_pct": 0.40},
+    "olympic": {"t1t2_min":  7, "swim_pct": 0.12, "bike_pct": 0.52, "run_pct": 0.36},
+    "70.3":    {"t1t2_min": 10, "swim_pct": 0.11, "bike_pct": 0.53, "run_pct": 0.36},
+    "full":    {"t1t2_min": 12, "swim_pct": 0.11, "bike_pct": 0.52, "run_pct": 0.37},
+}
+
+def _parse_hms(s):
+    """Parse 'H:MM:SS', 'H:MM' → total minutes (float)."""
+    parts = s.strip().split(":")
+    if len(parts) == 3:
+        return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
+    if len(parts) == 2:
+        return int(parts[0]) * 60 + int(parts[1])
+    raise ValueError(f"Cannot parse time: {s!r} — use H:MM:SS or H:MM")
+
+def _fmt_hm(minutes):
+    h, m = int(minutes // 60), int(round(minutes % 60))
+    return f"{h}:{m:02d}"
+
+def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32):
+    """
+    Back-calculate split targets from a finish time goal.
+    Physics model (flat course, triathlon position):
+      P = (0.5 × rho × CdA × v³  +  Crr × m × g × v) / eta
+    Returns dict with split times, paces, watts and run_pace_ms.
+    """
+    prof   = PROFILES[distance]
+    ratios = SPLIT_RATIOS[distance]
+
+    total_min = _parse_hms(target_time_str)
+    t1t2      = ratios["t1t2_min"]
+    active    = total_min - t1t2
+    swim_min  = active * ratios["swim_pct"]
+    bike_min  = active * ratios["bike_pct"]
+    run_min   = active * ratios["run_pct"]
+
+    run_pace_ms = (prof["run_km"] * 1000) / (run_min * 60)
+
+    v     = (prof["bike_km"] * 1000) / (bike_min * 60)
+    watts = (0.5 * 1.225 * cda * v**3 + 0.004 * weight_kg * 9.81 * v) / 0.975
+
+    s100      = (swim_min * 60) / (prof["swim_m"] / 100)
+    swim_pace = f"{int(s100 // 60)}:{int(s100 % 60):02d}/100m"
+
+    return {
+        "total_min":    total_min,
+        "t1t2_min":     t1t2,
+        "swim_min":     swim_min,
+        "bike_min":     bike_min,
+        "run_min":      run_min,
+        "swim_pace":    swim_pace,
+        "bike_kmh":     round(v * 3.6, 1),
+        "bike_watts":   round(watts),
+        "bike_pct_ftp": watts / ftp,
+        "run_pace_ms":  run_pace_ms,
+        "run_pace_str": ms_to_pace(run_pace_ms),
+    }
+
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
-def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE"):
+def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE",
+                  race_bike_pct=None):
     """
     Generate a list of (workout_dict, date_str) tuples.
-    race_date: date object
-    distance: key from PROFILES
-    ftp: int watts
-    run_pace_ms: float m/s (target race pace)
-    prefix: short prefix for workout names
+
+    race_bike_pct: override bike race zone center (% FTP); None = use profile default.
+                   Derived automatically when --target-time is provided.
+
+    Weekly structure by phase:
+      Base  (first ~1/3): 2/sport = 6 sessions/week
+        Mon Swim-Tech, Tue Bike-Quality, Wed Run-Tempo,
+        Thu Swim-Endurance + Bike-Z2, Sun Run-Long
+      Build (middle):     3/sport = 9 sessions/week
+        + Fri Swim-RaceSim + Run-Easy, Sat Bike-Long
+      Taper (last 2 weeks): 2/sport = 6 sessions/week (short)
+        Tue Bike-Z3, Wed Run-Easy, Thu Swim, Fri Swim+Bike-Spin, Sun Run-Easy
+      Race week: 3 pre-race activation sessions on Friday
     """
-    profile = PROFILES[distance]
-    weeks   = profile["weeks"]
-    race_pct = profile["race_pace_pct"]
+    profile  = PROFILES[distance]
+    weeks    = profile["weeks"]
+    rp       = race_bike_pct if race_bike_pct is not None else profile["race_pace_pct"]
 
     # Power zones
-    z1_lo, z1_hi = round(ftp * 0.40), round(ftp * 0.55)
-    z2_lo, z2_hi = round(ftp * 0.60), round(ftp * 0.72)
-    z3_lo, z3_hi = round(ftp * 0.76), round(ftp * 0.87)
-    z4_lo, z4_hi = round(ftp * 0.88), round(ftp * 0.97)
-    z5_lo, z5_hi = round(ftp * 1.02), round(ftp * 1.12)
-    race_lo = round(ftp * (race_pct - 0.03))
-    race_hi = round(ftp * (race_pct + 0.03))
+    z = lambda lo, hi: (round(ftp * lo), round(ftp * hi))
+    Z1 = z(0.40, 0.55); Z2 = z(0.60, 0.72); Z3 = z(0.76, 0.87)
+    Z4 = z(0.88, 0.97); Z5 = z(1.02, 1.12)
+    ZR = z(rp - 0.03, rp + 0.03)
 
-    # Pace targets (m/s)
-    easy_ms  = run_pace_ms * 0.85   # easy Z1
-    z2_ms    = run_pace_ms * 0.93   # Z2 endurance
-    tempo_ms = run_pace_ms * 1.03   # faster than race
-    race_ms  = run_pace_ms          # race pace
+    # Run paces (m/s)
+    easy   = run_pace_ms * 0.85
+    z2_run = run_pace_ms * 0.93
+    race_p = run_pace_ms
 
-    workouts = []  # (wkt_dict, date_str)
-
-    # Build week-by-week plan, counting back from race_date
-    # Week 1 = furthest from race, last week = race week
-    plan_start = race_date - timedelta(weeks=weeks)
+    taper_start_wk = weeks - 2
+    plan_start     = race_date - timedelta(weeks=weeks)
+    workouts       = []
 
     for wk in range(1, weeks + 1):
-        wk_start = plan_start + timedelta(weeks=wk - 1)
-        remaining = weeks - wk  # weeks left after this one
-        is_race_week = (wk == weeks)
-        is_taper = (remaining <= 2)
-        is_peak  = (weeks // 2 <= wk <= weeks - 3)
+        wk_start  = plan_start + timedelta(weeks=wk - 1)
+        remaining = weeks - wk
 
-        # Volume factor: build up, then taper
+        is_race  = (wk == weeks)
+        is_taper = not is_race and (wk >= taper_start_wk)
+        is_build = not is_race and not is_taper and (wk > weeks // 3)
+
         if is_taper:
-            vol = 0.6 + remaining * 0.1
-        elif is_peak:
-            vol = 1.0
+            vol = max(0.5, 0.6 + remaining * 0.1)
+        elif is_race:
+            vol = 0.3
         else:
-            vol = 0.6 + (wk / weeks) * 0.4
-        vol = min(vol, 1.0)
+            vol = min(1.0, 0.6 + (wk / taper_start_wk) * 0.4)
 
-        def d(offset): return (wk_start + timedelta(days=offset)).strftime("%Y-%m-%d")
+        def D(offset, _ws=wk_start):
+            return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
+        tag = f"{prefix}-T{wk:02d}"
 
-        # ── BIKE WORKOUTS ──────────────────────────────────────────
-        if not is_race_week:
-            if is_taper:
-                # Short easy spin
-                bike_mins = int(45 * vol)
-                steps = [
-                    _bike_step(1, 1, "warmup",   10, _no_target()),
-                    _bike_step(2, 3, "interval", bike_mins, _power_target(z2_lo, z2_hi), float(z2_lo), float(z2_hi)),
-                    _bike_step(3, 2, "cooldown",  5, _no_target()),
-                ]
-                name = f"{prefix}-T{wk} Taper Spin {bike_mins}min"
-            elif wk % 3 == 0:
-                # Threshold intervals
-                steps = [
-                    _bike_step(1, 1, "warmup",   15, _no_target()),
-                    _bike_step(2, 3, "interval", 20, _power_target(z4_lo, z4_hi), float(z4_lo), float(z4_hi)),
-                    _bike_step(3, 4, "recovery",  5, _power_target(z1_lo, z1_hi), float(z1_lo), float(z1_hi)),
-                    _bike_step(4, 3, "interval", 20, _power_target(z4_lo, z4_hi), float(z4_lo), float(z4_hi)),
-                    _bike_step(5, 4, "recovery",  5, _power_target(z1_lo, z1_hi), float(z1_lo), float(z1_hi)),
-                    _bike_step(6, 3, "interval", 15, _power_target(z4_lo, z4_hi), float(z4_lo), float(z4_hi)),
-                    _bike_step(7, 2, "cooldown",  10, _no_target()),
-                ]
-                name = f"{prefix}-T{wk} Threshold 3x20min @{z4_lo}-{z4_hi}W"
-            elif wk % 3 == 1:
-                # Race sim / long endurance
-                bike_mins = int(90 * vol)
-                steps = [
-                    _bike_step(1, 1, "warmup",   15, _no_target()),
-                    _bike_step(2, 3, "interval", bike_mins, _power_target(race_lo, race_hi), float(race_lo), float(race_hi)),
-                    _bike_step(3, 2, "cooldown",  10, _no_target()),
-                ]
-                name = f"{prefix}-T{wk} Race Sim {bike_mins}min @{race_lo}-{race_hi}W"
+        # ─────────────────────────── RACE WEEK ───────────────────────────────
+        if is_race:
+            workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
+                f"FTP={ftp}W | pre-race activation",
+                [_bwu(1,5), _bint(2,15,*Z2), _bcd(3,5)]), D(4)))
+            workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
+                f"Easy pre-race | {ms_to_pace(easy)}/km",
+                [_rwu(1,500), _rint(2,3000,easy*0.95,easy*1.05), _rcd(3,500)], 4000), D(4)))
+            workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
+                "Easy pre-race swim",
+                [_swu(1,200), _sint(2,400), _scd(3,100)], 700), D(4)))
+            continue
+
+        # ─────────────────────────── TAPER ───────────────────────────────────
+        if is_taper:
+            m = max(30, int(45 * vol))
+            workouts.append((_wkt("bike", f"{tag} Taper Z3 {m}min @{Z3[0]}-{Z3[1]}W",
+                f"FTP={ftp}W | taper activation",
+                [_bwu(1,10), _bint(2,m,*Z3), _bcd(3,5)]), D(1)))
+            m2 = max(20, int(30 * vol))
+            workouts.append((_wkt("bike", f"{tag} Taper Spin {m2}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | taper spin",
+                [_bwu(1,10), _bint(2,m2,*Z2), _bcd(3,5)]), D(4)))
+
+            km = max(5, int(8 * vol))
+            workouts.append((_wkt("run", f"{tag} Taper Run {km}km @{ms_to_pace(z2_run)}/km",
+                "Taper easy run",
+                [_rwu(1,500), _rint(2,km*1000,z2_run*0.97,z2_run*1.03), _rcd(3,500)],
+                (km+1)*1000), D(2)))
+            km2 = max(4, int(6 * vol))
+            workouts.append((_wkt("run", f"{tag} Taper Easy {km2}km @{ms_to_pace(easy)}/km",
+                "Taper recovery run",
+                [_rwu(1,500), _rint(2,km2*1000,easy*0.97,easy*1.03), _rcd(3,500)],
+                (km2+1)*1000), D(6)))
+
+            dist_a = max(800, round(int(profile["swim_m"] * 0.4 * vol) / 100) * 100)
+            wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
+            workouts.append((_wkt("swim", f"{tag} Taper Swim {dist_a}m",
+                f"Taper swim {dist_a}m",
+                [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_a), D(3)))
+            dist_b = max(400, round(int(profile["swim_m"] * 0.25 * vol) / 100) * 100)
+            wu_d = min(200, dist_b // 4); main_d = max(200, dist_b - wu_d - 100)
+            workouts.append((_wkt("swim", f"{tag} Taper Pre-Race Swim {dist_b}m",
+                f"Taper swim {dist_b}m",
+                [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_b), D(4)))
+            continue
+
+        # ─────────────────────────── BASE + BUILD ────────────────────────────
+
+        swim_base = int(profile["swim_m"] * 0.6 * vol)
+
+        # ── SWIM A — technique (Mon D0) ───────────────────────────────────────
+        dist_a = max(600, round(int(swim_base * 0.55) / 100) * 100)
+        wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
+        workouts.append((_wkt("swim", f"{tag} Swim Tech {dist_a}m",
+            f"Technique & intervals {dist_a}m",
+            [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_a), D(0)))
+
+        # ── SWIM B — endurance (Thu D3) ───────────────────────────────────────
+        dist_b = max(800, round(int(swim_base * 0.75) / 100) * 100)
+        wu_d = min(400, dist_b // 4); main_d = max(300, dist_b - wu_d - 100)
+        workouts.append((_wkt("swim", f"{tag} Swim Endurance {dist_b}m",
+            f"Endurance swim {dist_b}m",
+            [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_b), D(3)))
+
+        # ── SWIM C — race-sim (Fri D4) — BUILD only ───────────────────────────
+        if is_build:
+            dist_c = max(400, round(int(profile["swim_m"] * 0.85 * vol) / 100) * 100)
+            wu_d = min(200, dist_c // 5); main_d = max(200, dist_c - wu_d - 100)
+            workouts.append((_wkt("swim", f"{tag} Swim Race-Sim {dist_c}m",
+                f"Race-pace swim {dist_c}m",
+                [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_c), D(4)))
+
+        # ── BIKE A — main quality session (Tue D1) ────────────────────────────
+        q = wk % 3
+        if q == 0:
+            workouts.append((_wkt("bike", f"{tag} Threshold 3x20min @{Z4[0]}-{Z4[1]}W",
+                f"FTP={ftp}W | threshold",
+                [_bwu(1,15),
+                 _bint(2,20,*Z4), _brec(3,5,*Z1),
+                 _bint(4,20,*Z4), _brec(5,5,*Z1),
+                 _bint(6,15,*Z4), _bcd(7,10)]), D(1)))
+        elif q == 1:
+            m = max(45, int(80 * vol))
+            workouts.append((_wkt("bike", f"{tag} Race Sim {m}min @{ZR[0]}-{ZR[1]}W",
+                f"FTP={ftp}W | race simulation",
+                [_bwu(1,15), _bint(2,m,*ZR), _bcd(3,10)]), D(1)))
+        else:
+            if is_build:
+                workouts.append((_wkt("bike", f"{tag} VO2max 4x5min @{Z5[0]}-{Z5[1]}W",
+                    f"FTP={ftp}W | VO2max",
+                    [_bwu(1,15),
+                     _bint(2,5,*Z5), _brec(3,3,*Z1),
+                     _bint(4,5,*Z5), _brec(5,3,*Z1),
+                     _bint(6,5,*Z5), _brec(7,3,*Z1),
+                     _bint(8,5,*Z5), _bcd(9,10)]), D(1)))
             else:
-                # Z2 endurance
-                bike_mins = int(60 * vol)
-                steps = [
-                    _bike_step(1, 1, "warmup",   10, _no_target()),
-                    _bike_step(2, 3, "interval", bike_mins, _power_target(z2_lo, z2_hi), float(z2_lo), float(z2_hi)),
-                    _bike_step(3, 2, "cooldown",  5, _no_target()),
-                ]
-                name = f"{prefix}-T{wk} Z2 Endurance {bike_mins}min @{z2_lo}-{z2_hi}W"
+                m = max(40, int(60 * vol))
+                workouts.append((_wkt("bike", f"{tag} Tempo {m}min @{Z3[0]}-{Z3[1]}W",
+                    f"FTP={ftp}W | tempo Z3",
+                    [_bwu(1,10), _bint(2,m,*Z3), _bcd(3,5)]), D(1)))
 
-            wkt = {
-                "sportType": sport("bike"),
-                "workoutName": name,
-                "description": f"FTP={ftp}W | Triathlon plan T{wk}/{weeks}",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("bike"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": sum(s["endConditionValue"] for s in steps),
-                "estimatedDistanceInMeters": None,
-                "avgTrainingSpeed": None,
-                "workoutProvider": None,
-                "workoutSourceId": None,
-                "isAtp": False,
-            }
-            workouts.append((wkt, d(1)))  # Tuesday
+        # ── BIKE B — Z2 endurance (Thu D3) ───────────────────────────────────
+        m = max(45, int(70 * vol))
+        workouts.append((_wkt("bike", f"{tag} Z2 Endurance {m}min @{Z2[0]}-{Z2[1]}W",
+            f"FTP={ftp}W | aerobic base",
+            [_bwu(1,10), _bint(2,m,*Z2), _bcd(3,5)]), D(3)))
 
-        elif is_race_week:
-            # Pre-race activation ride
-            steps = [
-                _bike_step(1, 1, "warmup",   5, _no_target()),
-                _bike_step(2, 3, "interval", 15, _power_target(z2_lo, z2_hi), float(z2_lo), float(z2_hi)),
-                _bike_step(3, 2, "cooldown",  5, _no_target()),
-            ]
-            name = f"{prefix}-T{wk} Pre-Race Check 20min"
-            wkt = {
-                "sportType": sport("bike"),
-                "workoutName": name,
-                "description": f"FTP={ftp}W | Pre-race activation",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("bike"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": 1500,
-                "estimatedDistanceInMeters": None,
-                "avgTrainingSpeed": None,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }
-            workouts.append((wkt, d(5)))  # Friday
+        # ── BIKE C — long ride (Sat D5) — BUILD only ─────────────────────────
+        if is_build:
+            m_long = max(90, int(150 * vol))
+            workouts.append((_wkt("bike", f"{tag} Long Ride {m_long}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | long Z2",
+                [_bwu(1,15), _bint(2,m_long,*Z2), _bcd(3,10)]), D(5)))
 
-        # ── RUN WORKOUTS ───────────────────────────────────────────
-        run_km_base = min(profile["run_km"] * 0.8, 12) * vol
+        # ── RUN A — tempo (Wed D2) ────────────────────────────────────────────
+        km = min(12, max(6, int(10 * vol)))
+        workouts.append((_wkt("run", f"{tag} Tempo {km}km @{ms_to_pace(race_p)}/km",
+            f"Race pace run {ms_to_pace(race_p)}/km",
+            [_rwu(1,1000), _rint(2,km*1000,race_p*0.98,race_p*1.02), _rcd(3,1000)],
+            (km+2)*1000), D(2)))
 
-        if is_race_week:
-            # Easy activation + pre-race
-            steps = [
-                _run_step(1, 1, "warmup",  dist_m=500),
-                _run_step(2, 3, "interval", dist_m=3000,
-                          target_type=_pace_target(easy_ms*0.95, easy_ms*1.05),
-                          v1=easy_ms*0.95, v2=easy_ms*1.05),
-                _run_step(3, 2, "cooldown", dist_m=500),
-            ]
-            wkt = {
-                "sportType": sport("run"),
-                "workoutName": f"{prefix}-T{wk} Pre-Race Activation 4km",
-                "description": f"Easy pre-race run | pace {ms_to_pace(easy_ms)}/km",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("run"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": int(4000 / easy_ms),
-                "estimatedDistanceInMeters": 4000,
-                "avgTrainingSpeed": easy_ms,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }
-            workouts.append((wkt, d(5)))
-        elif is_taper:
-            dist = int(run_km_base * 1000)
-            steps = [
-                _run_step(1, 1, "warmup",  dist_m=500),
-                _run_step(2, 3, "interval", dist_m=dist,
-                          target_type=_pace_target(z2_ms*0.97, z2_ms*1.03),
-                          v1=z2_ms*0.97, v2=z2_ms*1.03),
-                _run_step(3, 2, "cooldown", dist_m=500),
-            ]
-            wkt = {
-                "sportType": sport("run"),
-                "workoutName": f"{prefix}-T{wk} Taper Run {int(run_km_base)}km @{ms_to_pace(z2_ms)}/km",
-                "description": f"Taper run pace {ms_to_pace(z2_ms)}/km",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("run"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": int((dist+1000) / z2_ms),
-                "estimatedDistanceInMeters": dist + 1000,
-                "avgTrainingSpeed": z2_ms,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }
-            workouts.append((wkt, d(3)))
-        elif wk % 4 == 0:
-            # Long run
-            long_km = min(profile["run_km"] * 0.9, 18) * vol
-            dist = int(long_km * 1000)
-            steps = [
-                _run_step(1, 1, "warmup",  dist_m=500),
-                _run_step(2, 3, "interval", dist_m=dist,
-                          target_type=_pace_target(z2_ms*0.96, z2_ms*1.04),
-                          v1=z2_ms*0.96, v2=z2_ms*1.04),
-                _run_step(3, 2, "cooldown", dist_m=500),
-            ]
-            wkt = {
-                "sportType": sport("run"),
-                "workoutName": f"{prefix}-T{wk} Long Run {int(long_km)}km @{ms_to_pace(z2_ms)}/km",
-                "description": f"Long easy run | Z2 pace {ms_to_pace(z2_ms)}/km",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("run"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": int((dist+1000) / z2_ms),
-                "estimatedDistanceInMeters": dist + 1000,
-                "avgTrainingSpeed": z2_ms,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }
-            workouts.append((wkt, d(0)))  # Monday
-        else:
-            # Tempo / intervals
-            tempo_km = min(10, run_km_base) * vol
-            dist = int(tempo_km * 1000)
-            steps = [
-                _run_step(1, 1, "warmup",  dist_m=1000),
-                _run_step(2, 3, "interval", dist_m=dist,
-                          target_type=_pace_target(race_ms*0.98, race_ms*1.02),
-                          v1=race_ms*0.98, v2=race_ms*1.02),
-                _run_step(3, 2, "cooldown", dist_m=1000),
-            ]
-            wkt = {
-                "sportType": sport("run"),
-                "workoutName": f"{prefix}-T{wk} Tempo {int(tempo_km)}km @{ms_to_pace(race_ms)}/km",
-                "description": f"Tempo at race pace {ms_to_pace(race_ms)}/km",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("run"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": int((dist+2000) / tempo_ms),
-                "estimatedDistanceInMeters": dist + 2000,
-                "avgTrainingSpeed": tempo_ms,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }
-            workouts.append((wkt, d(2)))  # Wednesday
+        # ── RUN B — long run (Sun D6) ─────────────────────────────────────────
+        max_long = 18 if distance in ("full", "70.3") else 12
+        km_long = min(max_long, max(8, int(profile["run_km"] * 0.85 * vol)))
+        workouts.append((_wkt("run", f"{tag} Long Run {km_long}km @{ms_to_pace(z2_run)}/km",
+            "Long Z2 run",
+            [_rwu(1,500), _rint(2,km_long*1000,z2_run*0.96,z2_run*1.04), _rcd(3,500)],
+            (km_long+1)*1000), D(6)))
 
-        # ── SWIM WORKOUTS ──────────────────────────────────────────
-        swim_dist = int(profile["swim_m"] * 0.6 * vol)
-        swim_dist = max(200, round(swim_dist / 100) * 100)
-
-        if is_race_week:
-            steps = [
-                _swim_step(1, 1, "warmup",   200),
-                _swim_step(2, 3, "interval", 400),
-                _swim_step(3, 2, "cooldown", 100),
-            ]
-            name = f"{prefix}-T{wk} Pre-Race Swim 700m"
-            workouts.append(({
-                "sportType": sport("swim"),
-                "workoutName": name,
-                "description": "Easy pre-race swim",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("swim"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": 1200,
-                "estimatedDistanceInMeters": 700,
-                "avgTrainingSpeed": None,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }, d(5)))
-        else:
-            steps = [
-                _swim_step(1, 1, "warmup",   min(400, swim_dist // 4)),
-                _swim_step(2, 3, "interval", max(200, swim_dist - swim_dist // 4 - 100)),
-                _swim_step(3, 2, "cooldown", 100),
-            ]
-            name = f"{prefix}-T{wk} Swim {swim_dist}m"
-            workouts.append(({
-                "sportType": sport("swim"),
-                "workoutName": name,
-                "description": f"Swim training {swim_dist}m",
-                "workoutSegments": [{"segmentOrder": 1, "sportType": sport("swim"), "workoutSteps": steps}],
-                "estimatedDurationInSecs": int(swim_dist / 1.4),
-                "estimatedDistanceInMeters": swim_dist,
-                "avgTrainingSpeed": None,
-                "workoutProvider": None, "workoutSourceId": None, "isAtp": False,
-            }, d(4)))  # Thursday
+        # ── RUN C — easy recovery (Fri D4) — BUILD only ──────────────────────
+        if is_build:
+            km_easy = max(6, int(9 * vol))
+            workouts.append((_wkt("run", f"{tag} Easy Run {km_easy}km @{ms_to_pace(easy)}/km",
+                "Easy recovery run",
+                [_rwu(1,500), _rint(2,km_easy*1000,easy*0.97,easy*1.03), _rcd(3,500)],
+                (km_easy+1)*1000), D(4)))
 
     return workouts
 
@@ -529,14 +561,16 @@ def parse_date(s):
 
 def main():
     p = argparse.ArgumentParser(description="Triathlon Training Plan Generator for Garmin Connect")
-    p.add_argument("--race-date",  help="Race date YYYY-MM-DD (e.g. 2026-09-15)")
-    p.add_argument("--distance",   choices=list(PROFILES.keys()), help="Race distance")
-    p.add_argument("--ftp",        type=int, help="FTP in watts (from MyWhoosh or Garmin)")
-    p.add_argument("--run-pace",   help="Target race pace MM:SS per km (e.g. 5:20)")
-    p.add_argument("--weight",     type=float, default=75, help="Body weight in kg")
-    p.add_argument("--prefix",     default=None, help="Workout name prefix (default: race name)")
-    p.add_argument("--dry-run",    action="store_true", help="Preview without uploading")
-    p.add_argument("--reset",      action="store_true", help="Full reset before uploading")
+    p.add_argument("--race-date",    help="Race date YYYY-MM-DD (e.g. 2026-09-15)")
+    p.add_argument("--distance",     choices=list(PROFILES.keys()), help="Race distance")
+    p.add_argument("--ftp",          type=int, help="FTP in watts (from MyWhoosh or Garmin)")
+    p.add_argument("--run-pace",     help="Target race pace MM:SS per km (e.g. 5:20)")
+    p.add_argument("--target-time",  help="Target finish time H:MM:SS — derives run pace + bike zone")
+    p.add_argument("--weight",       type=float, default=75, help="Body weight in kg")
+    p.add_argument("--cda",          type=float, default=0.32, help="CdA m² for bike power model (default: 0.32)")
+    p.add_argument("--prefix",       default=None, help="Workout name prefix (default: race name)")
+    p.add_argument("--dry-run",      action="store_true", help="Preview without uploading")
+    p.add_argument("--reset",        action="store_true", help="Full reset before uploading")
     args = p.parse_args()
 
     print("\n" + "="*60)
@@ -552,29 +586,52 @@ def main():
         args.distance = input("Distance (70.3 / full / olympic / sprint): ").strip()
     if not args.ftp:
         args.ftp = int(input("FTP in watts (from MyWhoosh or 20min test): ").strip())
-    if not args.run_pace:
-        args.run_pace = input("Target race run pace MM:SS/km (e.g. 5:20): ").strip()
+    if not args.target_time and not args.run_pace:
+        print("Enter target finish time OR run pace (one is required):")
+        args.target_time = input("  Target finish time H:MM:SS (or Enter to skip): ").strip() or None
+        if not args.target_time:
+            args.run_pace = input("  Target race run pace MM:SS/km (e.g. 5:20): ").strip()
     if not args.prefix:
         args.prefix = input("Workout name prefix (e.g. RACE or WARSAW): ").strip().upper()
 
-    race_date  = date.fromisoformat(args.race_date)
-    distance   = args.distance
-    ftp        = args.ftp
-    run_pace_ms = pace_to_ms(args.run_pace)
-    prefix     = args.prefix
-    profile    = PROFILES[distance]
+    race_date = date.fromisoformat(args.race_date)
+    distance  = args.distance
+    ftp       = args.ftp
+    prefix    = args.prefix
+    profile   = PROFILES[distance]
+
+    # Resolve run pace and bike zone from target time or explicit pace
+    race_bike_pct = None
+    if args.target_time:
+        splits        = calc_splits(distance, args.target_time, ftp, args.weight, args.cda)
+        run_pace_ms   = splits["run_pace_ms"]
+        race_bike_pct = splits["bike_pct_ftp"]
+    else:
+        run_pace_ms = pace_to_ms(args.run_pace)
 
     print(f"\n{'='*60}")
     print(f"  Race:      {profile['label']}")
     print(f"  Date:      {race_date}")
-    print(f"  FTP:       {ftp}W")
-    print(f"  Run pace:  {args.run_pace}/km ({run_pace_ms:.2f} m/s)")
+    print(f"  FTP:       {ftp}W  |  Weight: {args.weight}kg")
     print(f"  Weeks:     {profile['weeks']}")
     print(f"  Prefix:    {prefix}")
+
+    if args.target_time:
+        s = splits
+        pct_str = f"{s['bike_pct_ftp']*100:.0f}% FTP"
+        warn = "  ⚠ >100% FTP!" if s['bike_pct_ftp'] > 1.0 else ""
+        print(f"\n  Cel:       {args.target_time}  →  splity:")
+        print(f"    Pływanie: {_fmt_hm(s['swim_min'])}  @ {s['swim_pace']}")
+        print(f"    T1+T2:    {_fmt_hm(s['t1t2_min'])}")
+        print(f"    Rower:    {_fmt_hm(s['bike_min'])}  @ {s['bike_kmh']} km/h  →  ~{s['bike_watts']}W ({pct_str}){warn}")
+        print(f"    Bieg:     {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
+    else:
+        print(f"  Run pace:  {args.run_pace}/km")
     print(f"{'='*60}\n")
 
     # Generate plan
-    workouts = generate_plan(race_date, distance, ftp, run_pace_ms, args.weight, prefix)
+    workouts = generate_plan(race_date, distance, ftp, run_pace_ms, args.weight, prefix,
+                             race_bike_pct=race_bike_pct)
     print(f"Generated {len(workouts)} workouts\n")
 
     # Show schedule preview

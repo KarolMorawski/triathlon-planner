@@ -187,13 +187,101 @@ def pace_to_ms(s):
     p = s.strip().split(":")
     return 1000.0/(int(p[0])*60+int(p[1]))
 
+# ─── TARGET TIME / SPLIT CALCULATOR ──────────────────────────────────────────
+
+# Default split ratios (pct of active time after T1+T2) — based on age-group data
+SPLIT_RATIOS = {
+    "sprint":  {"t1t2_min":  5, "swim_pct": 0.13, "bike_pct": 0.47, "run_pct": 0.40},
+    "olympic": {"t1t2_min":  7, "swim_pct": 0.12, "bike_pct": 0.52, "run_pct": 0.36},
+    "70.3":    {"t1t2_min": 10, "swim_pct": 0.11, "bike_pct": 0.53, "run_pct": 0.36},
+    "full":    {"t1t2_min": 12, "swim_pct": 0.11, "bike_pct": 0.52, "run_pct": 0.37},
+}
+
+def _parse_hms(s):
+    """Parse 'H:MM:SS', 'H:MM', or 'MM:SS' → total minutes (float)."""
+    parts = s.strip().split(":")
+    if len(parts) == 3:
+        return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
+    if len(parts) == 2:
+        return int(parts[0]) * 60 + int(parts[1])
+    raise ValueError(f"Cannot parse time: {s!r} — use H:MM:SS or H:MM")
+
+def _fmt_hm(minutes):
+    """Format minutes → 'H:MM'."""
+    h, m = int(minutes // 60), int(round(minutes % 60))
+    return f"{h}:{m:02d}"
+
+def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
+                custom_swim_min=None, custom_t1t2_min=None):
+    """
+    Back-calculate per-sport split targets from a finish time goal.
+
+    Physics model (flat course):
+      P = (0.5 × rho × CdA × v³  +  Crr × m × g × v) / eta
+      CdA  = 0.32 m²  (triathlon/TT position, override via config 'cda')
+      Crr  = 0.004    (triathlon tires on tarmac)
+      rho  = 1.225 kg/m³ (sea level, 15°C)
+      eta  = 0.975    (drivetrain efficiency)
+
+    Returns dict with all split times, paces, watts and run_pace_ms for
+    use in generate_race_block().
+    """
+    prof   = PROFILES[distance]
+    ratios = SPLIT_RATIOS[distance]
+
+    total_min = _parse_hms(target_time_str)
+    t1t2      = float(custom_t1t2_min) if custom_t1t2_min is not None else ratios["t1t2_min"]
+    active    = total_min - t1t2
+
+    if custom_swim_min is not None:
+        swim_min = float(custom_swim_min)
+        left     = active - swim_min
+        bike_rel = ratios["bike_pct"] / (ratios["bike_pct"] + ratios["run_pct"])
+        bike_min = left * bike_rel
+        run_min  = left * (1 - bike_rel)
+    else:
+        swim_min = active * ratios["swim_pct"]
+        bike_min = active * ratios["bike_pct"]
+        run_min  = active * ratios["run_pct"]
+
+    # Run pace
+    run_pace_ms = (prof["run_km"] * 1000) / (run_min * 60)
+
+    # Bike power — simplified road physics
+    v     = (prof["bike_km"] * 1000) / (bike_min * 60)   # m/s
+    watts = (0.5 * 1.225 * cda * v**3 + 0.004 * weight_kg * 9.81 * v) / 0.975
+    pct   = watts / ftp
+
+    # Swim pace
+    s100  = (swim_min * 60) / (prof["swim_m"] / 100)
+    swim_pace = f"{int(s100 // 60)}:{int(s100 % 60):02d}/100m"
+
+    return {
+        "total_min":    total_min,
+        "t1t2_min":     t1t2,
+        "swim_min":     swim_min,
+        "bike_min":     bike_min,
+        "run_min":      run_min,
+        "swim_pace":    swim_pace,
+        "bike_kmh":     round(v * 3.6, 1),
+        "bike_watts":   round(watts),
+        "bike_pct_ftp": pct,
+        "run_pace_ms":  run_pace_ms,
+        "run_pace_str": ms_to_pace(run_pace_ms),
+    }
+
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
-def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix):
+def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
+                        race_bike_pct=None):
     """
     Returns list of (workout_dict, date_str) for one race block.
     Counts back `weeks` from race_date.
     Full reset friendly: all names start with prefix.
+
+    race_bike_pct: override for bike race zone center (% FTP).
+                   If None, uses the profile default (e.g. 0.72 for full).
+                   Derived automatically when target_time is provided.
 
     Weekly structure by phase:
       Base  (first ~1/3 of weeks): 2/sport = 6 sessions/week
@@ -207,7 +295,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix):
     """
     prof  = PROFILES[distance]
     weeks = prof["weeks"]
-    rp    = prof["race_bike_pct"]
+    rp    = race_bike_pct if race_bike_pct is not None else prof["race_bike_pct"]
 
     # Power zones
     z = lambda lo, hi: (round(ftp * lo), round(ftp * hi))
@@ -450,9 +538,10 @@ def interactive_config():
     print("═"*60)
     print()
 
-    ftp = int(input("Your FTP in watts (from MyWhoosh/Garmin): ").strip())
-    run_pace = input("Target race run pace MM:SS/km (e.g. 5:20): ").strip()
-    weight   = float(input("Body weight in kg (e.g. 80): ").strip() or "75")
+    ftp    = int(input("Your FTP in watts (from MyWhoosh/Garmin): ").strip())
+    weight = float(input("Body weight in kg (e.g. 80): ").strip() or "75")
+    cda    = float(input("CdA (m²) for bike power model (press Enter for 0.32): ").strip() or "0.32")
+    run_pace = input("Default run pace MM:SS/km — press Enter to set per race via target time: ").strip()
 
     races = []
     print("\nEnter your races (press Enter with empty name when done):")
@@ -467,16 +556,23 @@ def interactive_config():
                 print("  Need at least one race!")
                 continue
             break
-        date_s   = input("  Race date YYYY-MM-DD: ").strip()
-        dist     = input("  Distance (70.3/full/olympic/sprint): ").strip()
+        date_s = input("  Race date YYYY-MM-DD: ").strip()
+        dist   = input("  Distance (70.3/full/olympic/sprint): ").strip()
         if dist not in PROFILES:
             print(f"  Unknown distance, using 70.3")
             dist = "70.3"
-        races.append({"name": name, "date": date_s, "distance": dist})
+        target_time = input("  Target finish time H:MM:SS (or Enter to use default pace): ").strip()
+        race = {"name": name, "date": date_s, "distance": dist}
+        if target_time:
+            race["target_time"] = target_time
+        races.append(race)
         print(f"  ✓ Added {name} on {date_s} ({PROFILES[dist]['label']})\n")
         i += 1
 
-    return {"ftp": ftp, "run_pace": run_pace, "weight_kg": weight, "races": races}
+    cfg = {"ftp": ftp, "weight_kg": weight, "cda": cda, "races": races}
+    if run_pace:
+        cfg["run_pace"] = run_pace
+    return cfg
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 
@@ -501,10 +597,13 @@ def main():
     if args.ftp:       cfg["ftp"]       = args.ftp
     if args.run_pace:  cfg["run_pace"]  = args.run_pace
 
-    ftp         = cfg["ftp"]
-    run_pace_ms = pace_to_ms(cfg["run_pace"])
-    weight      = cfg.get("weight_kg", 75)
-    races       = cfg["races"]
+    ftp    = cfg["ftp"]
+    weight = cfg.get("weight_kg", 75)
+    cda    = cfg.get("cda", 0.32)
+    races  = cfg["races"]
+
+    # Global run pace — optional if all races define target_time
+    global_run_pace_ms = pace_to_ms(cfg["run_pace"]) if "run_pace" in cfg else None
 
     # Check for date conflicts between race blocks
     all_dates = defaultdict(list)
@@ -514,7 +613,9 @@ def main():
     print(f"  SEASON PLAN SUMMARY")
     print(f"{'═'*60}")
     print(f"  FTP:       {ftp}W")
-    print(f"  Run pace:  {cfg['run_pace']}/km")
+    if global_run_pace_ms:
+        print(f"  Run pace:  {cfg['run_pace']}/km  (global default)")
+    print(f"  Weight:    {weight}kg  |  CdA: {cda} m²")
     print(f"  Races:     {len(races)}")
     print()
 
@@ -528,10 +629,35 @@ def main():
         wks    = prof["weeks"]
         start  = rdate - timedelta(weeks=wks)
 
+        target_time = race.get("target_time")
+        if target_time:
+            splits = calc_splits(dist, target_time, ftp, weight, cda,
+                                 custom_swim_min=race.get("swim_min"),
+                                 custom_t1t2_min=race.get("t1t2_min"))
+            run_pace_ms    = splits["run_pace_ms"]
+            race_bike_pct  = splits["bike_pct_ftp"]
+        else:
+            if global_run_pace_ms is None:
+                raise ValueError(
+                    f"Race {prefix}: no target_time and no global run_pace defined.")
+            run_pace_ms   = global_run_pace_ms
+            race_bike_pct = None
+
         print(f"  ▸ {prefix:12s}  {race['date']}  {prof['label']}")
         print(f"    Block: {start} → {race['date']}  ({wks} weeks)")
 
-        wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix)
+        if target_time:
+            s = splits
+            pct_str = f"{s['bike_pct_ftp']*100:.0f}% FTP"
+            warn = "  ⚠ >100% FTP — unrealistic!" if s['bike_pct_ftp'] > 1.0 else ""
+            print(f"    Cel: {target_time}  →  splity:")
+            print(f"      Pływanie: {_fmt_hm(s['swim_min'])}  @ {s['swim_pace']}")
+            print(f"      T1+T2:    {_fmt_hm(s['t1t2_min'])}")
+            print(f"      Rower:    {_fmt_hm(s['bike_min'])}  @ {s['bike_kmh']} km/h  →  ~{s['bike_watts']}W ({pct_str}){warn}")
+            print(f"      Bieg:     {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
+
+        wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
+                                   race_bike_pct=race_bike_pct)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
 

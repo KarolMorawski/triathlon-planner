@@ -5,6 +5,39 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.3.0] — 2026-04-05
+
+### Zmienione
+
+#### `generate_plan.py` — Pełna periodyzacja (taka sama jak `season_plan.py`)
+
+Przebudowano `generate_plan()` do tej samej struktury periodyzacji co `generate_race_block()` w `season_plan.py`. Poprzednia wersja generowała **1 sesję/sport/tydzień** (3 treningi/tydzień). Nowa wersja: **2–3 sesje/sport/tydzień**.
+
+**Fazy tygodniowe** (identyczne jak w `season_plan.py`):
+
+| Faza | Sesji/tydzień | Kluczowe sesje |
+|---|---|---|
+| Baza | 6 (2/sport) | Mon Swim-Tech, Tue Bike-Quality, Wed Run-Tempo, Thu Swim-Endurance + Bike-Z2, Sun Run-Long |
+| Budowa | 9 (3/sport) | + Fri Swim-RaceSim + Run-Easy, Sat Bike-Long |
+| Tapering | 6 (2/sport) | Skrócone sesje aktywacyjne |
+| Tydzień wyścigu | 3 | Pre-race: Bike Check + Run Activation + Swim |
+
+**Dodano** convenience wrappers kroków: `_bwu`, `_bcd`, `_bint`, `_brec`, `_rwu`, `_rcd`, `_rint`, `_swu`, `_scd`, `_sint`, `_wkt` — eliminują powtórzenia kodu.
+
+**Nowe CLI args w `main()`:**
+- `--target-time` — docelowy czas ukończenia wyścigu (H:MM:SS)
+- `--cda` — współczynnik oporu aerodynamicznego (domyślnie 0.32 m²)
+
+Przy podaniu `--target-time` skrypt oblicza i wyświetla podziały: tempo biegu + moc rowerowa (z modelem fizycznym) + czas pływania.
+
+#### `test_generate_plan.py` — Aktualizacja testów do nowej periodyzacji
+
+- `test_total_sessions_reasonable`: górny próg zmieniony z 6.0 na 10.0 sesji/tydzień (faza budowy: 9/tydzień)
+- `test_bike_sessions_on_consistent_days`: górny próg zmieniony z 2 na 4 różne dni tygodnia (baza: D1+D3, budowa: D1+D3+D5, tapering: D1+D4)
+- `test_race_week_has_3_sessions` i `test_race_week_sports`: poprawka zero-paddingu tagu (`T{weeks}` → `T{weeks:02d}`) — bez tej poprawki sprint (weeks=8) szukał `TST-T8` zamiast `TST-T08`
+
+---
+
 ## [1.2.0] — 2026-04-05
 
 ### Dodane
