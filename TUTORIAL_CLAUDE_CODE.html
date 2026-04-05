@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Claude Code — Tutorial dla Triathlon Planner</title>
+<style>
+:root{
+  --blue:#1e40af;--blue-l:#dbeafe;--blue-m:#3b82f6;
+  --green:#166534;--green-l:#dcfce7;--green-m:#22c55e;
+  --purple:#5b21b6;--purple-l:#ede9fe;--purple-m:#8b5cf6;
+  --amber:#78350f;--amber-l:#fef3c7;--amber-m:#f59e0b;
+  --red:#991b1b;--red-l:#fee2e2;--red-m:#ef4444;
+  --teal:#0f766e;--teal-l:#ccfbf1;--teal-m:#14b8a6;
+  --gray:#374151;--gray-l:#f3f4f6;--gray-m:#9ca3af;
+  --dark:#0f172a;
+  --r:8px;--sh:0 2px 8px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     background:#f1f5f9;color:#1e293b;line-height:1.6;}
+.page{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%);
+     color:white;padding:32px 36px;border-radius:var(--r);margin-bottom:28px;}
+.hdr-tag{font-size:11px;letter-spacing:2px;opacity:.55;text-transform:uppercase;margin-bottom:6px;}
+.hdr h1{font-size:24px;font-weight:800;margin-bottom:8px;}
+.hdr p{font-size:13px;opacity:.8;line-height:1.7;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);}
+.chip.y{background:rgba(251,191,36,.25);border-color:rgba(251,191,36,.5);color:#fde68a;}
+.chip.g{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.4);color:#86efac;}
+
+/* TOC */
+.toc{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:20px 24px;margin-bottom:24px;}
+.toc-t{font-size:12px;font-weight:700;color:var(--gray-m);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.toc-g{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;}
+@media(max-width:600px){.toc-g{grid-template-columns:1fr;}}
+.toc a{color:var(--blue);font-size:13px;text-decoration:none;font-weight:500;
+        padding:3px 0;display:flex;align-items:center;gap:8px;}
+.toc a:hover{text-decoration:underline;}
+.tn{font-size:10px;font-weight:800;background:var(--blue);color:white;
+    border-radius:50%;width:18px;height:18px;display:flex;align-items:center;
+    justify-content:center;flex-shrink:0;}
+
+/* SECTIONS */
+.sec{background:white;border-radius:var(--r);box-shadow:var(--sh);
+     padding:24px 28px;margin-bottom:20px;}
+.sec-h{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:16px;
+       padding-bottom:10px;border-bottom:2px solid var(--blue-l);}
+h3{font-size:14px;font-weight:700;color:var(--dark);margin:18px 0 8px;}
+h4{font-size:13px;font-weight:700;color:var(--gray);margin:12px 0 5px;}
+p{font-size:13px;color:var(--gray);margin-bottom:10px;}
+ul,ol{padding-left:20px;margin-bottom:10px;}
+li{font-size:13px;color:var(--gray);margin-bottom:5px;}
+
+/* STEPS */
+.steps{display:flex;flex-direction:column;gap:14px;margin:12px 0;}
+.step{display:flex;gap:14px;align-items:flex-start;}
+.sn{width:30px;height:30px;min-width:30px;background:var(--blue);color:white;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;flex-shrink:0;margin-top:1px;}
+.sn.g{background:var(--green-m);}
+.sn.p{background:var(--purple-m);}
+.sb h4{font-size:13px;font-weight:700;color:var(--dark);margin:0 0 4px;}
+.sb p{margin:0;font-size:13px;}
+.sb code{font-size:11px;}
+
+/* CODE */
+pre{background:var(--dark);color:#e2e8f0;padding:14px 16px;border-radius:6px;
+    font-family:'SF Mono',Consolas,monospace;font-size:12px;
+    line-height:1.75;overflow-x:auto;margin:8px 0 12px;position:relative;}
+.cb{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);
+    color:rgba(255,255,255,.7);border:none;border-radius:4px;padding:3px 10px;
+    font-size:11px;cursor:pointer;font-family:sans-serif;}
+.cb:hover{background:rgba(255,255,255,.25);}
+code{font-family:'SF Mono',Consolas,monospace;font-size:12px;
+     background:var(--gray-l);color:var(--dark);padding:2px 6px;border-radius:4px;}
+.cm{color:#64748b;} .ck{color:#93c5fd;} .cv{color:#86efac;}
+.cs{color:#fbbf24;} .cr{color:#f87171;} .cp{color:#c084fc;}
+
+/* ALERTS */
+.alert{padding:11px 14px;border-radius:6px;border-left:4px solid;margin:12px 0;font-size:13px;line-height:1.55;}
+.info{background:var(--blue-l);border-color:var(--blue-m);color:var(--blue);}
+.ok{background:var(--green-l);border-color:var(--green-m);color:var(--green);}
+.warn{background:var(--amber-l);border-color:var(--amber-m);color:var(--amber);}
+.red{background:var(--red-l);border-color:var(--red-m);color:var(--red);}
+.tip{background:var(--purple-l);border-color:var(--purple-m);color:var(--purple);}
+.alert strong{display:block;margin-bottom:3px;font-weight:700;}
+
+/* COMPARE */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+@media(max-width:600px){.compare{grid-template-columns:1fr;}}
+.cmp-card{border-radius:6px;padding:14px;}
+.cmp-a{background:var(--blue-l);border:1.5px solid var(--blue-m);}
+.cmp-b{background:var(--green-l);border:1.5px solid var(--green-m);}
+.cmp-card h4{margin:0 0 8px;font-size:13px;}
+.cmp-card ul{margin:0;padding-left:16px;}
+.cmp-card li{font-size:12px;margin-bottom:3px;}
+
+/* FILE TREE */
+.tree{background:var(--dark);color:#e2e8f0;padding:16px 20px;border-radius:6px;
+      font-family:monospace;font-size:12px;line-height:1.8;margin:10px 0;}
+.t-dir{color:#93c5fd;font-weight:700;}
+.t-file{color:#e2e8f0;}
+.t-imp{color:#86efac;font-weight:700;}
+.t-com{color:#64748b;}
+
+/* WORKFLOW */
+.flow{display:flex;gap:0;margin:16px 0;flex-wrap:wrap;}
+.flow-step{background:var(--blue);color:white;padding:8px 16px;font-size:12px;font-weight:700;
+           position:relative;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%,12px 50%);
+           padding-left:20px;}
+.flow-step:first-child{clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%);
+                        padding-left:16px;}
+.flow-step.g{background:var(--green-m);}
+.flow-step.p{background:var(--purple-m);}
+.flow-step.t{background:var(--teal-m);}
+
+/* SHORTCUT TABLE */
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;}
+th{background:var(--blue);color:white;padding:8px 12px;text-align:left;font-weight:600;}
+td{padding:7px 12px;border-bottom:1px solid var(--gray-l);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#fafafa;}
+td code{font-size:11px;}
+kbd{background:var(--gray-l);border:1px solid #d1d5db;border-radius:4px;
+    padding:2px 6px;font-size:11px;font-family:monospace;}
+
+/* CLAUDE MD PREVIEW */
+.claudemd{background:#1a1a2e;border-radius:6px;padding:20px;margin:10px 0;
+           border-left:4px solid var(--blue-m);}
+.claudemd p{color:#a5b4fc;font-size:12px;font-family:monospace;line-height:1.7;margin:0;}
+
+@media(max-width:600px){
+  .hdr,.sec{padding:20px 16px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-tag">Triathlon Training Planner — Środowisko deweloperskie</div>
+  <h1>Jak zacząć z Claude Code w VS Code</h1>
+  <p>Kompletny tutorial: instalacja Claude Code, konfiguracja projektu,<br>
+     migracja z claude.ai, codzienny workflow. Masz już VSC i rozszerzenie Git.</p>
+  <div class="chips">
+    <span class="chip g">✓ VSC zainstalowany</span>
+    <span class="chip g">✓ Git Extension w VSC</span>
+    <span class="chip g">✓ Node.js zainstalowany</span>
+    <span class="chip y">→ Claude Code do zainstalowania</span>
+    <span class="chip y">→ Projekt do skonfigurowania</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-t">Spis treści</div>
+  <div class="toc-g">
+    <a href="#s1"><span class="tn">1</span>Dlaczego Claude Code do tego projektu</a>
+    <a href="#s5"><span class="tn">5</span>Struktura projektu i CLAUDE.md</a>
+    <a href="#s2"><span class="tn">2</span>Instalacja Claude Code</a>
+    <a href="#s6"><span class="tn">6</span>Pierwsza sesja — migracja z claude.ai</a>
+    <a href="#s3"><span class="tn">3</span>Konfiguracja projektu (Git + foldery)</a>
+    <a href="#s7"><span class="tn">7</span>Codzienny workflow</a>
+    <a href="#s4"><span class="tn">4</span>Claude Code w VSC — Terminal</a>
+    <a href="#s8"><span class="tn">8</span>Skróty i komendy Claude Code</a>
+  </div>
+</div>
+
+<!-- 1. DLACZEGO -->
+<div class="sec" id="s1">
+  <div class="sec-h">🤔 1. Dlaczego Claude Code do tego projektu</div>
+
+  <div class="compare">
+    <div class="cmp-card cmp-a">
+      <h4 style="color:var(--blue)">claude.ai (tutaj)</h4>
+      <ul>
+        <li>Rozmowy strategiczne</li>
+        <li>Generowanie dokumentacji i HTML</li>
+        <li>Upload screenshotów</li>
+        <li>Strava MCP (analiza formy)</li>
+        <li>Connectors (Google Calendar itd.)</li>
+        <li>✗ Nie widzi plików lokalnych</li>
+        <li>✗ Wymaga kopiowania kodu ręcznie</li>
+        <li>✗ Brak historii między sesjami</li>
+      </ul>
+    </div>
+    <div class="cmp-card cmp-b">
+      <h4 style="color:var(--green)">Claude Code (terminal)</h4>
+      <ul>
+        <li>Widzi i edytuje pliki bezpośrednio</li>
+        <li>Uruchamia skrypty lokalnie</li>
+        <li>Widzi błędy w czasie rzeczywistym</li>
+        <li>CLAUDE.md = stały kontekst projektu</li>
+        <li>Git commit po każdej zmianie</li>
+        <li>Refaktoring bez kopiowania</li>
+        <li>✗ Brak Strava MCP</li>
+        <li>✗ Brak interfejsu webowego</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert tip">
+    <strong>Optymalny podział:</strong>
+    <strong>Claude Code</strong> → rozwijanie skryptów Python, bugfixy, dodawanie funkcji, git commits<br>
+    <strong>claude.ai</strong> → planowanie, dokumentacja HTML, screenshot diagnostyka, Strava analiza
+  </div>
+</div>
+
+<!-- 2. INSTALACJA -->
+<div class="sec" id="s2">
+  <div class="sec-h">⚙️ 2. Instalacja Claude Code</div>
+
+  <p>Claude Code instaluje się globalnie przez npm (masz już Node.js).</p>
+
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Otwórz terminal w VSC</h4>
+      <p>W VSC: menu <strong>Terminal → New Terminal</strong> lub skrót <kbd>Ctrl</kbd>+<kbd>`</kbd> (backtick). Otworzy się terminal zintegrowany z VSC.</p>
+    </div></div>
+
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Zainstaluj Claude Code globalnie</h4>
+<pre><span class="cv">npm install -g @anthropic-ai/claude-code</span></pre>
+      <p>Instalacja trwa 1–2 minuty. Po zakończeniu powinno pojawić się potwierdzenie.</p>
+    </div></div>
+
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Sprawdź instalację</h4>
+<pre><span class="cv">claude --version</span></pre>
+      <p>Powinno wyświetlić numer wersji np. <code>1.x.x</code>.</p>
+    </div></div>
+
+    <div class="step"><div class="sn">4</div><div class="sb">
+      <h4>Zaloguj się do Anthropic (pierwsze uruchomienie)</h4>
+<pre><span class="cv">claude</span></pre>
+      <p>Przy pierwszym uruchomieniu Claude Code otworzy przeglądarkę i poprosi o zalogowanie się do konta Anthropic (tego samego co claude.ai). Po autoryzacji wróć do terminala — gotowe.</p>
+    </div></div>
+  </div>
+
+  <div class="alert ok">
+    <strong>✓ Weryfikacja kompletna gdy:</strong>
+    Wpisanie <code>claude</code> w terminalu otwiera interaktywną sesję z promptem <code>&gt;</code>. Wyjście: <kbd>Ctrl</kbd>+<kbd>C</kbd> lub wpisz <code>/exit</code>.
+  </div>
+
+  <div class="alert warn">
+    <strong>Błąd "permission denied" przy npm install -g (macOS/Linux):</strong>
+    Nie używaj sudo. Zamiast tego skonfiguruj npm prefix:<br>
+    <code>mkdir ~/.npm-global && npm config set prefix '~/.npm-global'</code><br>
+    Następnie dodaj do <code>~/.zshrc</code> lub <code>~/.bashrc</code>:<br>
+    <code>export PATH=~/.npm-global/bin:$PATH</code><br>
+    Następnie: <code>source ~/.zshrc</code> i ponów instalację.
+  </div>
+</div>
+
+<!-- 3. GIT I PROJEKT -->
+<div class="sec" id="s3">
+  <div class="sec-h">📁 3. Konfiguracja projektu — Git i struktura folderów</div>
+
+  <h3>Krok 1 — Utwórz folder projektu</h3>
+<pre><span class="cm"># Utwórz folder (dostosuj ścieżkę)</span>
+<span class="cv">mkdir ~/Documents/triathlon-planner</span>
+<span class="cv">cd ~/Documents/triathlon-planner</span>
+
+<span class="cm"># Wypakuj pliki z paczek (season + single race) do tego folderu</span>
+<span class="cm"># Przesuń też CHANGELOG.md który masz z tej sesji</span></pre>
+
+  <h3>Krok 2 — Zainicjalizuj Git</h3>
+<pre><span class="cv">git init</span>
+<span class="cv">git config user.name "Karol Morawski"</span>
+<span class="cv">git config user.email "twoj@email.com"</span></pre>
+
+  <h3>Krok 3 — Utwórz .gitignore</h3>
+<pre><span class="cv">cat > .gitignore << 'EOF'</span>
+<span class="cm"># Python virtual environment</span>
+garmin-venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+<span class="cm"># Garmin session cache</span>
+.garth/
+*.json.bak
+
+<span class="cm"># OS files</span>
+.DS_Store
+Thumbs.db
+
+<span class="cm"># Editor</span>
+.vscode/settings.json
+*.swp
+EOF</span></pre>
+
+  <h3>Krok 4 — Zainstaluj środowisko Python w tym folderze</h3>
+<pre><span class="cv">python3 -m venv garmin-venv</span>
+<span class="cv">source garmin-venv/bin/activate</span>      <span class="cm"># Mac/Linux</span>
+<span class="cv">garmin-venv\Scripts\activate</span>         <span class="cm"># Windows</span>
+<span class="cv">pip install garminconnect</span></pre>
+
+  <h3>Krok 5 — Pierwszy commit</h3>
+<pre><span class="cv">git add .</span>
+<span class="cv">git commit -m "feat: initial commit — triathlon planner v1.0.0"</span></pre>
+
+  <div class="alert info">
+    <strong>Struktura po konfiguracji:</strong>
+    <div class="tree" style="margin-top:8px;">
+<span class="t-dir">triathlon-planner/</span>
+├── <span class="t-imp">CLAUDE.md</span>              <span class="t-com"># ← kluczowy — Claude Code czyta automatycznie</span>
+├── <span class="t-imp">CHANGELOG.md</span>           <span class="t-com"># historia zmian</span>
+├── <span class="t-file">README.md</span>              <span class="t-com"># opis projektu</span>
+├── <span class="t-imp">season_plan.py</span>         <span class="t-com"># generator sezonu</span>
+├── <span class="t-imp">generate_plan.py</span>       <span class="t-com"># generator jednych zawodów</span>
+├── <span class="t-file">season_example.json</span>    <span class="t-com"># przykładowa konfiguracja</span>
+├── <span class="t-file">INSTRUKCJA.html</span>        <span class="t-com"># instrukcja dla użytkowników</span>
+├── <span class="t-file">.gitignore</span>
+└── <span class="t-com">garmin-venv/           # wykluczone z gita</span>
+    </div>
+  </div>
+</div>
+
+<!-- 4. CLAUDE CODE W VSC -->
+<div class="sec" id="s4">
+  <div class="sec-h">🖥️ 4. Claude Code w VSC — Terminal jako główne środowisko</div>
+
+  <p>Claude Code działa w terminalu VSC — masz podgląd kodu obok i terminal poniżej jednocześnie. To jest Twoje główne środowisko pracy.</p>
+
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Otwórz folder projektu w VSC</h4>
+      <p>File → Open Folder → wybierz <code>triathlon-planner/</code><br>
+      Lub z terminala: <code>code ~/Documents/triathlon-planner</code></p>
+    </div></div>
+
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Otwórz terminal zintegrowany</h4>
+      <p><kbd>Ctrl</kbd>+<kbd>`</kbd> (backtick) — terminal otwiera się automatycznie w folderze projektu.</p>
+    </div></div>
+
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Uruchom Claude Code</h4>
+<pre><span class="cv">claude</span></pre>
+      <p>Claude Code widzi automatycznie wszystkie pliki w bieżącym folderze. Wczyta <code>CLAUDE.md</code> jako kontekst.</p>
+    </div></div>
+
+    <div class="step"><div class="sn">4</div><div class="sb">
+      <h4>Rozmawiasz normalnym językiem</h4>
+<pre><span class="cp">&gt;</span> <span class="cs">dodaj obsługę brick workouts do season_plan.py</span>
+<span class="cm">... Claude analizuje plik, proponuje zmiany, pyta o potwierdzenie ...</span>
+<span class="cp">&gt;</span> <span class="cs">tak</span>
+<span class="cm">... Claude edytuje plik bezpośrednio, możesz zobaczyć zmiany w VSC ...</span></pre>
+    </div></div>
+  </div>
+
+  <div class="alert tip">
+    <strong>Układ okna który sprawdza się najlepiej:</strong>
+    W VSC: przeciągnij terminal na prawą stronę (View → Editor Layout → Two Columns). Kod po lewej, terminal z Claude Code po prawej — widzisz zmiany w czasie rzeczywistym.
+  </div>
+</div>
+
+<!-- 5. CLAUDE.MD -->
+<div class="sec" id="s5">
+  <div class="sec-h">📋 5. CLAUDE.md — serce projektu</div>
+
+  <p><code>CLAUDE.md</code> to plik który Claude Code wczytuje automatycznie przy każdym uruchomieniu. Zastępuje całą historię rozmów z claude.ai — zawiera wszystko co Claude musi wiedzieć o projekcie.</p>
+
+  <p>Poniżej gotowy <code>CLAUDE.md</code> dla tego projektu — skopiuj do folderu:</p>
+
+  <pre><span class="cm"># CLAUDE.md — Triathlon Training Planner</span>
+
+<span class="cm">## Projekt</span>
+Generator planów treningowych dla triathlonistów.
+Wgrywa treningi do Garmin Connect przez oficjalne API.
+Dystanse: 70.3, full, olympic, sprint.
+
+<span class="cm">## Stack</span>
+- Python 3.10+
+- garminconnect 0.3.x (pip)
+- venv w folderze: garmin-venv/
+- Aktywacja: source garmin-venv/bin/activate (Mac/Linux)
+
+<span class="cm">## Pliki kluczowe</span>
+- season_plan.py     — główny: plan sezonu, wiele zawodów
+- generate_plan.py   — plan jednych zawodów
+- season_example.json — szablon konfiguracji
+- CHANGELOG.md       — historia zmian (aktualizuj przy każdej zmianie)
+
+<span class="cm">## Garmin API — potwierdzone empirycznie</span>
+
+### Power target (rower) — KRYTYCZNE
+- interval/recovery: workoutTargetTypeId=2, workoutTargetTypeKey="power.zone"
+  targetValueOne/Two = absolutne waty (np. 158.0, 184.0)
+- warmup/cooldown: workoutTargetTypeId=1, workoutTargetTypeKey="no.target"
+  targetValueOne/Two = null
+- BŁĄD: targetTypeId=5 lub power target na warmup → Garmin wyświetla jako kph!
+  (wartość_w_watach × 3.6 = wyświetlane_kph — odkryte przez analizę sieciową)
+
+### Pace target (bieg)
+- workoutTargetTypeId=6, workoutTargetTypeKey="pace.zone"
+- wartości w m/s: 1000 / (minuty*60 + sekundy)
+
+### Sport IDs
+- running=1, cycling=2, swimming=4
+
+### garminconnect 0.3.x
+- Używa self.client zamiast self.garth
+- Wykrywanie: getattr(client, "garth", None) or getattr(client, "client", None)
+- DELETE: http.request("DELETE", "connectapi", "/workout-service/...", api=True)
+- Kalendarz: GET /calendar-service/year/{year}/month/{0-indexed}
+
+<span class="cm">## Konwencje kodu</span>
+- Każdy wyścig ma unikalny PREFIX (np. WARSAW, BERLIN)
+- --reset usuwa tylko treningi z danym prefixem (nie inne plany)
+- Warmup/cooldown zawsze no.target — NIGDY nie dawaj im power/pace target
+- Pliki .zwo generowane oddzielnie (nie ma ich jeszcze w tym repo)
+
+<span class="cm">## Wersjonowanie</span>
+- Aktualizuj CHANGELOG.md przy każdej zmianie
+- Format commitów: feat:, fix:, docs:, refactor:
+- Przykład: git commit -m "fix: warmup cooldown no.target for all bike steps"
+
+<span class="cm">## Planowane funkcje (backlog)</span>
+- Zapis tokenu sesji Garmin (brak potrzeby logowania przy każdym uruchomieniu)
+- Repeat groups (interwały z powtórzeniami w natywnym formacie Garmin)
+- Generator .zwo zintegrowany z pakietem
+- Eksport CSV/PDF
+- Automatyczne FTP z API Garmin/Strava</pre>
+
+  <div class="alert info">
+    <strong>Zapisz jako CLAUDE.md w folderze projektu.</strong>
+    Claude Code wczytuje go automatycznie. Nie musisz go wklejać — wystarczy że istnieje w folderze.
+  </div>
+</div>
+
+<!-- 6. PIERWSZA SESJA -->
+<div class="sec" id="s6">
+  <div class="sec-h">🚀 6. Pierwsza sesja — migracja z claude.ai</div>
+
+  <p>Jak wyglądają pierwsze minuty w Claude Code po migracji z tej rozmowy:</p>
+
+  <div class="steps">
+    <div class="step"><div class="sn g">1</div><div class="sb">
+      <h4>Uruchom Claude Code w folderze projektu</h4>
+<pre><span class="cv">cd ~/Documents/triathlon-planner</span>
+<span class="cv">source garmin-venv/bin/activate</span>
+<span class="cv">claude</span></pre>
+    </div></div>
+
+    <div class="step"><div class="sn g">2</div><div class="sb">
+      <h4>Claude automatycznie wczytuje CLAUDE.md — powiedz mu co chcesz</h4>
+<pre><span class="cp">&gt;</span> <span class="cs">Podsumuj co jest w tym projekcie i jaki jest stan na dziś</span></pre>
+      <p>Claude przeczyta CLAUDE.md, CHANGELOG.md i pliki .py — odpowie z pełnym kontekstem bez żadnego wklejania.</p>
+    </div></div>
+
+    <div class="step"><div class="sn g">3</div><div class="sb">
+      <h4>Przetestuj że skrypty działają</h4>
+<pre><span class="cp">&gt;</span> <span class="cs">Uruchom generate_plan.py w trybie dry-run żeby sprawdzić czy działa</span></pre>
+      <p>Claude wykona komendę i pokaże wynik bezpośrednio w sesji.</p>
+    </div></div>
+
+    <div class="step"><div class="sn g">4</div><div class="sb">
+      <h4>Dodaj pierwszą nową funkcję</h4>
+<pre><span class="cp">&gt;</span> <span class="cs">Dodaj do season_plan.py możliwość eksportu planu do pliku CSV
+   (data, typ sportu, nazwa treningu, czas)</span></pre>
+      <p>Claude pokaże diff, zapyta o potwierdzenie, doda funkcję i zaktualizuje CHANGELOG.md.</p>
+    </div></div>
+
+    <div class="step"><div class="sn g">5</div><div class="sb">
+      <h4>Commit przez Git Extension w VSC</h4>
+      <p>W VSC kliknij ikonę Source Control (lewy pasek, ikona gałęzi). Zobaczysz zmienione pliki. Wpisz wiadomość commita i kliknij ✓.</p>
+      <p>Lub z terminala Claude Code:</p>
+<pre><span class="cp">&gt;</span> <span class="cs">zrób commit z sensowną wiadomością</span></pre>
+    </div></div>
+  </div>
+</div>
+
+<!-- 7. CODZIENNY WORKFLOW -->
+<div class="sec" id="s7">
+  <div class="sec-h">🔄 7. Codzienny workflow</div>
+
+  <h3>Scenariusz A — Rozwijanie skryptów (Claude Code)</h3>
+  <div class="flow">
+    <div class="flow-step">Otwórz VSC</div>
+    <div class="flow-step g">Terminal → claude</div>
+    <div class="flow-step p">Opisz co chcesz</div>
+    <div class="flow-step t">Claude edytuje pliki</div>
+    <div class="flow-step">Git commit</div>
+  </div>
+<pre><span class="cm"># Przykłady poleceń do Claude Code</span>
+<span class="cp">&gt;</span> <span class="cs">dodaj obsługę dystansu "swim-run" do PROFILES</span>
+<span class="cp">&gt;</span> <span class="cs">napraw błąd który pojawia się gdy uruchomię --reset dla nieistniejącego prefixu</span>
+<span class="cp">&gt;</span> <span class="cs">refaktoruj funkcję clean_prefix żeby była szybsza (mniej requestów API)</span>
+<span class="cp">&gt;</span> <span class="cs">zaktualizuj CHANGELOG.md o dzisiejsze zmiany</span></pre>
+
+  <h3>Scenariusz B — Diagnostyka Garmin (claude.ai)</h3>
+  <div class="flow">
+    <div class="flow-step">Screenshot problemu</div>
+    <div class="flow-step g">Wklej na claude.ai</div>
+    <div class="flow-step p">Claude diagnozuje</div>
+    <div class="flow-step t">Pobierz poprawkę</div>
+    <div class="flow-step">Wklej do VSC</div>
+  </div>
+  <p>Nadal używaj claude.ai gdy masz screenshot z Garmin Connect lub potrzebujesz Strava MCP do analizy aktywności.</p>
+
+  <h3>Scenariusz C — Nowy sezon / nowe zawody</h3>
+<pre><span class="cm"># Edytuj plik konfiguracyjny</span>
+<span class="cp">&gt;</span> <span class="cs">dodaj do season_example.json nowe zawody BERLIN 2027-09-15 70.3</span>
+
+<span class="cm"># Testuj</span>
+<span class="cv">python season_plan.py --config season_example.json --dry-run</span>
+
+<span class="cm"># Upload</span>
+<span class="cv">python season_plan.py --config season_example.json --reset</span></pre>
+
+  <div class="alert ok">
+    <strong>Złota zasada workflow:</strong>
+    Zawsze kończ sesję z Claude Code commitem. Nawet małe zmiany — <code>git commit -m "docs: update CHANGELOG"</code>. Historia gita zastępuje historię czatu.
+  </div>
+</div>
+
+<!-- 8. SKRÓTY I KOMENDY -->
+<div class="sec" id="s8">
+  <div class="sec-h">⌨️ 8. Skróty Claude Code i przydatne komendy</div>
+
+  <h3>Komendy Claude Code w sesji</h3>
+  <table>
+    <tr><th>Komenda</th><th>Działanie</th></tr>
+    <tr><td><code>/help</code></td><td>Lista wszystkich komend</td></tr>
+    <tr><td><code>/exit</code> lub <kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Zakończ sesję</td></tr>
+    <tr><td><code>/clear</code></td><td>Wyczyść historię bieżącej sesji</td></tr>
+    <tr><td><code>/cost</code></td><td>Pokaż koszt tej sesji (tokeny)</td></tr>
+    <tr><td><code>/review</code></td><td>Claude przegląda ostatnie zmiany git</td></tr>
+  </table>
+
+  <h3 style="margin-top:20px">Jak mówić do Claude Code — przykłady</h3>
+  <table>
+    <tr><th>Zamiast...</th><th>Powiedz...</th></tr>
+    <tr><td>"Czy możesz może spróbować..."</td><td>"Dodaj funkcję X do pliku Y"</td></tr>
+    <tr><td>Kopiowanie błędu z terminala</td><td>"Uruchom skrypt i napraw błąd który się pojawi"</td></tr>
+    <tr><td>Pytanie jak coś zrobić</td><td>"Zrób X"</td></tr>
+    <tr><td>"Zaktualizuj changelog"</td><td>"Zaktualizuj CHANGELOG.md opisując ostatnie zmiany"</td></tr>
+  </table>
+
+  <h3 style="margin-top:20px">Przydatne skróty VSC przy pracy z Claude Code</h3>
+  <table>
+    <tr><th>Skrót</th><th>Działanie</th></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>`</kbd></td><td>Otwórz/zamknij terminal</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd></td><td>Source Control (Git)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Cofnij zmiany w pliku (przed commitem)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td><td>Command Palette — szybki dostęp do wszystkich funkcji</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>\\</kbd></td><td>Podziel edytor (kod obok siebie)</td></tr>
+  </table>
+
+  <div class="alert tip">
+    <strong>Pro tip — terminal split w VSC:</strong>
+    W panelu terminala kliknij ikonę ⊞ (Split Terminal) żeby mieć dwa terminale obok siebie: jeden z Claude Code, drugi do uruchamiania skryptów i komend git.
+  </div>
+
+  <h3 style="margin-top:20px">GitHub — opcjonalny ale zalecany następny krok</h3>
+  <p>Gdy projekt działa lokalnie, możesz dodać zdalne repozytorium:</p>
+<pre><span class="cm"># Utwórz repo na github.com (przycisk "New repository")</span>
+<span class="cm"># Następnie w terminalu:</span>
+<span class="cv">git remote add origin https://github.com/TWOJ_LOGIN/triathlon-planner.git</span>
+<span class="cv">git branch -M main</span>
+<span class="cv">git push -u origin main</span></pre>
+  <p>Od tego momentu VSC Git Extension synchronizuje zmiany przez przycisk ↑ w pasku statusu.</p>
+
+  <div class="alert ok">
+    <strong>✓ Gotowy checklist przed pierwszą sesją Claude Code:</strong>
+    <ol style="margin-top:6px;padding-left:18px;">
+      <li>claude --version zwraca numer wersji</li>
+      <li>Folder triathlon-planner/ istnieje z plikami</li>
+      <li>CLAUDE.md jest w folderze projektu</li>
+      <li>git init + pierwszy commit wykonane</li>
+      <li>garmin-venv/ aktywne i garminconnect zainstalowane</li>
+      <li>VSC otwarty na folderze projektu</li>
+    </ol>
+  </div>
+</div>
+
+</div>
+
+<script>
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'cb'; btn.textContent = 'Kopiuj';
+  btn.onclick = () => {
+    navigator.clipboard?.writeText(pre.innerText.replace(/^Kopiuj$|^Skopiowano!$/m,'').trim())
+      .then(() => { btn.textContent='Skopiowano!'; setTimeout(()=>btn.textContent='Kopiuj',1800); });
+  };
+  pre.appendChild(btn);
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))?.scrollIntoView({behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>
