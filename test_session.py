@@ -44,6 +44,11 @@ class TestSessionCaching(unittest.TestCase):
             os.remove(self.session_stamp)
         os.rmdir(self.session_dir)
 
+    def test_default_session_max_age_is_8_hours(self):
+        """SESSION_MAX_AGE must be exactly 8 hours (8 * 3600 = 28800 seconds)."""
+        self.assertEqual(_ORIG_MAX_AGE, 8 * 3600,
+            f"Expected SESSION_MAX_AGE=28800 (8h), got {_ORIG_MAX_AGE}")
+
     def test_no_stamp_file_returns_false(self):
         """No stamp file → session invalid."""
         self.assertFalse(os.path.exists(self.session_stamp))
