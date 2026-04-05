@@ -1,0 +1,491 @@
+#!/usr/bin/env python3
+"""
+Triathlon Season Plan Generator for Garmin Connect
+===================================================
+Plan an entire triathlon season with multiple races in one script.
+Each race gets its own training block. Full reset before each upload.
+
+Usage:
+  python3 season_plan.py                        # interactive mode
+  python3 season_plan.py --config season.json   # load from config file
+  python3 season_plan.py --dry-run              # preview without uploading
+  python3 season_plan.py --reset                # full reset then upload
+
+Config file format (season.json):
+  {
+    "ftp": 250,
+    "run_pace": "5:20",
+    "weight_kg": 80,
+    "races": [
+      {"name": "WARSAW",  "date": "2026-06-07", "distance": "70.3"},
+      {"name": "POZNAN",  "date": "2026-08-30", "distance": "70.3"}
+    ]
+  }
+"""
+
+import argparse
+import sys
+import time
+import json
+import getpass
+from datetime import date, timedelta
+from collections import defaultdict
+
+# ─── GARMIN LOGIN ────────────────────────────────────────────────────────────
+
+def login():
+    try:
+        from garminconnect import Garmin
+    except ImportError:
+        print("ERROR: garminconnect not installed.")
+        print("Fix: pip install garminconnect")
+        sys.exit(1)
+    email    = input("Garmin email: ").strip()
+    password = getpass.getpass("Garmin password: ")
+    client   = Garmin(email=email, password=password)
+    try:
+        client.login()
+    except Exception as e:
+        if any(x in str(e) for x in ["MFA","2FA","OTP","code"]):
+            client.login(mfa_code=input("MFA/2FA code: ").strip())
+        else:
+            raise
+    print("✓ Logged in to Garmin Connect\n")
+    return client
+
+def _http(client):
+    return getattr(client, "garth", None) or getattr(client, "client", None)
+
+# ─── RACE PROFILES ───────────────────────────────────────────────────────────
+
+PROFILES = {
+    "70.3":    {"label":"Half Ironman 70.3", "weeks":12, "swim_m":1900, "bike_km":90,  "run_km":21.1, "race_bike_pct":0.82},
+    "full":    {"label":"Full Ironman",      "weeks":16, "swim_m":3800, "bike_km":180, "run_km":42.2, "race_bike_pct":0.72},
+    "olympic": {"label":"Olympic Distance",  "weeks":10, "swim_m":1500, "bike_km":40,  "run_km":10,   "race_bike_pct":0.88},
+    "sprint":  {"label":"Sprint Distance",   "weeks":8,  "swim_m":750,  "bike_km":20,  "run_km":5,    "race_bike_pct":0.95},
+}
+
+# ─── SPORT TYPES ─────────────────────────────────────────────────────────────
+
+def _sport(key):
+    return {"run":  {"sportTypeId":1,"sportTypeKey":"running",  "displayOrder":1},
+            "bike": {"sportTypeId":2,"sportTypeKey":"cycling",  "displayOrder":2},
+            "swim": {"sportTypeId":4,"sportTypeKey":"swimming", "displayOrder":4}}[key]
+
+# ─── TARGET TYPES ────────────────────────────────────────────────────────────
+# CONFIRMED via Garmin API inspection:
+#   id=1  no.target     → no intensity target (warmup/cooldown)
+#   id=2  power.zone    → absolute watts (cycling intervals)
+#   id=4  heart.rate.zone → bpm range
+#   id=6  pace.zone     → m/s (running)
+
+def _no_tgt():
+    return {"workoutTargetTypeId":1,"workoutTargetTypeKey":"no.target","displayOrder":1}
+def _pwr_tgt(lo_w, hi_w):
+    return {"workoutTargetTypeId":2,"workoutTargetTypeKey":"power.zone","displayOrder":2}
+def _pace_tgt(lo_ms, hi_ms):
+    return {"workoutTargetTypeId":6,"workoutTargetTypeKey":"pace.zone","displayOrder":6}
+
+# ─── STEP FACTORIES ──────────────────────────────────────────────────────────
+
+def _step(order, type_id, type_key, end_type, end_val, tgt, v1=None, v2=None, extra=None):
+    s = {
+        "type":"ExecutableStepDTO",
+        "stepOrder":order,
+        "stepType":{"stepTypeId":type_id,"stepTypeKey":type_key,"displayOrder":type_id},
+        "childStepId":None,"description":None,
+        "endCondition":{"conditionTypeId":end_type,
+                        "conditionTypeKey":("time" if end_type==2 else "distance"),
+                        "displayOrder":end_type,"displayable":True},
+        "endConditionValue":float(end_val),
+        "targetType":tgt,
+        "targetValueOne":v1,"targetValueTwo":v2,
+        "targetValueUnit":None,"zoneNumber":None,
+        "secondaryTargetType":None,"secondaryTargetValueOne":None,
+        "secondaryTargetValueTwo":None,"secondaryTargetValueUnit":None,
+        "secondaryZoneNumber":None,"endConditionZone":None,
+        "strokeType":None,"equipmentType":None,
+    }
+    if extra:
+        s.update(extra)
+    return s
+
+def bike_wu(o, mins):
+    return _step(o, 1,"warmup",   2, mins*60, _no_tgt())
+def bike_cd(o, mins):
+    return _step(o, 2,"cooldown", 2, mins*60, _no_tgt())
+def bike_int(o, mins, lo_w, hi_w):
+    return _step(o, 3,"interval", 2, mins*60, _pwr_tgt(lo_w,hi_w), float(lo_w), float(hi_w))
+def bike_rec(o, mins, lo_w, hi_w):
+    return _step(o, 4,"recovery", 2, mins*60, _pwr_tgt(lo_w,hi_w), float(lo_w), float(hi_w))
+
+def run_wu(o, dist_m):
+    return _step(o, 1,"warmup",   3, dist_m, _no_tgt())
+def run_cd(o, dist_m):
+    return _step(o, 2,"cooldown", 3, dist_m, _no_tgt())
+def run_int(o, dist_m, lo_ms, hi_ms):
+    return _step(o, 3,"interval", 3, dist_m, _pace_tgt(lo_ms,hi_ms), lo_ms, hi_ms)
+
+def swim_wu(o, dist_m):
+    return _step(o, 1,"warmup",   3, dist_m, _no_tgt(),
+                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
+                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
+def swim_cd(o, dist_m):
+    return _step(o, 2,"cooldown", 3, dist_m, _no_tgt(),
+                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
+                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
+def swim_int(o, dist_m):
+    return _step(o, 3,"interval", 3, dist_m, _no_tgt(),
+                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
+                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
+
+# ─── WORKOUT BUILDER ─────────────────────────────────────────────────────────
+
+def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
+    sp = _sport(sport_key)
+    return {
+        "sportType": sp,
+        "workoutName": name,
+        "description": desc,
+        "workoutSegments": [{"segmentOrder":1,"sportType":sp,"workoutSteps":steps}],
+        "estimatedDurationInSecs": dur_s or int(sum(s["endConditionValue"] for s in steps)),
+        "estimatedDistanceInMeters": dist_m,
+        "avgTrainingSpeed": None,
+        "workoutProvider": None,
+        "workoutSourceId": None,
+        "isAtp": False,
+    }
+
+def ms_to_pace(ms):
+    spk = 1000.0/ms; m=int(spk//60); s=int(spk%60)
+    return f"{m}:{s:02d}"
+
+def pace_to_ms(s):
+    p = s.strip().split(":")
+    return 1000.0/(int(p[0])*60+int(p[1]))
+
+# ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
+
+def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix):
+    """
+    Returns list of (workout_dict, date_str) for one race block.
+    Counts back `weeks` from race_date.
+    Full reset friendly: all names start with prefix.
+    """
+    prof  = PROFILES[distance]
+    weeks = prof["weeks"]
+    rp    = prof["race_bike_pct"]
+
+    # Power zones
+    z = lambda lo,hi: (round(ftp*lo), round(ftp*hi))
+    Z1 = z(0.40,0.55); Z2 = z(0.60,0.72); Z3 = z(0.76,0.87)
+    Z4 = z(0.88,0.97); Z5 = z(1.02,1.12)
+    ZR = z(rp-0.03, rp+0.03)
+
+    # Run paces (m/s)
+    easy   = run_pace_ms * 0.85
+    z2_run = run_pace_ms * 0.93
+    race   = run_pace_ms
+    tempo  = run_pace_ms * 1.03
+
+    plan_start = race_date - timedelta(weeks=weeks)
+    workouts   = []
+
+    for wk in range(1, weeks+1):
+        wk_start  = plan_start + timedelta(weeks=wk-1)
+        remaining = weeks - wk
+        is_race   = (wk == weeks)
+        is_taper  = (remaining <= 2)
+        is_peak   = (weeks//2 <= wk <= weeks-3)
+        vol = min(1.0, 0.6 + (wk/weeks)*0.4) if not is_taper else max(0.5, 0.6+remaining*0.1)
+
+        def D(offset): return (wk_start+timedelta(days=offset)).strftime("%Y-%m-%d")
+        tag = f"{prefix}-T{wk:02d}"
+
+        # ── BIKE ──────────────────────────────────────────────────
+        if is_race:
+            steps = [bike_wu(1,5), bike_int(2,15,*Z2), bike_cd(3,5)]
+            workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
+                f"FTP={ftp}W | pre-race activation", steps), D(4)))
+        elif is_taper:
+            m = max(30, int(45*vol))
+            steps = [bike_wu(1,10), bike_int(2,m,*Z2), bike_cd(3,5)]
+            workouts.append((_wkt("bike", f"{tag} Taper Spin {m}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | taper", steps), D(1)))
+        elif wk % 3 == 0:
+            steps = [bike_wu(1,15),
+                     bike_int(2,20,*Z4), bike_rec(3,5,*Z1),
+                     bike_int(4,20,*Z4), bike_rec(5,5,*Z1),
+                     bike_int(6,15,*Z4), bike_cd(7,10)]
+            workouts.append((_wkt("bike", f"{tag} Threshold 3x20min @{Z4[0]}-{Z4[1]}W",
+                f"FTP={ftp}W | threshold", steps), D(1)))
+        elif wk % 3 == 1:
+            m = max(60, int(90*vol))
+            steps = [bike_wu(1,15), bike_int(2,m,*ZR), bike_cd(3,10)]
+            workouts.append((_wkt("bike", f"{tag} Race Sim {m}min @{ZR[0]}-{ZR[1]}W",
+                f"FTP={ftp}W | race simulation", steps), D(1)))
+        else:
+            m = max(40, int(60*vol))
+            steps = [bike_wu(1,10), bike_int(2,m,*Z2), bike_cd(3,5)]
+            workouts.append((_wkt("bike", f"{tag} Z2 Endurance {m}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | aerobic base", steps), D(1)))
+
+        # ── RUN ───────────────────────────────────────────────────
+        if is_race:
+            steps = [run_wu(1,500), run_int(2,3000,easy*0.95,easy*1.05), run_cd(3,500)]
+            workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
+                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(4)))
+        elif is_taper:
+            km = max(5, int(8*vol))
+            steps = [run_wu(1,500), run_int(2,km*1000,z2_run*0.97,z2_run*1.03), run_cd(3,500)]
+            workouts.append((_wkt("run", f"{tag} Taper Run {km}km @{ms_to_pace(z2_run)}/km",
+                f"Taper easy run", steps, (km+1)*1000), D(3)))
+        elif wk % 4 == 0:
+            km = min(18, max(8, int(prof["run_km"]*0.85*vol)))
+            steps = [run_wu(1,500), run_int(2,km*1000,z2_run*0.96,z2_run*1.04), run_cd(3,500)]
+            workouts.append((_wkt("run", f"{tag} Long Run {km}km @{ms_to_pace(z2_run)}/km",
+                f"Long Z2 run", steps, (km+1)*1000), D(0)))
+        else:
+            km = min(12, max(6, int(10*vol)))
+            steps = [run_wu(1,1000), run_int(2,km*1000,race*0.98,race*1.02), run_cd(3,1000)]
+            workouts.append((_wkt("run", f"{tag} Tempo {km}km @{ms_to_pace(race)}/km",
+                f"Race pace run {ms_to_pace(race)}/km", steps, (km+2)*1000), D(2)))
+
+        # ── SWIM ──────────────────────────────────────────────────
+        if is_race:
+            steps = [swim_wu(1,200), swim_int(2,400), swim_cd(3,100)]
+            workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
+                "Easy pre-race swim", steps, 700), D(4)))
+        else:
+            base = int(prof["swim_m"]*0.6*vol)
+            dist = max(400, round(base/100)*100)
+            wu_d = min(400, dist//4)
+            main = max(200, dist-wu_d-100)
+            steps = [swim_wu(1,wu_d), swim_int(2,main), swim_cd(3,100)]
+            workouts.append((_wkt("swim", f"{tag} Swim {dist}m",
+                f"Swim training {dist}m", steps, dist), D(4)))
+
+    return workouts
+
+# ─── GARMIN RESET & UPLOAD ───────────────────────────────────────────────────
+
+def clean_prefix(client, prefix):
+    """Remove all workouts/schedules with given prefix. Safe full reset."""
+    http = _http(client)
+    print(f"  Cleaning '{prefix}' from calendar...")
+    removed_s = 0
+    today = date.today()
+    for dm in range(-1, 14):  # -1 month back, 13 months ahead
+        y = today.year + (today.month + dm - 1) // 12
+        m = (today.month + dm - 1) % 12
+        try:
+            data = client.connectapi(f"/calendar-service/year/{y}/month/{m}")
+            for item in data.get("calendarItems", []):
+                if item.get("itemType") != "workout": continue
+                if not item.get("title","").startswith(prefix): continue
+                sid = item.get("id") or item.get("scheduleId")
+                if sid:
+                    try:
+                        http.request("DELETE","connectapi",
+                            f"/workout-service/schedule/{sid}", api=True)
+                        removed_s += 1
+                        time.sleep(0.08)
+                    except: pass
+        except: pass
+    print(f"    Removed {removed_s} scheduled entries")
+
+    print(f"  Cleaning '{prefix}' from library...")
+    workouts = client.get_workouts(start=0, limit=500)
+    to_del   = [w for w in workouts if w.get("workoutName","").startswith(prefix)]
+    removed_l = 0
+    for w in to_del:
+        try:
+            http.request("DELETE","connectapi",
+                f"/workout-service/workout/{w['workoutId']}", api=True)
+            removed_l += 1
+            time.sleep(0.08)
+        except: pass
+    print(f"    Removed {removed_l} library workouts")
+
+def upload_workouts(client, workouts, dry_run=False):
+    ok = fail = 0
+    for wkt, date_str in sorted(workouts, key=lambda x: x[1]):
+        name = wkt["workoutName"]
+        if dry_run:
+            print(f"    [DRY] {date_str}  {name}")
+            ok += 1
+            continue
+        try:
+            result = client.save_workout(wkt)
+            wid    = result.get("workoutId")
+            client.schedule_workout(wid, date_str)
+            ok += 1
+            time.sleep(0.25)
+        except Exception as e:
+            print(f"    ✗ {date_str}  {name}: {e}")
+            fail += 1
+    return ok, fail
+
+# ─── INTERACTIVE CONFIG ───────────────────────────────────────────────────────
+
+def interactive_config():
+    print("═"*60)
+    print("  TRIATHLON SEASON PLANNER")
+    print("═"*60)
+    print()
+
+    ftp = int(input("Your FTP in watts (from MyWhoosh/Garmin): ").strip())
+    run_pace = input("Target race run pace MM:SS/km (e.g. 5:20): ").strip()
+    weight   = float(input("Body weight in kg (e.g. 80): ").strip() or "75")
+
+    races = []
+    print("\nEnter your races (press Enter with empty name when done):")
+    print("Distances: 70.3 / full / olympic / sprint\n")
+
+    i = 1
+    while True:
+        print(f"Race {i}:")
+        name = input("  Short name/prefix (e.g. WARSAW, BERLIN): ").strip().upper()
+        if not name:
+            if not races:
+                print("  Need at least one race!")
+                continue
+            break
+        date_s   = input("  Race date YYYY-MM-DD: ").strip()
+        dist     = input("  Distance (70.3/full/olympic/sprint): ").strip()
+        if dist not in PROFILES:
+            print(f"  Unknown distance, using 70.3")
+            dist = "70.3"
+        races.append({"name": name, "date": date_s, "distance": dist})
+        print(f"  ✓ Added {name} on {date_s} ({PROFILES[dist]['label']})\n")
+        i += 1
+
+    return {"ftp": ftp, "run_pace": run_pace, "weight_kg": weight, "races": races}
+
+# ─── MAIN ────────────────────────────────────────────────────────────────────
+
+def main():
+    p = argparse.ArgumentParser(description="Triathlon Season Planner — multi-race Garmin upload")
+    p.add_argument("--config",   help="JSON config file with races")
+    p.add_argument("--dry-run",  action="store_true", help="Preview without uploading")
+    p.add_argument("--reset",    action="store_true", help="Full reset each prefix before upload")
+    p.add_argument("--ftp",      type=int,   help="FTP override in watts")
+    p.add_argument("--run-pace", help="Run pace override MM:SS")
+    args = p.parse_args()
+
+    # Load config
+    if args.config:
+        with open(args.config) as f:
+            cfg = json.load(f)
+        print(f"Loaded config: {args.config}")
+    else:
+        cfg = interactive_config()
+
+    # CLI overrides
+    if args.ftp:       cfg["ftp"]       = args.ftp
+    if args.run_pace:  cfg["run_pace"]  = args.run_pace
+
+    ftp         = cfg["ftp"]
+    run_pace_ms = pace_to_ms(cfg["run_pace"])
+    weight      = cfg.get("weight_kg", 75)
+    races       = cfg["races"]
+
+    # Check for date conflicts between race blocks
+    all_dates = defaultdict(list)
+    all_workouts_by_prefix = {}
+
+    print(f"\n{'═'*60}")
+    print(f"  SEASON PLAN SUMMARY")
+    print(f"{'═'*60}")
+    print(f"  FTP:       {ftp}W")
+    print(f"  Run pace:  {cfg['run_pace']}/km")
+    print(f"  Races:     {len(races)}")
+    print()
+
+    # Generate all blocks
+    total_workouts = 0
+    for race in races:
+        rdate  = date.fromisoformat(race["date"])
+        dist   = race["distance"]
+        prefix = race["name"]
+        prof   = PROFILES[dist]
+        wks    = prof["weeks"]
+        start  = rdate - timedelta(weeks=wks)
+
+        print(f"  ▸ {prefix:12s}  {race['date']}  {prof['label']}")
+        print(f"    Block: {start} → {race['date']}  ({wks} weeks)")
+
+        wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix)
+        all_workouts_by_prefix[prefix] = wkts
+        total_workouts += len(wkts)
+
+        by_sport = defaultdict(int)
+        for wkt, _ in wkts:
+            by_sport[wkt["sportType"]["sportTypeKey"]] += 1
+        print(f"    Sessions: {len(wkts)} total — "
+              f"🏃{by_sport['running']} biegi  "
+              f"🏊{by_sport['swimming']} pływanie  "
+              f"🚲{by_sport['cycling']} rower")
+        print()
+
+        for wkt, d in wkts:
+            all_dates[d].append(prefix)
+
+    # Warn about overlapping dates
+    overlaps = {d:ps for d,ps in all_dates.items() if len(ps) > 2}
+    if overlaps:
+        print(f"  ⚠ Date overlaps between race blocks (consider different weeks):")
+        for d, ps in sorted(overlaps.items())[:10]:
+            print(f"    {d}: {', '.join(ps)}")
+        print()
+
+    print(f"  Total workouts: {total_workouts}")
+    print(f"  Upload to Garmin: {'DRY RUN' if args.dry_run else 'YES'}")
+    print(f"  Full reset:       {'YES (per prefix)' if args.reset else 'NO'}")
+    print(f"{'═'*60}\n")
+
+    if args.dry_run:
+        print("DRY RUN — showing first 10 workouts per race:\n")
+        for prefix, wkts in all_workouts_by_prefix.items():
+            print(f"  {prefix}:")
+            for wkt, d in sorted(wkts, key=lambda x:x[1])[:10]:
+                sport = wkt["sportType"]["sportTypeKey"][0].upper()
+                print(f"    {d}  [{sport}] {wkt['workoutName']}")
+            print()
+        return
+
+    confirm = input("Upload all to Garmin Connect? (yes/no): ").strip().lower()
+    if confirm not in ("yes","y","tak"):
+        print("Aborted.")
+        return
+
+    print("\nLogging in to Garmin Connect...")
+    client = login()
+
+    total_ok = total_fail = 0
+
+    for race in races:
+        prefix = race["name"]
+        wkts   = all_workouts_by_prefix[prefix]
+        print(f"\n{'─'*50}")
+        print(f"  RACE: {prefix}  ({race['date']}  {race['distance']})")
+        print(f"{'─'*50}")
+
+        if args.reset:
+            print(f"  Resetting '{prefix}'...")
+            clean_prefix(client, prefix)
+
+        print(f"  Uploading {len(wkts)} workouts...")
+        ok, fail = upload_workouts(client, wkts)
+        total_ok   += ok
+        total_fail += fail
+        print(f"  ✓ Done: {ok} uploaded" + (f" | {fail} failed" if fail else ""))
+
+    print(f"\n{'═'*60}")
+    print(f"  SEASON UPLOAD COMPLETE")
+    print(f"  Total uploaded: {total_ok}" + (f" | Errors: {total_fail}" if total_fail else " — no errors"))
+    print(f"  View at: https://connect.garmin.com/app/calendar")
+    print(f"{'═'*60}\n")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,25 @@
+{
+  "ftp": 255,
+  "run_pace": "5:20",
+  "weight_kg": 80,
+  "races": [
+    {
+      "name": "WARSAW",
+      "date": "2026-06-07",
+      "distance": "70.3",
+      "note": "First race of the season"
+    },
+    {
+      "name": "GDYNIA",
+      "date": "2026-07-19",
+      "distance": "70.3",
+      "note": "Peak form"
+    },
+    {
+      "name": "POZNAN",
+      "date": "2026-08-30",
+      "distance": "70.3",
+      "note": "Main goal — sub5h"
+    }
+  ]
+}

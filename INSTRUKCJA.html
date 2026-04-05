@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Triathlon Training Planner — Kompletna instrukcja instalacji</title>
+<style>
+:root{
+  --blue:#1e40af;--blue-l:#dbeafe;--blue-m:#3b82f6;
+  --green:#166534;--green-l:#dcfce7;--green-m:#22c55e;
+  --purple:#5b21b6;--purple-l:#ede9fe;--purple-m:#8b5cf6;
+  --amber:#78350f;--amber-l:#fef3c7;--amber-m:#f59e0b;
+  --red:#991b1b;--red-l:#fee2e2;--red-m:#ef4444;
+  --teal:#0f766e;--teal-l:#ccfbf1;--teal-m:#14b8a6;
+  --gray:#374151;--gray-l:#f3f4f6;--gray-m:#9ca3af;
+  --r:8px;--sh:0 2px 8px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     background:#f1f5f9;color:#1e293b;line-height:1.6;}
+.page{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 55%,#1e40af 100%);
+     color:white;padding:32px 36px;border-radius:var(--r);margin-bottom:28px;}
+.hdr-tag{font-size:11px;letter-spacing:2px;opacity:.55;text-transform:uppercase;margin-bottom:6px;}
+.hdr h1{font-size:24px;font-weight:800;margin-bottom:8px;}
+.hdr p{font-size:13px;opacity:.8;line-height:1.7;}
+.hdr-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.chip{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);}
+.chip.hi{background:rgba(251,191,36,.25);border-color:rgba(251,191,36,.5);color:#fde68a;}
+
+/* ── TOC ── */
+.toc{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:20px 24px;margin-bottom:24px;}
+.toc-title{font-size:12px;font-weight:700;color:var(--gray-m);text-transform:uppercase;
+           letter-spacing:.5px;margin-bottom:12px;}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;}
+@media(max-width:600px){.toc-grid{grid-template-columns:1fr;}}
+.toc a{color:var(--blue);font-size:13px;text-decoration:none;font-weight:500;
+        display:flex;align-items:center;gap:6px;padding:3px 0;}
+.toc a:hover{text-decoration:underline;}
+.toc-num{font-size:10px;font-weight:800;color:var(--gray-m);min-width:18px;}
+
+/* ── SECTIONS ── */
+.sec{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:24px 28px;margin-bottom:20px;}
+.sec-h{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:16px;
+       padding-bottom:10px;border-bottom:2px solid var(--blue-l);
+       display:flex;align-items:center;gap:10px;}
+h3{font-size:14px;font-weight:700;color:#0f172a;margin:18px 0 8px;}
+h4{font-size:13px;font-weight:700;color:var(--gray);margin:12px 0 5px;}
+p{font-size:13px;color:var(--gray);margin-bottom:10px;}
+ul,ol{padding-left:20px;margin-bottom:10px;}
+li{font-size:13px;color:var(--gray);margin-bottom:4px;}
+
+/* ── PACK CARDS ── */
+.pack-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0;}
+@media(max-width:640px){.pack-grid{grid-template-columns:1fr;}}
+.pack-card{border-radius:var(--r);padding:16px;border:2px solid;}
+.pack-a{background:var(--blue-l);border-color:var(--blue-m);}
+.pack-b{background:var(--teal-l);border-color:var(--teal-m);}
+.pack-card h3{margin-top:0;font-size:14px;}
+.pack-card .pack-files{margin-top:10px;display:flex;flex-direction:column;gap:4px;}
+.pack-card .pf{font-family:monospace;font-size:11px;padding:3px 7px;
+               border-radius:4px;background:rgba(255,255,255,.6);}
+
+/* ── OS TABS ── */
+.os-wrap{margin:10px 0;}
+.os-tabs{display:flex;gap:4px;border-bottom:2px solid var(--blue-l);margin-bottom:0;}
+.os-tab{padding:7px 16px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0;
+        cursor:pointer;border:none;background:var(--gray-l);color:var(--gray-m);
+        transition:all .15s;white-space:nowrap;}
+.os-tab.active{background:var(--blue);color:white;}
+.os-content{display:none;padding-top:14px;}
+.os-content.active{display:block;}
+
+/* ── CODE ── */
+pre{background:#0f172a;color:#e2e8f0;padding:14px 16px;border-radius:6px;
+    font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:12px;
+    line-height:1.75;overflow-x:auto;margin:8px 0 14px;position:relative;}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);
+          color:rgba(255,255,255,.7);border:none;border-radius:4px;padding:3px 10px;
+          font-size:11px;cursor:pointer;transition:all .15s;font-family:sans-serif;}
+.copy-btn:hover{background:rgba(255,255,255,.25);color:white;}
+code{font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:12px;
+     background:var(--gray-l);color:#0f172a;padding:2px 6px;border-radius:4px;}
+.cm{color:#64748b;} .ck{color:#93c5fd;} .cv{color:#86efac;} .cs{color:#fbbf24;}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:12px;margin:10px 0;}
+.step{display:flex;gap:14px;align-items:flex-start;}
+.sn{width:28px;height:28px;min-width:28px;background:var(--blue);color:white;
+    border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;margin-top:1px;flex-shrink:0;}
+.sb h4{font-size:13px;font-weight:700;color:#0f172a;margin:0 0 3px;}
+.sb p{font-size:13px;color:var(--gray);margin:0;}
+
+/* ── ALERTS ── */
+.alert{padding:11px 14px;border-radius:6px;border-left:4px solid;margin:12px 0;font-size:13px;line-height:1.55;}
+.alert.info{background:var(--blue-l);border-color:var(--blue-m);color:var(--blue);}
+.alert.warn{background:var(--amber-l);border-color:var(--amber-m);color:var(--amber);}
+.alert.ok{background:var(--green-l);border-color:var(--green-m);color:var(--green);}
+.alert.win{background:#faf5ff;border-color:var(--purple-m);color:var(--purple);}
+.alert.red{background:var(--red-l);border-color:var(--red-m);color:var(--red);}
+.alert strong{display:block;margin-bottom:3px;font-weight:700;}
+
+/* ── TABLES ── */
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;}
+th{background:var(--blue);color:white;padding:8px 12px;text-align:left;font-weight:600;}
+td{padding:7px 12px;border-bottom:1px solid var(--gray-l);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#fafafa;}
+td code{font-size:11px;}
+
+/* ── FILES ── */
+.files{display:flex;flex-direction:column;gap:7px;margin:10px 0;}
+.file{background:var(--gray-l);border-radius:6px;padding:9px 13px;
+      display:flex;align-items:flex-start;gap:12px;}
+.fn{font-family:monospace;font-size:11px;font-weight:700;color:var(--blue);min-width:190px;padding-top:1px;}
+.fd{font-size:12px;color:var(--gray);}
+
+/* ── DIVIDER ── */
+.div-label{display:flex;align-items:center;gap:10px;margin:24px 0 16px;}
+.div-label span{font-size:11px;font-weight:700;text-transform:uppercase;
+                letter-spacing:1px;color:var(--gray-m);white-space:nowrap;}
+.div-label::before,.div-label::after{content:'';flex:1;height:1px;background:var(--gray-l);}
+
+/* ── CMD TABLE ── */
+.cmd-list{display:flex;flex-direction:column;gap:6px;margin:8px 0;}
+.cmd-row{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;}
+.cmd-code{font-family:monospace;font-size:11px;background:#0f172a;color:#86efac;
+          padding:5px 10px;border-radius:5px;white-space:nowrap;}
+.cmd-desc{font-size:12px;color:var(--gray);}
+
+@media(max-width:600px){
+  .hdr{padding:20px;} .sec{padding:18px 16px;}
+  .fn{min-width:auto;width:100%;} .file{flex-direction:column;gap:4px;}
+  .os-tab{padding:6px 10px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-tag">Triathlon Training Tools — Kompletna dokumentacja</div>
+  <h1>Instrukcja instalacji i uruchomienia</h1>
+  <p>Krok po kroku od zera do gotowego planu treningowego w Garmin Connect.<br>
+     Obejmuje obie paczki: plan jednych zawodów i pełny sezon z wieloma startami.</p>
+  <div class="hdr-chips">
+    <span class="chip">🪟 Windows 10/11</span>
+    <span class="chip">🍎 macOS</span>
+    <span class="chip">🐧 Linux</span>
+    <span class="chip hi">Python 3.10+</span>
+    <span class="chip hi">Node.js (Strava MCP)</span>
+    <span class="chip">Garmin Connect</span>
+    <span class="chip">Claude Desktop</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-title">Spis treści</div>
+  <div class="toc-grid">
+    <a href="#s0"><span class="toc-num">0</span>Co jest w paczkach</a>
+    <a href="#s4"><span class="toc-num">4</span>Strava MCP — instalacja</a>
+    <a href="#s1"><span class="toc-num">1</span>Instalacja Python</a>
+    <a href="#s5"><span class="toc-num">5</span>Garmin — logowanie przez terminal</a>
+    <a href="#s2"><span class="toc-num">2</span>Instalacja Node.js</a>
+    <a href="#s6"><span class="toc-num">6</span>Uruchamianie: jedna paczka</a>
+    <a href="#s3"><span class="toc-num">3</span>Środowisko Python + biblioteki</a>
+    <a href="#s7"><span class="toc-num">7</span>Uruchamianie: paczka sezonu</a>
+    <a href="#s8"><span class="toc-num">8</span>Power i pace — jak działa</a>
+    <a href="#s9"><span class="toc-num">9</span>Rozwiązywanie problemów</a>
+  </div>
+</div>
+
+<!-- 0. CO JEST W PACZKACH -->
+<div class="sec" id="s0">
+  <div class="sec-h">📦 0. Co jest w paczkach</div>
+
+  <div class="pack-grid">
+    <div class="pack-card pack-a">
+      <h3 style="color:var(--blue)">Paczka 1 — Jedne zawody</h3>
+      <p style="font-size:12px;margin-top:4px;">Generuje plan na <strong>jeden wyścig</strong>. Interaktywny kreator lub parametry z linii komend.</p>
+      <div class="pack-files">
+        <div class="pf">generate_plan.py &nbsp;← główny skrypt</div>
+        <div class="pf">INSTRUKCJA.html</div>
+      </div>
+    </div>
+    <div class="pack-card pack-b">
+      <h3 style="color:var(--teal)">Paczka 2 — Sezon (wiele zawodów)</h3>
+      <p style="font-size:12px;margin-top:4px;">Generuje plan na <strong>cały sezon</strong> z wieloma startami. Każdy wyścig ma swój blok treningowy.</p>
+      <div class="pack-files">
+        <div class="pf">season_plan.py &nbsp;&nbsp;&nbsp;← główny skrypt</div>
+        <div class="pf">season_example.json ← edytuj i uruchom</div>
+        <div class="pf">generate_plan.py</div>
+        <div class="pf">INSTRUKCJA.html</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert info">
+    <strong>Obie paczki są niezależne.</strong>
+    Możesz korzystać z jednej lub obu jednocześnie. Plany w Garmin nie kolidują ze sobą — każdy wyścig ma unikalny prefix (np. WARSAW-T01, BERLIN-T01).
+  </div>
+</div>
+
+<!-- 1. PYTHON -->
+<div class="sec" id="s1">
+  <div class="sec-h">🐍 1. Instalacja Python</div>
+  <p>Python jest wymagany do uruchomienia skryptów. Wersja minimalna: <strong>3.10</strong>.</p>
+
+  <div class="os-wrap">
+  <div class="os-tabs" data-group="py">
+    <button class="os-tab active" onclick="sw(this,'py-win')">🪟 Windows</button>
+    <button class="os-tab" onclick="sw(this,'py-mac')">🍎 macOS</button>
+    <button class="os-tab" onclick="sw(this,'py-lin')">🐧 Linux</button>
+  </div>
+
+  <div class="os-content active" id="os-py-win">
+    <div class="alert win">
+      <strong>Windows — najczęstszy błąd: brak "Add to PATH"</strong>
+      Pominięcie tego checkboxa powoduje błąd <em>"python is not recognized"</em>. Postępuj dokładnie poniżej.
+    </div>
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb">
+        <h4>Pobierz instalator</h4>
+        <p>Wejdź na <strong>python.org/downloads</strong> → kliknij żółty przycisk <strong>"Download Python 3.x.x"</strong> (wybierz 3.11 lub nowszy).</p>
+      </div></div>
+      <div class="step"><div class="sn">2</div><div class="sb">
+        <h4>ZAZNACZ "Add Python to PATH" przed instalacją</h4>
+        <p>W oknie instalatora, <strong>zanim klikniesz Install Now</strong>, zaznacz checkbox na dole: <strong>"Add Python 3.x to PATH"</strong>. Bez tego Python nie będzie dostępny w terminalu.</p>
+      </div></div>
+      <div class="step"><div class="sn">3</div><div class="sb">
+        <h4>Otwórz terminal i sprawdź instalację</h4>
+        <p>Naciśnij <strong>Win + R</strong>, wpisz <code>cmd</code>, Enter. Następnie:</p>
+<pre><span class="cv">python --version</span>   <span class="cm"># powinno pokazać Python 3.11.x</span>
+<span class="cv">pip --version</span>      <span class="cm"># powinno pokazać pip 23.x</span></pre>
+      </div></div>
+    </div>
+    <div class="alert warn">
+      <strong>Jeśli "python" nadal nie działa po instalacji:</strong>
+      Zamknij i otwórz terminal ponownie (Path zmienia się dopiero po restarcie). Jeśli nadal błąd — zainstaluj Python ze <strong>sklepu Microsoft Store</strong>: wciśnij Win, wpisz "Python", kliknij "Python 3.11" w wynikach Store.
+    </div>
+    <div class="alert win">
+      <strong>Windows — problem z PowerShell "execution of scripts is disabled"</strong>
+      Uruchom PowerShell jako administrator i wpisz:<br>
+      <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code>
+    </div>
+  </div>
+
+  <div class="os-content" id="os-py-mac">
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb">
+        <h4>Sprawdź czy Python jest już zainstalowany</h4>
+        <p>Otwórz Terminal (Cmd+Spacja → "Terminal") i wpisz:</p>
+<pre><span class="cv">python3 --version</span></pre>
+        <p>Jeśli wyświetla <code>Python 3.10+</code> — przejdź od razu do sekcji 3. Jeśli nie — zainstaluj przez Homebrew.</p>
+      </div></div>
+      <div class="step"><div class="sn">2</div><div class="sb">
+        <h4>Zainstaluj Homebrew (menadżer pakietów dla macOS)</h4>
+<pre><span class="cv">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</span></pre>
+        <p>Wklej do Terminala, naciśnij Enter. Proces trwa kilka minut i może poprosić o hasło administratora.</p>
+      </div></div>
+      <div class="step"><div class="sn">3</div><div class="sb">
+        <h4>Zainstaluj Python</h4>
+<pre><span class="cv">brew install python</span>
+<span class="cv">python3 --version</span>   <span class="cm"># weryfikacja</span></pre>
+      </div></div>
+    </div>
+    <div class="alert ok">
+      <strong>Mac M1/M2/M3/M4 (Apple Silicon):</strong>
+      Wszystkie powyższe kroki działają tak samo. Homebrew automatycznie wykrywa architekturę ARM.
+    </div>
+  </div>
+
+  <div class="os-content" id="os-py-lin">
+<pre><span class="cm"># Ubuntu / Debian / Mint</span>
+<span class="cv">sudo apt update && sudo apt install python3 python3-pip python3-venv -y</span>
+
+<span class="cm"># Fedora / RHEL / CentOS</span>
+<span class="cv">sudo dnf install python3 python3-pip -y</span>
+
+<span class="cm"># Arch Linux</span>
+<span class="cv">sudo pacman -S python python-pip</span>
+
+<span class="cm"># Weryfikacja</span>
+<span class="cv">python3 --version && pip3 --version</span></pre>
+  </div>
+  </div>
+</div>
+
+<!-- 2. NODE.JS -->
+<div class="sec" id="s2">
+  <div class="sec-h">🟢 2. Instalacja Node.js (wymagane dla Strava MCP)</div>
+  <p>Node.js jest wymagane <strong>tylko jeśli chcesz używać Strava MCP</strong> do analizy formy przez Claude. Skrypty Garmin działają bez Node.js.</p>
+
+  <div class="os-wrap">
+  <div class="os-tabs" data-group="node">
+    <button class="os-tab active" onclick="sw(this,'node-win')">🪟 Windows</button>
+    <button class="os-tab" onclick="sw(this,'node-mac')">🍎 macOS</button>
+    <button class="os-tab" onclick="sw(this,'node-lin')">🐧 Linux</button>
+  </div>
+
+  <div class="os-content active" id="os-node-win">
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb">
+        <h4>Pobierz Node.js LTS</h4>
+        <p>Wejdź na <strong>nodejs.org</strong> → kliknij <strong>"Download Node.js (LTS)"</strong> (wersja z etykietą "Recommended For Most Users").</p>
+      </div></div>
+      <div class="step"><div class="sn">2</div><div class="sb">
+        <h4>Zainstaluj — zaznacz "Automatically install necessary tools"</h4>
+        <p>W jednym z ekranów instalatora zaznacz opcję instalacji narzędzi dodatkowych. Może otworzyć się dodatkowe okno PowerShell — pozwól mu się uruchomić i poczekaj.</p>
+      </div></div>
+      <div class="step"><div class="sn">3</div><div class="sb">
+        <h4>Sprawdź instalację (nowy terminal)</h4>
+<pre><span class="cv">node --version</span>    <span class="cm"># np. v20.11.0</span>
+<span class="cv">npx --version</span>     <span class="cm"># np. 10.2.4</span></pre>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="os-content" id="os-node-mac">
+<pre><span class="cv">brew install node</span>
+<span class="cv">node --version && npx --version</span>   <span class="cm"># weryfikacja</span></pre>
+  </div>
+
+  <div class="os-content" id="os-node-lin">
+<pre><span class="cm"># Ubuntu / Debian — oficjalne repozytorium NodeSource (zalecane)</span>
+<span class="cv">curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -</span>
+<span class="cv">sudo apt install nodejs -y</span>
+
+<span class="cm"># Fedora</span>
+<span class="cv">sudo dnf install nodejs -y</span>
+
+<span class="cv">node --version && npx --version</span></pre>
+  </div>
+  </div>
+</div>
+
+<!-- 3. SRODOWISKO PYTHON -->
+<div class="sec" id="s3">
+  <div class="sec-h">⚙️ 3. Środowisko Python i biblioteki Garmin</div>
+  <p>Środowisko wirtualne (venv) izoluje biblioteki projektu od reszty systemu. Tworzysz je <strong>jednorazowo</strong>.</p>
+
+  <div class="os-wrap">
+  <div class="os-tabs" data-group="venv">
+    <button class="os-tab active" onclick="sw(this,'venv-win')">🪟 Windows</button>
+    <button class="os-tab" onclick="sw(this,'venv-mac')">🍎 macOS</button>
+    <button class="os-tab" onclick="sw(this,'venv-lin')">🐧 Linux</button>
+  </div>
+
+  <div class="os-content active" id="os-venv-win">
+<pre><span class="cm">:: 1. Przejdź do folderu ze skryptami (dostosuj ścieżkę)</span>
+<span class="cv">cd %USERPROFILE%\Downloads\triathlon</span>
+
+<span class="cm">:: 2. Utwórz środowisko wirtualne</span>
+<span class="cv">python -m venv garmin-venv</span>
+
+<span class="cm">:: 3. Aktywuj środowisko</span>
+<span class="cv">garmin-venv\Scripts\activate</span>
+
+<span class="cm">:: 4. Zainstaluj bibliotekę Garmin</span>
+<span class="cv">pip install garminconnect</span>
+
+<span class="cm">:: Weryfikacja — powinno wypisać OK</span>
+<span class="cv">python -c "import garminconnect; print('OK')"</span></pre>
+    <div class="alert win">
+      <strong>Przy każdym nowym oknie cmd musisz aktywować środowisko:</strong>
+      <code>garmin-venv\Scripts\activate</code><br>
+      Znak <code>(garmin-venv)</code> na początku wiersza potwierdza aktywację.
+    </div>
+  </div>
+
+  <div class="os-content" id="os-venv-mac">
+<pre><span class="cm"># 1. Przejdź do folderu ze skryptami</span>
+<span class="cv">cd ~/Downloads/triathlon</span>
+
+<span class="cm"># 2. Utwórz środowisko wirtualne</span>
+<span class="cv">python3 -m venv garmin-venv</span>
+
+<span class="cm"># 3. Aktywuj środowisko</span>
+<span class="cv">source garmin-venv/bin/activate</span>
+
+<span class="cm"># 4. Zainstaluj bibliotekę Garmin</span>
+<span class="cv">pip install garminconnect</span>
+
+<span class="cm"># Weryfikacja</span>
+<span class="cv">python -c "import garminconnect; print('OK')"</span></pre>
+    <div class="alert ok">
+      <strong>Przy każdym nowym oknie Terminal:</strong>
+      <code>source garmin-venv/bin/activate</code>
+    </div>
+  </div>
+
+  <div class="os-content" id="os-venv-lin">
+<pre><span class="cm"># 1. Przejdź do folderu</span>
+<span class="cv">cd ~/triathlon</span>
+
+<span class="cm"># 2. Utwórz i aktywuj venv</span>
+<span class="cv">python3 -m venv garmin-venv</span>
+<span class="cv">source garmin-venv/bin/activate</span>
+
+<span class="cm"># 3. Zainstaluj bibliotekę</span>
+<span class="cv">pip install garminconnect</span>
+<span class="cv">python -c "import garminconnect; print('OK')"</span></pre>
+  </div>
+  </div>
+</div>
+
+<!-- 4. STRAVA MCP -->
+<div class="sec" id="s4">
+  <div class="sec-h">🏃 4. Strava MCP — konfiguracja w Claude Desktop</div>
+  <p>Strava MCP pozwala Claude analizować Twoje aktywności i dostosować plan do aktualnej formy. Wymaga <strong>Claude Desktop</strong> (aplikacja, nie strona www) i <strong>Node.js</strong> (sekcja 2).</p>
+
+  <h3>Krok 1 — Pobierz Claude Desktop</h3>
+  <p>Wejdź na <strong>claude.ai/download</strong>, pobierz i zainstaluj aplikację dla swojego systemu. Zaloguj się do konta Anthropic.</p>
+
+  <h3>Krok 2 — Znajdź i edytuj plik konfiguracyjny</h3>
+  <div class="os-wrap">
+  <div class="os-tabs" data-group="cfg">
+    <button class="os-tab active" onclick="sw(this,'cfg-win')">🪟 Windows</button>
+    <button class="os-tab" onclick="sw(this,'cfg-mac')">🍎 macOS</button>
+    <button class="os-tab" onclick="sw(this,'cfg-lin')">🐧 Linux</button>
+  </div>
+
+  <div class="os-content active" id="os-cfg-win">
+    <p>Plik: <code>%APPDATA%\Claude\claude_desktop_config.json</code></p>
+    <p>Jak otworzyć: naciśnij <strong>Win+R</strong>, wpisz <code>%APPDATA%\Claude</code>, Enter. Otwórz plik <code>claude_desktop_config.json</code> w Notatniku lub VS Code.</p>
+    <div class="alert win">
+      <strong>Plik nie istnieje?</strong>
+      Utwórz go ręcznie w Notatniku. Zapisz jako: Plik → Zapisz jako → nazwa: <code>claude_desktop_config.json</code>, kodowanie: UTF-8.
+    </div>
+  </div>
+  <div class="os-content" id="os-cfg-mac">
+    <p>Plik: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
+<pre><span class="cm"># Otwórz folder w Finderze</span>
+<span class="cv">open ~/Library/Application\ Support/Claude/</span>
+<span class="cm"># Lub edytuj bezpośrednio</span>
+<span class="cv">nano ~/Library/Application\ Support/Claude/claude_desktop_config.json</span></pre>
+  </div>
+  <div class="os-content" id="os-cfg-lin">
+    <p>Plik: <code>~/.config/Claude/claude_desktop_config.json</code></p>
+<pre><span class="cv">mkdir -p ~/.config/Claude</span>
+<span class="cv">nano ~/.config/Claude/claude_desktop_config.json</span></pre>
+  </div>
+  </div>
+
+  <h3>Krok 3 — Wklej konfigurację Strava MCP</h3>
+<pre>{
+  <span class="ck">"mcpServers"</span>: {
+    <span class="cs">"strava"</span>: {
+      <span class="ck">"command"</span>: <span class="cv">"npx"</span>,
+      <span class="ck">"args"</span>: [<span class="cv">"-y"</span>, <span class="cv">"@r-huijts/strava-mcp-server"</span>]
+    }
+  }
+}</pre>
+  <div class="alert warn">
+    <strong>Masz już inne wpisy w pliku?</strong>
+    Dodaj "strava" wewnątrz istniejącego bloku "mcpServers": {...}. Plik musi być poprawnym JSON — bez przecinków po ostatnim elemencie, bez komentarzy. Sprawdź na <strong>jsonlint.com</strong>.
+  </div>
+
+  <h3>Krok 4 — Utwórz aplikację Strava API (jednorazowo)</h3>
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Wejdź na strava.com/settings/api</h4>
+      <p>Zaloguj się do Strava i otwórz ustawienia API.</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Wypełnij formularz nowej aplikacji</h4>
+      <p>Application Name: dowolne (np. <em>My Claude Tools</em>)<br>
+      Category: dowolna<br>
+      Website: <code>http://localhost</code><br>
+      <strong>Authorization Callback Domain: <code>localhost</code></strong> ← krytyczne!</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Skopiuj Client ID i Client Secret</h4>
+      <p>Będą potrzebne przy pierwszym połączeniu — skrypt MCP o nie poprosi.</p>
+    </div></div>
+  </div>
+
+  <h3>Krok 5 — Połącz konto w Claude Desktop</h3>
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Zrestartuj Claude Desktop</h4>
+      <p>Całkowicie zamknij (nie tylko minimalizuj) i uruchom ponownie po zmianie pliku konfiguracyjnego.</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Powiedz Claude: "Connect my Strava account"</h4>
+      <p>Otworzy się okno przeglądarki. Wpisz Client ID i Client Secret z Strava, kliknij Continue.</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Autoryzuj na stronie Strava</h4>
+      <p>Kliknij "Authorize" → wróć do Claude → gotowe. Dane są zapisane lokalnie i nie trzeba tego powtarzać.</p>
+    </div></div>
+  </div>
+  <div class="alert ok">
+    <strong>Weryfikacja:</strong>
+    Zapytaj Claude: <em>"Am I connected to Strava?"</em><br>
+    Następnie: <em>"How many km did I run this month?"</em> — Claude pobierze dane i odpowie.
+  </div>
+</div>
+
+<!-- 5. GARMIN LOGOWANIE -->
+<div class="sec" id="s5">
+  <div class="sec-h">⌚ 5. Logowanie do Garmin przez terminal</div>
+  <p>Skrypty Python łączą się z Garmin Connect przez oficjalne API. Przy pierwszym uruchomieniu skrypt zapyta o login i hasło. Dane <strong>nie są nigdzie zapisywane</strong> — podajesz je jednorazowo przy każdym uruchomieniu.</p>
+
+  <h3>Co skrypt robi przy logowaniu</h3>
+  <div class="steps">
+    <div class="step"><div class="sn">1</div><div class="sb">
+      <h4>Pyta o email i hasło</h4>
+      <p>Hasło jest wpisywane w trybie ukrytym — znaki nie pojawiają się na ekranie. To standardowe zachowanie dla bezpiecznego wpisywania haseł w terminalu.</p>
+    </div></div>
+    <div class="step"><div class="sn">2</div><div class="sb">
+      <h4>Obsługuje weryfikację dwuetapową (2FA/MFA)</h4>
+      <p>Jeśli masz włączoną weryfikację dwuetapową w Garmin Connect, skrypt automatycznie poprosi o kod po wpisaniu hasła. Wpisz kod z SMS lub aplikacji authenticator.</p>
+    </div></div>
+    <div class="step"><div class="sn">3</div><div class="sb">
+      <h4>Łączy się przez garminconnect (biblioteka Python)</h4>
+      <p>Biblioteka używa oficjalnego API Garmin Connect — dokładnie tak samo jak aplikacja mobilna. Sesja trwa do zamknięcia terminala.</p>
+    </div></div>
+  </div>
+
+  <div class="alert info">
+    <strong>Jak wygląda poprawne logowanie:</strong>
+<pre style="margin:8px 0 0;font-size:11px;"><span class="cs">Garmin email:</span> <span class="cv">jan@example.com</span>
+<span class="cs">Garmin password:</span> <span class="cm">(hasło ukryte — wpisz i naciśnij Enter)</span>
+<span class="cv">✓ Logged in to Garmin Connect</span></pre>
+  </div>
+
+  <div class="alert warn">
+    <strong>Błąd "SSO failure" lub "Invalid credentials":</strong>
+    Sprawdź czy login i hasło są takie same jak na <strong>connect.garmin.com</strong> (nie konto Garmin urządzeń — to może być inne konto). Spróbuj zalogować się ręcznie na stronie — jeśli tam działa, w skrypcie też zadziała.
+  </div>
+
+  <div class="alert red">
+    <strong>Masz włączone Single Sign-On przez Google / Facebook?</strong>
+    Garmin API wymaga bezpośredniego loginu i hasła Garmin. Jeśli logujesz się przez Google, musisz ustawić oddzielne hasło Garmin: connect.garmin.com → Ustawienia konta → Zmień hasło.
+  </div>
+</div>
+
+<!-- 6. PACZKA JEDNE ZAWODY -->
+<div class="sec" id="s6">
+  <div class="sec-h">🎯 6. Uruchamianie: Paczka 1 — Jedne zawody</div>
+  <p>Skrypt <code>generate_plan.py</code> tworzy blok treningowy pod jeden wyścig i wgrywa go do Garmin Connect.</p>
+
+  <h3>Tryb interaktywny (zalecany dla nowych użytkowników)</h3>
+<pre><span class="cm"># Aktywuj środowisko (jeśli jeszcze nie aktywne)</span>
+<span class="cv">source garmin-venv/bin/activate</span>     <span class="cm"># Mac/Linux</span>
+<span class="cv">garmin-venv\Scripts\activate</span>        <span class="cm"># Windows</span>
+
+<span class="cm"># Uruchom — skrypt zapyta o wszystkie dane</span>
+<span class="cv">python generate_plan.py --reset</span></pre>
+
+  <h3>Skrypt zapyta kolejno o:</h3>
+  <table>
+    <tr><th>Pytanie</th><th>Przykład</th><th>Opis</th></tr>
+    <tr><td>Race date</td><td><code>2026-09-15</code></td><td>Data wyścigu w formacie RRRR-MM-DD</td></tr>
+    <tr><td>Distance</td><td><code>70.3</code></td><td><code>70.3</code> / <code>full</code> / <code>olympic</code> / <code>sprint</code></td></tr>
+    <tr><td>FTP in watts</td><td><code>255</code></td><td>Twoje FTP z MyWhoosh lub testu 20-minutowego</td></tr>
+    <tr><td>Run pace MM:SS/km</td><td><code>5:20</code></td><td>Docelowe tempo biegu na wyścigu</td></tr>
+    <tr><td>Workout prefix</td><td><code>BERLIN</code></td><td>Skrót identyfikujący ten plan (wielkie litery)</td></tr>
+    <tr><td>Garmin email</td><td><code>jan@example.com</code></td><td>Login do Garmin Connect</td></tr>
+    <tr><td>Garmin password</td><td><em>(ukryte)</em></td><td>Hasło do Garmin Connect</td></tr>
+  </table>
+
+  <h3 style="margin-top:20px;">Tryb z parametrami (szybszy)</h3>
+<pre><span class="cv">python generate_plan.py</span> \
+  <span class="ck">--race-date</span> <span class="cv">2026-09-15</span> \
+  <span class="ck">--distance</span>  <span class="cv">70.3</span> \
+  <span class="ck">--ftp</span>       <span class="cv">255</span> \
+  <span class="ck">--run-pace</span>  <span class="cv">5:20</span> \
+  <span class="ck">--prefix</span>    <span class="cv">BERLIN</span> \
+  <span class="ck">--reset</span></pre>
+
+  <div class="div-label"><span>Dostępne opcje</span></div>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--reset</div><div class="cmd-desc"><strong>Zalecane.</strong> Usuwa stary plan z tym samym prefixem, wgrywa nowy. Zapobiega duplikatom w kalendarzu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd planu bez wgrywania do Garmin. Pokaże daty i nazwy treningów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--distance full</div><div class="cmd-desc">Full Ironman (16 tygodni). Inne opcje: <code>olympic</code>, <code>sprint</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nadpisuje FTP z trybu interaktywnego.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 4:50</div><div class="cmd-desc">Nadpisuje tempo biegu.</div></div>
+  </div>
+
+  <div class="alert ok" style="margin-top:14px;">
+    <strong>Po zakończeniu:</strong>
+    Otwórz <strong>connect.garmin.com/app/calendar</strong> — wszystkie treningi pojawiają się zaplanowane na właściwych datach.
+  </div>
+</div>
+
+<!-- 7. PACZKA SEZON -->
+<div class="sec" id="s7">
+  <div class="sec-h">📅 7. Uruchamianie: Paczka 2 — Sezon z wieloma zawodami</div>
+  <p>Skrypt <code>season_plan.py</code> obsługuje cały sezon. Każdy wyścig dostaje oddzielny blok treningowy z własnym prefixem. Plany nie kolidują ze sobą.</p>
+
+  <h3>Metoda A — Plik konfiguracyjny JSON (zalecana)</h3>
+  <p>Edytuj plik <code>season_example.json</code> w Notatniku lub innym edytorze tekstowym:</p>
+<pre>{
+  <span class="ck">"ftp"</span>:       <span class="cv">255</span>,
+  <span class="ck">"run_pace"</span>:  <span class="cs">"5:20"</span>,
+  <span class="ck">"weight_kg"</span>: <span class="cv">80</span>,
+  <span class="ck">"races"</span>: [
+    { <span class="ck">"name"</span>: <span class="cs">"WARSAW"</span>,  <span class="ck">"date"</span>: <span class="cs">"2026-06-07"</span>, <span class="ck">"distance"</span>: <span class="cs">"70.3"</span> },
+    { <span class="ck">"name"</span>: <span class="cs">"GDYNIA"</span>,  <span class="ck">"date"</span>: <span class="cs">"2026-07-19"</span>, <span class="ck">"distance"</span>: <span class="cs">"70.3"</span> },
+    { <span class="ck">"name"</span>: <span class="cs">"POZNAN"</span>,  <span class="ck">"date"</span>: <span class="cs">"2026-08-30"</span>, <span class="ck">"distance"</span>: <span class="cs">"70.3"</span> }
+  ]
+}</pre>
+  <p>Następnie uruchom:</p>
+<pre><span class="cv">python season_plan.py --config season_example.json --reset</span></pre>
+
+  <h3>Metoda B — Tryb interaktywny</h3>
+<pre><span class="cv">python season_plan.py --reset</span></pre>
+  <p>Skrypt zapyta o FTP, tempo, a potem o każde zawody po kolei. Naciśnij Enter z pustą nazwą gdy skończysz dodawać zawody.</p>
+
+  <h3>Metoda C — Podgląd bez wgrywania</h3>
+<pre><span class="cv">python season_plan.py --config season_example.json --dry-run</span></pre>
+
+  <div class="div-label"><span>Ważne zasady</span></div>
+  <div class="alert info">
+    <strong>Różne prefixy = brak konfliktów.</strong>
+    WARSAW-T01, BERLIN-T01 to osobne treningi. <code>--reset</code> usuwa tylko treningi z danym prefixem — nie rusza pozostałych. Możesz bezpiecznie resetować jeden wyścig bez wpływu na inne.
+  </div>
+  <div class="alert warn">
+    <strong>Nakładające się daty między blokami (np. Warsaw i Gdynia):</strong>
+    Skrypt wyświetli ostrzeżenie o datach gdzie dwa plany mają treningi tego samego dnia. Możesz je zignorować lub dostosować ręcznie w Garmin Connect. Każdy plan jest poprawny — nakładanie wynika z krótkich przerw między wyścigami.
+  </div>
+</div>
+
+<!-- 8. POWER I PACE -->
+<div class="sec" id="s8">
+  <div class="sec-h">⚡ 8. Jak skrypt konfiguruje moc i tempo w Garmin</div>
+  <p>To był najtrudniejszy aspekt techniczny — Garmin API ma nieintuicyjne kodowanie celów. Skrypt używa wartości potwierdzonych empirycznie przez analizę żądań sieciowych.</p>
+
+  <h3>Power target — treningi rowerowe</h3>
+  <table>
+    <tr><th>Pole API</th><th>Krok interval/recovery</th><th>Krok warmup/cooldown</th></tr>
+    <tr><td><code>workoutTargetTypeId</code></td><td><strong>2</strong> (power.zone)</td><td><strong>1</strong> (no.target)</td></tr>
+    <tr><td><code>targetValueOne</code></td><td>np. <code>158.0</code> (waty)</td><td><code>null</code></td></tr>
+    <tr><td><code>targetValueTwo</code></td><td>np. <code>184.0</code> (waty)</td><td><code>null</code></td></tr>
+  </table>
+  <div class="alert warn">
+    <strong>Dlaczego warmup/cooldown mają "no.target"?</strong>
+    Garmin wyświetla wartości w sekcji warmup/cooldown jako prędkość (kph) gdy mają power target — błąd API odkryty empirycznie (wartość w watach × 3.6 = wyświetlane kph). Tylko kroki interval i recovery poprawnie interpretują absolutne waty.
+  </div>
+
+  <h3>Pace target — treningi biegowe</h3>
+  <table>
+    <tr><th>Pole API</th><th>Wartość</th><th>Przeliczenie</th></tr>
+    <tr><td><code>workoutTargetTypeId</code></td><td><strong>6</strong></td><td>pace.zone</td></tr>
+    <tr><td><code>targetValueOne/Two</code></td><td>np. <code>3.12</code></td><td>m/s = 1000 ÷ (min×60+sek)</td></tr>
+  </table>
+  <p>Przykład: tempo 5:20/km → 1000 ÷ 320 sekund = <code>3.125 m/s</code></p>
+
+  <h3>Strefy mocy (przykład FTP=255W)</h3>
+  <table>
+    <tr><th>Strefa</th><th>% FTP</th><th>Waty</th><th>Zastosowanie</th></tr>
+    <tr><td>Z1 Recovery</td><td>40–55%</td><td>102–140W</td><td>Warmup, cooldown, regeneracja</td></tr>
+    <tr><td>Z2 Endurance</td><td>60–72%</td><td>153–184W</td><td>Baza aerobowa — główna strefa triathlonu</td></tr>
+    <tr><td>Z3 Tempo</td><td>76–87%</td><td>194–222W</td><td>Tempo wytrzymałościowe</td></tr>
+    <tr><td>Z4 Threshold</td><td>88–97%</td><td>224–247W</td><td>Progi, interwały kluczowe</td></tr>
+    <tr><td>Z5 VO2max</td><td>102–112%</td><td>260–286W</td><td>Krótkie interwały maksymalne</td></tr>
+    <tr><td><strong>Race 70.3</strong></td><td><strong>79–85%</strong></td><td><strong>201–217W</strong></td><td><strong>Tempo wyścigu 90km — indywidualnie ±3%</strong></td></tr>
+  </table>
+  <div class="alert info">
+    <strong>Jak znaleźć swoje FTP?</strong>
+    MyWhoosh: Settings → Performance → FTP.<br>
+    Zwift: Menu → Training → FTP.<br>
+    Brak FTP: wykonaj 20-minutowy test maksymalnego wysiłku. FTP = 95% średniej mocy z testu.
+  </div>
+</div>
+
+<!-- 9. TROUBLESHOOTING -->
+<div class="sec" id="s9">
+  <div class="sec-h">🔧 9. Rozwiązywanie problemów</div>
+
+  <h3>"python is not recognized" (Windows)</h3>
+  <p>Python nie jest w PATH. Odinstaluj i zainstaluj ponownie zaznaczając <strong>"Add Python to PATH"</strong>, lub zainstaluj ze sklepu Microsoft Store.</p>
+
+  <h3 style="margin-top:14px">"execution of scripts is disabled" (Windows PowerShell)</h3>
+<pre><span class="cv">Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</span></pre>
+
+  <h3 style="margin-top:14px">"ModuleNotFoundError: No module named 'garminconnect'"</h3>
+  <p>Środowisko wirtualne nie jest aktywne. Uruchom najpierw: <code>source garmin-venv/bin/activate</code> (Mac/Linux) lub <code>garmin-venv\Scripts\activate</code> (Windows). Następnie ponownie uruchom skrypt.</p>
+
+  <h3 style="margin-top:14px">"SSO failure" / "Invalid credentials" przy logowaniu Garmin</h3>
+  <p>Sprawdź czy login i hasło pasują do konta na <strong>connect.garmin.com</strong>. Jeśli logujesz się przez Google/Facebook — musisz najpierw ustawić osobne hasło Garmin w ustawieniach konta.</p>
+
+  <h3 style="margin-top:14px">Skrypt prosi o MFA kod — co wpisać?</h3>
+  <p>Wpisz 6-cyfrowy kod z aplikacji Google Authenticator, Authy lub z SMS od Garmin. Kod jest ważny 30 sekund — wpisz szybko i naciśnij Enter.</p>
+
+  <h3 style="margin-top:14px">Treningi rowerowe pokazują kph zamiast watów</h3>
+  <p>Stare treningi z błędnym formatem są jeszcze w Garmin. Uruchom skrypt z flagą <code>--reset</code> — usunie stare i wgra nowe z poprawnym formatem power target.</p>
+
+  <h3 style="margin-top:14px">Duplikaty treningów w kalendarzu</h3>
+  <p>Zawsze używaj flagi <code>--reset</code>. Skrypt usuwa stare treningi z tym samym prefixem przed wgraniem nowych.</p>
+
+  <h3 style="margin-top:14px">Claude nie widzi narzędzi Strava po konfiguracji</h3>
+  <p>Sprawdź plik <code>claude_desktop_config.json</code> pod kątem błędów JSON (walidator: <strong>jsonlint.com</strong>). Całkowicie zamknij i uruchom ponownie Claude Desktop. Sprawdź czy Node.js jest zainstalowane: <code>npx --version</code>.</p>
+
+  <h3 style="margin-top:14px">Port 8111 zablokowany (Strava MCP nie otwiera przeglądarki)</h3>
+  <p>Na Windowsie dodaj wyjątek w Zaporze Windows Defender dla Node.js. Na Linuksie: <code>sudo ufw allow 8111</code>.</p>
+
+  <div class="alert ok" style="margin-top:20px;">
+    <strong>Szybka diagnostyka — uruchom suche przejście:</strong>
+<pre style="margin:8px 0 0;"><span class="cv">python generate_plan.py --dry-run</span></pre>
+    Jeśli skrypt pokazuje listę treningów bez błędów — instalacja jest poprawna. Błędy pojawiają się dopiero przy połączeniu z Garmin.
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+// OS tab switcher — każda grupa niezależna
+function sw(btn, id) {
+  const group = btn.closest('.os-tabs');
+  group.querySelectorAll('.os-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Znajdź wszystkie os-content po tej grupie (rodzeństwo)
+  let el = group.nextElementSibling;
+  while(el && el.classList.contains('os-content')) {
+    el.classList.remove('active');
+    el = el.nextElementSibling;
+  }
+  const target = document.getElementById('os-' + id);
+  if(target) target.classList.add('active');
+}
+
+// Kopiuj kod z pre
+document.querySelectorAll('pre').forEach(pre => {
+  const btn = document.createElement('button');
+  btn.className = 'copy-btn';
+  btn.textContent = 'Kopiuj';
+  btn.onclick = () => {
+    const text = pre.innerText.replace(/^Kopiuj$|^Skopiowano!$/m,'').trim();
+    navigator.clipboard?.writeText(text).then(() => {
+      btn.textContent = 'Skopiowano!';
+      setTimeout(() => btn.textContent = 'Kopiuj', 1800);
+    });
+  };
+  pre.appendChild(btn);
+});
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))
+      ?.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+});
+</script>
+</body>
+</html>

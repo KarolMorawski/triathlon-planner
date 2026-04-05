@@ -1,0 +1,18 @@
+# Python virtual environment
+garmin-venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Garmin session cache
+.garth/
+*.json.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp
