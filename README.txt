@@ -38,3 +38,339 @@ To recreate the venv from scratch:
     python3 -m venv garmin-venv
     source garmin-venv/bin/activate
     pip install garminconnect
+
+
+==========================================================
+TRAINING PLAN ASSUMPTIONS
+==========================================================
+
+DISTANCES & BLOCK LENGTH
+--------------------------
+  sprint   —  8 weeks  | swim  750m | bike  20km | run  5km
+  olympic  — 10 weeks  | swim 1500m | bike  40km | run 10km
+  70.3     — 12 weeks  | swim 1900m | bike  90km | run 21km
+  full     — 16 weeks  | swim 3800m | bike 180km | run 42km
+
+  Block starts are counted back from the race date.
+  Example: Full Ironman on 2026-09-12 → block starts 2026-05-23.
+
+
+PERIODIZATION PHASES
+---------------------
+  Each block is divided into 4 phases:
+
+  PHASE       WEEKS (16wk example)   SESSIONS/WEEK   VOLUME
+  -------     --------------------   -------------   ------
+  Base        T01–T05 (first ~1/3)       6           60–77% of peak
+  Build       T06–T13 (middle)           9           77–97% of peak
+  Taper       T14–T15 (last 2 before     6           50–60% (short)
+               race week)
+  Race week   T16                        3           pre-race activation only
+
+  Phase boundaries scale proportionally for shorter distances:
+    sprint:  base T1-2 | build T3-5  | taper T6-7  | race T8
+    olympic: base T1-3 | build T4-7  | taper T8-9  | race T10
+    70.3:    base T1-4 | build T5-9  | taper T10-11 | race T12
+    full:    base T1-5 | build T6-13 | taper T14-15 | race T16
+
+  Total sessions per distance:
+    sprint 54  (18 per sport)  |  olympic 69  (23 per sport)
+    70.3   84  (28 per sport)  |  full   117  (39 per sport)
+
+
+WEEKLY SCHEDULE
+----------------
+  BASE phase (6 sessions/week):
+    Mon  Swim Tech (technique & short intervals)
+    Tue  Bike Quality (threshold / race-sim / tempo)
+    Wed  Run Tempo (race pace)
+    Thu  Swim Endurance + Bike Z2 (double day)
+    Sun  Run Long
+
+  BUILD phase (9 sessions/week):
+    Mon  Swim Tech
+    Tue  Bike Quality (threshold / race-sim / VO2max)
+    Wed  Run Tempo
+    Thu  Swim Endurance + Bike Z2 (double day)
+    Fri  Swim Race-Sim + Run Easy (double day)
+    Sat  Bike Long Ride
+    Sun  Run Long
+
+  TAPER phase (6 sessions/week, shortened):
+    Tue  Bike Taper Z3 (short activation)
+    Wed  Run Taper (easy, short)
+    Thu  Swim Taper (endurance, reduced)
+    Fri  Swim Pre-Race (short) + Bike Spin (double day)
+    Sun  Run Taper Easy (very easy)
+
+  RACE week (3 sessions, all on Friday ~3 days before race):
+    Fri  Bike Pre-Race Check (20min Z2)
+         Run Pre-Race Activation (4km easy)
+         Swim Pre-Race (700m easy)
+
+
+POWER ZONES (cycling) — based on FTP input
+--------------------------------------------
+  Zone   % FTP     Role
+  Z1     40–55%    Warmup, cooldown, recovery intervals
+  Z2     60–72%    Aerobic base, long rides, race simulation base
+  Z3     76–87%    Tempo — base-phase quality sessions
+  Z4     88–97%    Threshold — 3×20min intervals
+  Z5    102–112%   VO2max — 4×5min intervals (build phase only)
+  ZR    race±3%    Race simulation (see table below)
+
+  Race bike intensity (ZR center):
+    sprint   95% FTP
+    olympic  88% FTP
+    70.3     82% FTP
+    full     72% FTP
+
+  Example with FTP=234W:
+    Z1  94–129W  |  Z2  140–168W  |  Z3  178–204W
+    Z4  206–227W |  Z5  239–262W  |  ZR  (dist-dependent)
+
+
+BIKE SESSION TYPES
+-------------------
+  Bike Quality (Tue) rotates every 3 weeks (wk % 3):
+    wk%3 == 1  Race Sim     — sustained effort at race pace (ZR)
+                               duration: 45–80min (scales with vol)
+    wk%3 == 0  Threshold    — 3×20min @ Z4 with 5min Z1 recovery
+    wk%3 == 2  Tempo Z3     — base phase, 40–60min @ Z3
+               VO2max 4×5min — build phase, 4×5min @ Z5 with 3min recovery
+
+  Bike Z2 Endurance (Thu)  — 45–70min @ Z2, scales with vol
+  Bike Long Ride (Sat, build only) — 90–150min @ Z2, scales with vol
+  Taper Z3 (Tue)  — 30–45min @ Z3, reduced
+  Taper Spin (Fri) — 20–30min @ Z2, very easy
+
+
+RUN SESSION TYPES
+------------------
+  Run Tempo (Wed)   — race pace, 6–12km (scales with vol, max 12km)
+  Run Long (Sun)    — Z2 pace (93% of race pace), 8–18km
+                      max 18km for full/70.3, max 12km for olympic/sprint
+  Run Easy (Fri, build only) — easy pace (85% of race pace), 6–9km
+  Taper Run (Wed)  — Z2 pace, 5–8km, reduced
+  Taper Easy (Sun) — easy pace, 4–6km, very reduced
+  Pre-Race (Fri)   — 4km easy (500m warmup + 3km + 500m cooldown)
+
+  Run pace zones derived from input race pace:
+    Easy   = race pace × 0.85  (slower)
+    Z2     = race pace × 0.93
+    Race   = input pace (MM:SS/km)
+
+  Example with race pace 5:10/km:
+    Easy   ~6:04/km  |  Z2  ~5:33/km  |  Race  5:10/km
+
+
+SWIM SESSION TYPES
+-------------------
+  All swim sessions: warmup + main set + 100m cooldown.
+  No pace target — distance-based only (Garmin swim format).
+
+  Swim Tech (Mon)
+    — 55% of weekly swim volume
+    — min 600m
+    — purpose: technique drills and short intervals
+
+  Swim Endurance (Thu)
+    — 75% of weekly swim volume
+    — min 800m
+    — purpose: sustained aerobic distance
+
+  Swim Race-Sim (Fri, build only)
+    — scales to ~85% of race swim distance × vol factor
+    — 67–84% of race distance (grows through build phase)
+    — purpose: race-pace effort, approaching race distance
+    Examples at peak build:
+      sprint  ~600m  (race 750m)   | olympic ~1200m (race 1500m)
+      70.3  ~1600m  (race 1900m)  | full    ~3100m (race 3800m)
+
+  Weekly swim volume base = race_swim_distance × 60% × vol_factor
+  where vol_factor rises from 0.63 (week 1) to ~1.0 (peak build week).
+
+  Taper Swim (Thu)   — 40% of race distance × vol, min 800m
+  Taper Pre-Race (Fri) — 25% of race distance × vol, min 400m
+  Pre-Race Swim (race week Fri) — fixed 700m easy
+
+
+VOLUME PROGRESSION
+-------------------
+  Volume factor (vol) controls all distances and durations:
+
+    Base phase:   vol = 0.63 → 0.77  (linear ramp to taper start)
+    Build phase:  vol = 0.77 → 0.97  (continues same ramp)
+    Taper:        vol = 0.60 → 0.50  (steps down with remaining weeks)
+    Race week:    vol = 0.30          (minimal)
+
+  The ramp formula: vol = min(1.0, 0.6 + wk / taper_start_week × 0.4)
+  Peak vol reaches ~1.0 only in the last build week before taper.
+
+
+==========================================================
+ZAŁOŻENIA PLANU TRENINGOWEGO
+==========================================================
+
+DYSTANSE I DŁUGOŚĆ BLOKU
+--------------------------
+  sprint   —  8 tygodni  | pływanie  750m | rower  20km | bieg  5km
+  olympic  — 10 tygodni  | pływanie 1500m | rower  40km | bieg 10km
+  70.3     — 12 tygodni  | pływanie 1900m | rower  90km | bieg 21km
+  full     — 16 tygodni  | pływanie 3800m | rower 180km | bieg 42km
+
+  Blok liczony wstecz od daty wyścigu.
+  Przykład: Full Ironman 2026-09-12 → blok startuje 2026-05-23.
+
+
+FAZY PERIODYZACJI
+------------------
+  Każdy blok podzielony jest na 4 fazy:
+
+  FAZA          TYGODNIE (plan 16-tk.)   SESJI/TYG.   OBJĘTOŚĆ
+  -------       ----------------------   ----------   --------
+  Baza          T01–T05 (pierwsze ~1/3)      6        60–77% szczytu
+  Budowa        T06–T13 (środek)             9        77–97% szczytu
+  Tapering      T14–T15 (ostatnie 2 przed    6        50–60% (skrócone)
+                 tygodniem wyścigu)
+  Tydzień wyśc. T16                          3        tylko aktywacja
+
+  Granice faz skalują się proporcjonalnie dla krótszych dystansów:
+    sprint:  baza T1-2 | budowa T3-5  | taper T6-7  | wyścig T8
+    olympic: baza T1-3 | budowa T4-7  | taper T8-9  | wyścig T10
+    70.3:    baza T1-4 | budowa T5-9  | taper T10-11 | wyścig T12
+    full:    baza T1-5 | budowa T6-13 | taper T14-15 | wyścig T16
+
+  Łączna liczba sesji per dystans:
+    sprint 54  (18 per sport)  |  olympic 69  (23 per sport)
+    70.3   84  (28 per sport)  |  full   117  (39 per sport)
+
+
+TYGODNIOWY ROZKŁAD TRENINGÓW
+------------------------------
+  Faza BAZA (6 sesji/tydzień):
+    Pon  Pływanie Tech (technika i krótkie interwały)
+    Wt   Rower Jakościowy (threshold / race-sim / tempo)
+    Śr   Bieg Tempo (tempo wyścigowe)
+    Czw  Pływanie Wytrzymałościowe + Rower Z2 (dwa treningi)
+    Nd   Bieg Długi
+
+  Faza BUDOWA (9 sesji/tydzień):
+    Pon  Pływanie Tech
+    Wt   Rower Jakościowy (threshold / race-sim / VO2max)
+    Śr   Bieg Tempo
+    Czw  Pływanie Wytrzymałościowe + Rower Z2 (dwa treningi)
+    Pt   Pływanie Race-Sim + Bieg Łatwy (dwa treningi)
+    Sob  Rower Długi
+    Nd   Bieg Długi
+
+  Faza TAPERING (6 sesji/tydzień, skrócone):
+    Wt   Rower Taper Z3 (krótka aktywacja)
+    Śr   Bieg Taper (łatwy, krótki)
+    Czw  Pływanie Taper (wytrzymałościowe, skrócone)
+    Pt   Pływanie Pre-Race (krótkie) + Rower Spin (dwa treningi)
+    Nd   Bieg Taper Łatwy (bardzo spokojny)
+
+  Tydzień WYŚCIGU (3 sesje, wszystkie w piątek ~3 dni przed startem):
+    Pt   Rower Pre-Race Check (20min Z2)
+         Bieg Aktywacja (4km łatwo)
+         Pływanie Pre-Race (700m łatwo)
+
+
+STREFY MOCY (rower) — na podstawie FTP
+----------------------------------------
+  Strefa  % FTP     Zastosowanie
+  Z1      40–55%    Rozgrzewka, schłodzenie, przerwy w interwałach
+  Z2      60–72%    Baza tlenowa, długie jazdy, podstawa race-sim
+  Z3      76–87%    Tempo — sesje jakościowe w fazie bazy
+  Z4      88–97%    Threshold — interwały 3×20min
+  Z5     102–112%   VO2max — interwały 4×5min (tylko faza budowy)
+  ZR     wyścig±3%  Symulacja wyścigu (patrz tabela poniżej)
+
+  Intensywność jazdy wyścigowej (środek ZR):
+    sprint   95% FTP
+    olympic  88% FTP
+    70.3     82% FTP
+    full     72% FTP
+
+  Przykład dla FTP=234W:
+    Z1  94–129W  |  Z2  140–168W  |  Z3  178–204W
+    Z4  206–227W |  Z5  239–262W  |  ZR  (zależne od dystansu)
+
+
+TYPY SESJI ROWEROWYCH
+----------------------
+  Rower Jakościowy (Wt) rotuje co 3 tygodnie (numer_tygodnia % 3):
+    t%3 == 1  Race Sim      — ciągły wysiłek w tempie wyścigu (ZR)
+                               czas: 45–80min (skaluje się z vol)
+    t%3 == 0  Threshold     — 3×20min @ Z4 z 5min przerwy @ Z1
+    t%3 == 2  Tempo Z3      — faza bazy, 40–60min @ Z3
+               VO2max 4×5min — faza budowy, 4×5min @ Z5 z 3min przerwy
+
+  Rower Z2 Wytrzymałość (Czw) — 45–70min @ Z2, skaluje się z vol
+  Rower Długi (Sob, tylko budowa) — 90–150min @ Z2, skaluje się z vol
+  Taper Z3 (Wt)  — 30–45min @ Z3, skrócony
+  Taper Spin (Pt) — 20–30min @ Z2, bardzo spokojny
+
+
+TYPY SESJI BIEGOWYCH
+---------------------
+  Bieg Tempo (Śr)    — tempo wyścigowe, 6–12km (skaluje z vol, max 12km)
+  Bieg Długi (Nd)    — tempo Z2 (93% tempa wyścigowego), 8–18km
+                       max 18km dla full/70.3, max 12km dla olympic/sprint
+  Bieg Łatwy (Pt, tylko budowa) — łatwe tempo (85% wyścigowego), 6–9km
+  Bieg Taper (Śr)   — tempo Z2, 5–8km, skrócony
+  Bieg Taper Łatwy (Nd) — łatwe tempo, 4–6km, mocno skrócony
+  Pre-Race (Pt)      — 4km łatwo (500m rozgrzewka + 3km + 500m schłodzenie)
+
+  Strefy tempa biegu na podstawie podanego tempa wyścigowego:
+    Łatwe  = tempo wyścigowe × 0.85  (wolniej)
+    Z2     = tempo wyścigowe × 0.93
+    Wyścig = podane tempo (MM:SS/km)
+
+  Przykład dla tempa 5:10/km:
+    Łatwe  ~6:04/km  |  Z2  ~5:33/km  |  Wyścig  5:10/km
+
+
+TYPY SESJI PŁYWACKICH
+----------------------
+  Wszystkie sesje: rozgrzewka + główny zestaw + 100m schłodzenie.
+  Brak celu tempa — tylko dystans (format pływania Garmin).
+
+  Pływanie Tech (Pon)
+    — 55% tygodniowej objętości pływania
+    — min 600m
+    — cel: technika i krótkie interwały
+
+  Pływanie Wytrzymałościowe (Czw)
+    — 75% tygodniowej objętości pływania
+    — min 800m
+    — cel: ciągły dystans tlenowy
+
+  Pływanie Race-Sim (Pt, tylko budowa)
+    — skaluje do ~85% dystansu pływackiego wyścigu × współczynnik vol
+    — 67–84% dystansu wyścigu (rośnie przez fazę budowy)
+    — cel: wysiłek w tempie wyścigowym, zbliżanie się do dystansu
+    Przykłady przy szczycie budowy:
+      sprint  ~600m  (wyścig 750m)   | olympic ~1200m (wyścig 1500m)
+      70.3  ~1600m  (wyścig 1900m)  | full    ~3100m (wyścig 3800m)
+
+  Tygodniowa objętość bazy = dystans_pływacki × 60% × współczynnik_vol
+  Współczynnik vol rośnie od 0.63 (tydzień 1) do ~1.0 (szczyt budowy).
+
+  Pływanie Taper (Czw)    — 40% dystansu wyścigu × vol, min 800m
+  Pływanie Pre-Race (Pt)  — 25% dystansu wyścigu × vol, min 400m
+  Pre-Race Swim (piątek tygodnia wyścigowego) — stałe 700m łatwo
+
+
+PROGRESJA OBJĘTOŚCI
+--------------------
+  Współczynnik vol kontroluje wszystkie dystanse i czasy trwania:
+
+    Faza bazy:    vol = 0.63 → 0.77  (liniowy wzrost do startu taperu)
+    Faza budowy:  vol = 0.77 → 0.97  (kontynuacja tego samego wzrostu)
+    Tapering:     vol = 0.60 → 0.50  (spada wraz z pozostałymi tygodniami)
+    Tydzień wyśc: vol = 0.30          (minimalny)
+
+  Wzór: vol = min(1.0, 0.6 + numer_tygodnia / tydzień_startu_taperu × 0.4)
+  Szczyt vol ~1.0 osiągany tylko w ostatnim tygodniu budowy przed taperem.

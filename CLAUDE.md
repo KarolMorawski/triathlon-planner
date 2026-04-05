@@ -96,6 +96,10 @@ client.connectapi(f"/calendar-service/year/{year}/month/{0_indexed_month}")
 - Z5: 102-112% FTP (260-286W) — VO2max
 - Race 70.3: 79-85% FTP (~82% środek) — tempo wyścigu 90km
 
+### README.txt — konwencja językowa
+- Po każdej sekcji angielskiej dodawaj jej polskie tłumaczenie
+- Zawsze obie wersje: najpierw angielska, bezpośrednio pod nią polska
+
 ### Format commitów git
 - feat: nowa funkcja
 - fix: naprawa błędu

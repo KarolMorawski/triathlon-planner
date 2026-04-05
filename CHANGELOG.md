@@ -5,6 +5,65 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] — 2026-04-05
+
+### Dodane
+
+#### `test_generate_plan.py` — Testy jednostkowe generatora planu
+- 33 testy pokrywające całą logikę generowania planów (bez logowania do Garmin)
+- Uruchamianie: `python -m unittest test_generate_plan -v`
+- Klasy testowe:
+  - `TestPaceConversion` — przeliczanie MM:SS ↔ m/s, round-trip z tolerancją float
+  - `TestWorkoutStructure` — wymagane pola w workout/step, nazwy z prefixem, kolejność stepów
+  - `TestGarminTargetRules` — krytyczne reguły API: warmup/cooldown musi mieć `no.target` (id=1, wartości null), interwały rowerowe = `power.zone` (id=2) w watach, interwały biegowe = `pace.zone` (id=6) w m/s, pływanie = `no.target`
+  - `TestPowerZones` — wartości Z1/Z2/Z4 zgodne z procentami FTP
+  - `TestSessionCounts` — równa liczba sesji per sport, dokładnie 3 sesje w tygodniu wyścigu
+  - `TestDatesAndScheduling` — daty w bloku treningowym, format YYYY-MM-DD, spójne dni tygodnia
+  - `TestSwimStructure` — `strokeType`/`equipmentType`, `endCondition=distance`, rozsądne dystanse
+  - `TestVolumeProgression` — objętość pływania rośnie przez fazę budowy (olympic/70.3/full)
+  - `TestFTPSensitivity` — wyższy FTP → wyższe waty; szybsze tempo → wyższe m/s
+
+### Naprawione
+
+#### `generate_plan.py` — Sprint swim floor zbyt wysoki
+- Zmieniono `max(400, ...)` na `max(200, ...)` dla dystansu pływackiego tygodnia
+- Poprzedni floor 400m blokował progresję wolumenu dla sprintu (wyścig 750m), gdzie szczyt budowy dawał ~450m — objętość nie rosła przez cały blok
+
+---
+
+## [1.1.0] — 2026-04-05
+
+### Zmienione
+
+#### `season_plan.py` — Pełna periodyzacja sesji treningowych
+
+Przebudowano generator bloków treningowych (`generate_race_block`). Poprzednia wersja generowała **1 sesję/sport/tydzień** (3 treningi/tydzień łącznie). Nowa wersja wprowadza periodyzację z **2–3 sesjami/sport/tydzień**.
+
+**Fazy tygodniowe:**
+
+| Faza | Tygodnie (16-tk. plan) | Sesji/tydzień | Opis |
+|---|---|---|---|
+| Baza | 1–5 | 6 (2/sport) | Mon Swim-Tech, Tue Bike-Quality, Wed Run-Tempo, Thu Swim-Endurance + Bike-Z2, Sun Run-Long |
+| Budowa | 6–13 | 9 (3/sport) | + Fri Swim-RaceSim + Run-Easy, Sat Bike-Long |
+| Tapering | 14–15 | 6 (2/sport) | Skrócone sesje aktywacyjne |
+| Tydzień wyścigu | 16 | 3 | Pre-race: Bike Check + Run Activation + Swim (Piątek) |
+
+**Nowe typy sesji:**
+- `Swim Tech` — technika i krótkie interwały (poniedziałek)
+- `Swim Endurance` — wytrzymałość pływacka (czwartek)
+- `Swim Race-Sim` — symulacja dystansu wyścigowego (piątek, faza budowy)
+- `Z2 Endurance` bike — sesja tlenowa (czwartek, obok pływania)
+- `Long Ride` bike — długa jazda (sobota, faza budowy)
+- `Easy Run` — lekki bieg regeneracyjny (piątek, faza budowy)
+- `VO2max 4x5min` bike — zastępuje Z3 Tempo w fazie budowy przy `wk % 3 == 2`
+- `Taper Z3` / `Taper Spin` / `Taper Easy` — skrócone sesje w fazie taperu
+
+**Wynik dla Full Ironman (16 tygodni):** 117 sesji (39 bieg / 39 pływanie / 39 rower) vs. 48 w v1.0.0.
+
+**Poprawka drobna:** próg ostrzeżenia o nakładających się datach podniesiony z `> 2` do `> 3` (double-day w czwartek i piątek to zamierzone zachowanie).
+
+---
+
 ## [1.0.0] — 2026-04-03
 
 ### Pierwsza wersja produkcyjna

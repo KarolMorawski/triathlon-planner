@@ -414,7 +414,7 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
 
         # ── SWIM WORKOUTS ──────────────────────────────────────────
         swim_dist = int(profile["swim_m"] * 0.6 * vol)
-        swim_dist = max(400, round(swim_dist / 100) * 100)
+        swim_dist = max(200, round(swim_dist / 100) * 100)
 
         if is_race_week:
             steps = [
