@@ -729,5 +729,19 @@ def main():
     print(f"  View at: https://connect.garmin.com/app/calendar")
     print(f"{'═'*60}\n")
 
+    # ── MyWhoosh / Zwift .zwo files ───────────────────────────────────────────
+    zwo_ans = input("Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie): ").strip().lower()
+    if zwo_ans in ("tak", "t", "yes", "y"):
+        try:
+            from mywhoosh_season import generate_for_distance
+            print()
+            for race in races:
+                prefix   = race["name"]
+                distance = race["distance"]
+                out      = f"./mywhoosh_{prefix.lower()}"
+                generate_for_distance(prefix, distance, ftp, out)
+        except ImportError:
+            print("  Brak pliku mywhoosh_season.py — umieść go w tym samym folderze.")
+
 if __name__ == "__main__":
     main()

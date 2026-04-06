@@ -13,6 +13,57 @@ COMMANDS:
 DISTANCES: 70.3 / full / olympic / sprint
 FULL GUIDE: open INSTRUKCJA.html in Chrome/Firefox
 
+MYWHOOSH / ZWIFT .ZWO FILES
+============================
+After uploading to Garmin, each script asks:
+  "Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie)"
+  (English version: "Generate .zwo files for MyWhoosh/Zwift? (yes/no)")
+
+Answer "tak" / "yes" to generate .zwo workout files automatically.
+Files are saved to: ./mywhoosh_{PREFIX}/
+
+You can also run the generator standalone:
+  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
+  python3 mywhoosh_season.py --list      (show all available plans)
+
+Copy generated files to:
+  Mac:     ~/Documents/MyWhoosh/Workouts/
+  Windows: Documents\MyWhoosh\Workouts\
+  Zwift:   ~/Documents/Zwift/Workouts/<YOUR_ID>/
+
+Workouts per distance:
+  sprint   — 8 workouts   olympic — 10 workouts
+  70.3     — 12 workouts  full    — 16 workouts
+
+Workout types: Z2 Endurance, Threshold 2x/3x20min, Race Sim,
+  Over-Under, VO2max 6x3min, Brick, Taper Spin, Pre-Race Check
+
+---
+
+PLIKI .ZWO DLA MYWHOOSH / ZWIFT
+==================================
+Po wgraniu planu do Garmin każdy skrypt pyta:
+  "Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie)"
+
+Odpowiedz "tak" aby wygenerować pliki automatycznie.
+Pliki zapisywane do: ./mywhoosh_{PREFIX}/
+
+Można też uruchomić generator osobno:
+  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
+  python3 mywhoosh_season.py --list      (lista dostępnych planów)
+
+Skopiuj pliki do:
+  Mac:     ~/Documents/MyWhoosh/Workouts/
+  Windows: Documents\MyWhoosh\Workouts\
+  Zwift:   ~/Documents/Zwift/Workouts/<TWOJ_ID>/
+
+Liczba treningów per dystans:
+  sprint   —  8 treningów  olympic — 10 treningów
+  70.3     — 12 treningów  full    — 16 treningów
+
+Typy sesji: Z2 Endurance, Threshold 2x/3x20min, Race Sim,
+  Over-Under, VO2max 6x3min, Brick, Taper Spin, Pre-Race Check
+
 USING garmin-venv (recommended)
 ================================
 The repo includes a ready-made virtual environment in garmin-venv/.

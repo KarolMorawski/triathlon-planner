@@ -5,6 +5,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.6.0] — 2026-04-06
+
+### Dodane
+
+#### `mywhoosh_season.py` — Generator plików .zwo dla MyWhoosh / Zwift
+- Poprawiony format .zwo: `<Warmup>`, `<Cooldown>`, `<SteadyState>`, `<IntervalsT>` zamiast `<Ramp>`
+- Poprawny tag `<name>` (poprzednio błędnie `<n>`)
+- Wiadomości tekstowe z wskazówkami treningowymi (`<textevent>`)
+- Nowa funkcja `generate_for_distance(prefix, distance, ftp, output_dir)` — generuje plan na podstawie dystansu (sprint/olympic/70.3/full), a nie zakodowanej nazwy wyścigu
+- Plany według dystansu: sprint (8 treningów), olympic (10), 70.3 (12), full (16)
+- CLI: `--distance` / `--race` / `--list` / `--ftp` / `--output` / `--prefix`
+
+#### Integracja .zwo z głównymi skryptami (wszystkie 4 wersje)
+- Po wgraniu planu do Garmin — pytanie: "Wygenerować pliki .zwo dla MyWhoosh/Zwift?"
+- Dotyczy: `generate_plan.py`, `season_plan.py`, `generate_plan_en.py`, `season_plan_en.py`
+- Pliki generowane do folderu `./mywhoosh_{prefix}/`
+- W `season_plan` — generuje osobny folder dla każdego wyścigu w sezonie
+
+---
+
 ## [1.5.0] — 2026-04-05
 
 ### Dodane

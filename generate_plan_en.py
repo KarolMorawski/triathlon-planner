@@ -662,5 +662,15 @@ def main():
     upload_all(client, workouts)
     print(f"✓ Done! View your plan at: https://connect.garmin.com/app/calendar\n")
 
+    # ── MyWhoosh / Zwift .zwo files ───────────────────────────────────────────
+    zwo_ans = input("Generate .zwo files for MyWhoosh/Zwift? (yes/no): ").strip().lower()
+    if zwo_ans in ("yes", "y", "tak", "t"):
+        try:
+            from mywhoosh_season import generate_for_distance
+            out = f"./mywhoosh_{prefix.lower()}"
+            generate_for_distance(prefix, distance, ftp, out)
+        except ImportError:
+            print("  mywhoosh_season.py not found — place it in the same folder.")
+
 if __name__ == "__main__":
     main()

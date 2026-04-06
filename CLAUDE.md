@@ -14,10 +14,27 @@ Obsługiwane dystanse: 70.3, full, olympic, sprint.
 
 ## Pliki kluczowe
 - season_plan.py      — główny: plan sezonu, wiele zawodów
+- season_plan_en.py   — angielska wersja season_plan.py
 - generate_plan.py    — plan jednych zawodów (interaktywny lub CLI)
+- generate_plan_en.py — angielska wersja generate_plan.py
+- mywhoosh_season.py  — generator plików .zwo dla MyWhoosh / Zwift
 - season_example.json — szablon konfiguracji sezonu
 - CHANGELOG.md        — historia zmian (aktualizuj przy każdej zmianie)
 - INSTRUKCJA.html     — instrukcja dla użytkowników końcowych
+
+## Format .zwo (MyWhoosh / Zwift) — potwierdzone empirycznie
+```
+POPRAWNIE:
+  <Warmup>      dla rozgrzewki (PowerLow → PowerHigh)
+  <Cooldown>    dla schłodzenia (PowerLow → PowerHigh)
+  <SteadyState> dla bloków stałej mocy (Power jako % FTP, np. 0.82)
+  <IntervalsT>  dla interwałów (OnPower/OffPower jako % FTP)
+  <name>        tag nazwy treningu
+
+BŁĘDY których unikamy:
+  <Ramp>   — nie obsługiwany poprawnie przez MyWhoosh
+  <n>      — błędny tag nazwy (powinno być <name>)
+```
 
 ## Garmin API — potwierdzone empirycznie przez analizę sieciową
 
