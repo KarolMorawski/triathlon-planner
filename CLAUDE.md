@@ -93,6 +93,25 @@ http.request("DELETE", "connectapi", f"/workout-service/workout/{wid}", api=True
 client.connectapi(f"/calendar-service/year/{year}/month/{0_indexed_month}")
 ```
 
+### Logowanie — OAuth token (garth.dumps)
+```python
+TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+
+# Pierwsze logowanie — zapisz token
+client = Garmin(email, password, return_on_mfa=True)
+result, state = client.login()
+if result == "needs_mfa":
+    client.resume_login(state, mfa_code)
+open(TOKEN_FILE, "w").write(client.garth.dumps())
+
+# Kolejne uruchomienia — wczytaj token (bez SSO, bez ryzyka 429)
+client = Garmin()
+client.login(tokenstore=open(TOKEN_FILE).read())
+```
+- Token ważny tygodnie/miesiące, garth odświeża go automatycznie
+- NIE używać starego podejścia (login hasłem przy każdym uruchomieniu) — powoduje 429
+- Token współdzielony przez wszystkie 4 skrypty (`~/.garmin_token`)
+
 ### schedule vs workout
 - workoutId = ID treningu w bibliotece Garmin
 - scheduleId = ID zaplanowania w kalendarzu (oddzielne od workoutId)

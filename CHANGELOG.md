@@ -5,6 +5,37 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.7.0] — 2026-04-06
+
+### Naprawione
+
+#### Logowanie Garmin — OAuth token zamiast 8h cache (wszystkie 4 skrypty)
+
+**Problem:** Wszystkie skrypty logowały się przez SSO przy każdym wygaśnięciu 8h cache, co prowadziło do błędu `429 Rate Limit` (Garmin blokuje IP/konto po zbyt wielu próbach).
+
+**Rozwiązanie:** Podejście z `garth.dumps()` wzorowane na projekcie [export2garmin](https://github.com/RobertWojtowicz/export2garmin):
+- Pierwsze logowanie: zapisuje token OAuth do `~/.garmin_token` przez `client.garth.dumps()`
+- Kolejne uruchomienia: wczytują token przez `client.login(tokenstore=string)` — bez SSO, bez hasła
+- Token ważny tygodnie/miesiące, garth odświeża go automatycznie
+- MFA obsługiwane przez `return_on_mfa=True` + `resume_login()`
+
+Dotyczy: `generate_plan.py`, `season_plan.py`, `generate_plan_en.py`, `season_plan_en.py`
+
+#### `generate_plan.py` / `generate_plan_en.py` — brakujący `import os`
+- Dodano `import os` (brakowało przy poprzednim refaktoringu SESSION_DIR → TOKEN_FILE)
+
+### Dodane
+
+#### `CLAUDE.md` — reguła logowania OAuth
+- Udokumentowany wzorzec `garth.dumps()` / `login(tokenstore=string)`
+- Ostrzeżenie: nie używać logowania hasłem przy każdym uruchomieniu
+
+#### `README.txt` — sekcja logowania Garmin (EN + PL)
+- Wyjaśnienie mechanizmu tokenu OAuth
+- Instrukcja postępowania przy błędzie 429
+
+---
+
 ## [1.6.0] — 2026-04-06
 
 ### Dodane

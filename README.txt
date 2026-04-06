@@ -5,6 +5,28 @@ QUICK START:
   2. Edit season_example.json with your races
   3. python3 season_plan.py --config season_example.json --reset
 
+GARMIN LOGIN — FIRST RUN
+  On first run you will be asked for email + password (and MFA if enabled).
+  After successful login, an OAuth token is saved to: ~/.garmin_token
+  All subsequent runs load this token — no password needed, no 429 risk.
+  The token is valid for weeks/months and is auto-refreshed by the library.
+
+  If login fails with 429 (rate limit):
+    - Wait a few hours (Garmin blocks IPs and accounts after too many attempts)
+    - Or reset your Garmin password — this clears the block
+    - Do NOT retry login in a loop — each attempt worsens the block
+
+GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
+  Przy pierwszym uruchomieniu zostaniesz poproszony o email + hasło (i MFA jeśli włączone).
+  Po udanym logowaniu token OAuth zostaje zapisany do: ~/.garmin_token
+  Kolejne uruchomienia wczytują token — bez hasła, bez ryzyka 429.
+  Token jest ważny tygodnie/miesiące i jest automatycznie odświeżany przez bibliotekę.
+
+  Jeśli logowanie kończy się błędem 429 (rate limit):
+    - Poczekaj kilka godzin (Garmin blokuje IP i konta po zbyt wielu próbach)
+    - Lub zresetuj hasło do Garmin — to zdejmuje blokadę
+    - NIE próbuj logować się w pętli — każda próba pogarsza blokadę
+
 COMMANDS:
   python3 season_plan.py --reset                         interactive
   python3 season_plan.py --config season_example.json --reset
