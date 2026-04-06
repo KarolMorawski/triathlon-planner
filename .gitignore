@@ -8,6 +8,7 @@ __pycache__/
 # Garmin session cache
 .garth/
 *.json.bak
+.garmin_token
 
 # OS files
 .DS_Store

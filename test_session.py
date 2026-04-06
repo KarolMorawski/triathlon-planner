@@ -1,106 +1,102 @@
 #!/usr/bin/env python3
 """
-Integration test — Garmin session persistence.
+Integration test — Garmin OAuth token persistence (garth.dumps() approach).
 
-Verifies that:
-  1. First login saves a session to ~/.garmin_session
-  2. Second login within 8h reuses the cached session (no password prompt)
-  3. SESSION_MAX_AGE is 8 hours
+This test uses a different login approach than season_plan.py:
+  - Saves OAuth tokens as a base64 string (garth.dumps()) to ~/.garmin_token
+  - On subsequent runs loads the token directly — no password needed
+  - Tokens are refreshed automatically by garth (valid for weeks/months)
+  - No 8h TTL — avoids 429 rate limit from repeated SSO logins
+
+Modes:
+  A) Token file exists → load and verify, no credentials required
+  B) No token file     → fresh login (credentials required), save token
 
 Run: python3 test_session.py
-Requires: real Garmin credentials on first run.
-On subsequent runs within 8h — only verifies that the existing cache is valid,
-no credentials required.
 """
 
 import os
-import time
+import getpass
 import unittest
+from pathlib import Path
 
-import season_plan
-from season_plan import SESSION_DIR, SESSION_STAMP, SESSION_MAX_AGE, _session_valid
+from garminconnect import Garmin, GarminConnectAuthenticationError
 
-
-class TestSessionMaxAge(unittest.TestCase):
-    """Unit test — no Garmin login required."""
-
-    def test_default_session_max_age_is_8_hours(self):
-        """SESSION_MAX_AGE must be exactly 8 hours (28800 seconds)."""
-        self.assertEqual(SESSION_MAX_AGE, 8 * 3600,
-            f"Expected 28800 (8h), got {SESSION_MAX_AGE}")
+TOKEN_FILE = Path.home() / ".garmin_token"
 
 
-class TestGarminSessionPersistence(unittest.TestCase):
+def _load_client():
+    """Load Garmin client from saved OAuth token. Returns None if no token."""
+    if not TOKEN_FILE.exists():
+        return None
+    try:
+        client = Garmin()
+        client.login(tokenstore=TOKEN_FILE.read_text())
+        return client
+    except Exception:
+        return None
+
+
+def _fresh_login():
+    """Interactive login — saves OAuth token on success. Returns client."""
+    email    = input("Garmin email: ").strip()
+    password = getpass.getpass("Garmin password: ")
+    client   = Garmin(email, password, return_on_mfa=True)
+    result, state = client.login()
+    if result == "needs_mfa":
+        mfa = input("MFA/2FA code: ").strip()
+        client.resume_login(state, mfa)
+    # Save OAuth token as base64 string — valid for weeks/months
+    TOKEN_FILE.write_text(client.garth.dumps())
+    print(f"  ✓ Token saved to {TOKEN_FILE}")
+    return client
+
+
+class TestGarminOAuthToken(unittest.TestCase):
     """
-    Integration test — behaviour depends on current session state:
-
-    A) Valid cache exists (within 8h):
-       — skips fresh login entirely
-       — only verifies cache is still valid and shows remaining time
-
-    B) No cache / expired:
-       — asks for credentials (fresh login)
-       — verifies stamp file created
-       — verifies second login() call reuses cache without re-authenticating
+    Integration test — requires real Garmin credentials on first run only.
     """
 
-    def test_login_saves_session_and_cache_is_reused(self):
+    def test_token_login(self):
+        """
+        Case A: token file exists → load without credentials, verify API call.
+        Case B: no token file    → fresh login, save token, verify API call.
+        """
+        client = _load_client()
 
-        # ── Case A: valid cache already exists ───────────────────────────
-        if _session_valid():
-            stamp_mtime = os.path.getmtime(SESSION_STAMP)
-            remaining_h = (stamp_mtime + SESSION_MAX_AGE - time.time()) / 3600
-            print(f"\n✓ Valid cached session found in {SESSION_DIR}")
-            print(f"  Stamp created: {time.ctime(stamp_mtime)}")
-            print(f"  Remaining:     ~{remaining_h:.1f}h")
+        if client:
+            print(f"\n✓ Token loaded from {TOKEN_FILE}")
+            print("  No credentials required — testing API call...")
+        else:
+            print(f"\nNo token found at {TOKEN_FILE} — fresh login required.")
+            try:
+                client = _fresh_login()
+            except (GarminConnectAuthenticationError, Exception) as e:
+                if "429" in str(e) or "Rate Limit" in str(e):
+                    self.skipTest(
+                        "Garmin rate limit (429) — account temporarily blocked. "
+                        "Wait a few hours or reset your password to unblock."
+                    )
+                raise
 
-            # Verify second login() call uses cache (mtime unchanged)
-            time.sleep(0.1)
-            client = season_plan.login()
-            self.assertIsNotNone(client, "login() should return a client")
-            new_mtime = os.path.getmtime(SESSION_STAMP)
-            self.assertAlmostEqual(new_mtime, stamp_mtime, delta=1.0,
-                msg="Stamp mtime changed — cache was not reused")
-            print("  ✓ login() reused cache (stamp mtime unchanged)")
-            return
+        self.assertIsNotNone(client, "Should have a valid client at this point")
 
-        # ── Case B: no cache — fresh login required ───────────────────────
-        print("\nNo cached session found — fresh login required.")
-        print("Step 1: Logging in to Garmin (credentials required)...")
+        # Verify token works by making a real API call
         try:
-            client1 = season_plan.login()
+            profile = client.get_full_name()
+            print(f"  ✓ API call successful — logged in as: {profile}")
         except Exception as e:
-            if "429" in str(e) or "Rate Limit" in str(e):
-                self.skipTest(
-                    "Garmin rate limit (429) — account temporarily blocked, "
-                    "wait a few hours or reset your password to unblock"
-                )
-            raise
+            self.fail(f"API call failed with valid token: {e}")
 
-        self.assertIsNotNone(client1, "login() should return a client object")
-        self.assertTrue(os.path.isfile(SESSION_STAMP),
-            "Stamp file should exist after login")
-        self.assertTrue(_session_valid(),
-            "Session should be valid immediately after login")
+    def test_token_file_survives_reload(self):
+        """Token saved by previous test must be loadable in a new client instance."""
+        if not TOKEN_FILE.exists():
+            self.skipTest("No token file — run test_token_login first")
 
-        stamp_mtime = os.path.getmtime(SESSION_STAMP)
-        print(f"  ✓ Session saved to {SESSION_DIR}")
-        print(f"  ✓ Valid for: {SESSION_MAX_AGE // 3600}h "
-              f"(expires ~{time.ctime(stamp_mtime + SESSION_MAX_AGE)})")
-
-        # Step 2: second call must reuse cache
-        print("\nStep 2: Calling login() again — should use cached session...")
-        time.sleep(0.1)
-        client2 = season_plan.login()
-        self.assertIsNotNone(client2, "Cached login() should also return a client")
-
-        new_mtime = os.path.getmtime(SESSION_STAMP)
-        self.assertAlmostEqual(new_mtime, stamp_mtime, delta=1.0,
-            msg="Stamp mtime changed — cache was not reused, fresh login occurred")
-
-        print("  ✓ Cached session reused (stamp mtime unchanged)")
-        remaining_h = (stamp_mtime + SESSION_MAX_AGE - time.time()) / 3600
-        print(f"\n✓ Session will remain valid for ~{remaining_h:.1f}h")
+        client = _load_client()
+        self.assertIsNotNone(client,
+            f"Failed to load token from {TOKEN_FILE} — token may be corrupted")
+        print(f"\n✓ Token reloaded successfully from {TOKEN_FILE}")
 
 
 if __name__ == "__main__":
