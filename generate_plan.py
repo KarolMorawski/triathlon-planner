@@ -14,6 +14,7 @@ Supported distances: 70.3 (Half Ironman), full (Ironman), olympic, sprint
 """
 
 import argparse
+import os
 import sys
 import time
 import math
@@ -23,6 +24,8 @@ from collections import defaultdict
 
 # ─── GARMIN CONNECTION ───────────────────────────────────────────────────────
 
+TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+
 def login():
     try:
         from garminconnect import Garmin
@@ -31,18 +34,27 @@ def login():
         print("Run: pip install garminconnect")
         sys.exit(1)
 
+    # Try cached OAuth token first (valid for weeks/months, no SSO hit)
+    if os.path.isfile(TOKEN_FILE):
+        try:
+            client = Garmin()
+            client.login(tokenstore=open(TOKEN_FILE).read())
+            print("✓ Logged in to Garmin Connect (cached token)\n")
+            return client
+        except Exception:
+            print("  Cached token expired or invalid — fresh login required.")
+
+    # Fresh login — saves token for future runs
     email    = input("Garmin email: ").strip()
     password = getpass.getpass("Garmin password: ")
-    client   = Garmin(email=email, password=password)
-    try:
-        client.login()
-    except Exception as e:
-        msg = str(e)
-        if any(x in msg for x in ["MFA", "2FA", "OTP", "code"]):
-            client.login(mfa_code=input("MFA/2FA code: ").strip())
-        else:
-            raise
-    print("✓ Logged in to Garmin Connect\n")
+    client   = Garmin(email=email, password=password, return_on_mfa=True)
+    result, state = client.login()
+    if result == "needs_mfa":
+        client.resume_login(state, input("MFA/2FA code: ").strip())
+
+    # Save OAuth token — avoids SSO on next run
+    open(TOKEN_FILE, "w").write(client.garth.dumps())
+    print(f"✓ Logged in to Garmin Connect (token saved to {TOKEN_FILE})\n")
     return client
 
 def _get_http(client):
