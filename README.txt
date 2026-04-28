@@ -90,11 +90,23 @@ UPDATING AN EXISTING PLAN (mid-season recalibration)
   Use update_plan.py to replace future weeks with new parameters
   without touching already-completed workouts.
 
-  python3 update_plan.py --list                          list saved plans
-  python3 update_plan.py --prefix WARSAW                 show progress
-  python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
-  python3 update_plan.py --prefix WARSAW --from-strava   auto-suggest from Strava
-  python3 update_plan.py --prefix WARSAW --dry-run       preview only
+  Single race:
+    python3 update_plan.py --list                          list saved plans
+    python3 update_plan.py --prefix WARSAW                 show progress
+    python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
+    python3 update_plan.py --prefix WARSAW --target-time 4:55:00
+    python3 update_plan.py --prefix WARSAW --from-strava   auto-suggest from Strava
+    python3 update_plan.py --prefix WARSAW --dry-run       preview only
+
+  Whole season (one set of parameters applied to every race in the config):
+    python3 update_plan.py --config season.json --ftp 270
+    python3 update_plan.py --config season.json --vol-scale 1.1 --from-strava
+    python3 update_plan.py --config season.json --dry-run
+    Strava is fetched once and reused (suggestions still per-distance).
+    Single confirmation prompt and single Garmin login for the whole batch.
+    Races without a saved state are listed as skipped, the rest proceeds.
+    --target-time is rejected in season mode (each race has its own target);
+    use single-race mode for race-specific target overrides.
 
   By default updates from next Monday onwards (override with --from-date YYYY-MM-DD).
   After generating the updated plan, predicted race day TSB is shown automatically
@@ -582,11 +594,23 @@ AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
   Użyj update_plan.py aby zastąpić przyszłe tygodnie nowymi parametrami
   bez zmiany już wykonanych treningów.
 
-  python3 update_plan.py --list                          lista zapisanych planów
-  python3 update_plan.py --prefix WARSAW                 postęp planu
-  python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
-  python3 update_plan.py --prefix WARSAW --from-strava   auto-sugestie ze Stravy
-  python3 update_plan.py --prefix WARSAW --dry-run       podgląd bez zmian
+  Pojedynczy wyścig:
+    python3 update_plan.py --list                          lista zapisanych planów
+    python3 update_plan.py --prefix WARSAW                 postęp planu
+    python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
+    python3 update_plan.py --prefix WARSAW --target-time 4:55:00
+    python3 update_plan.py --prefix WARSAW --from-strava   auto-sugestie ze Stravy
+    python3 update_plan.py --prefix WARSAW --dry-run       podgląd bez zmian
+
+  Cały sezon (te same parametry dla wszystkich wyścigów z konfiga):
+    python3 update_plan.py --config season.json --ftp 270
+    python3 update_plan.py --config season.json --vol-scale 1.1 --from-strava
+    python3 update_plan.py --config season.json --dry-run
+    Strava pobierana jest raz i współdzielona (sugestie nadal per-dystans).
+    Jedno potwierdzenie i jedno logowanie do Garmin dla całego batcha.
+    Wyścigi bez zapisanego stanu są wymieniane jako pominięte, reszta działa dalej.
+    --target-time jest odrzucane w trybie sezonu (każdy wyścig ma własny cel);
+    do nadpisania celu konkretnego wyścigu użyj trybu --prefix.
 
   Domyślnie aktualizuje od następnego poniedziałku (zmień przez --from-date YYYY-MM-DD).
   Po wygenerowaniu zaktualizowanego planu automatycznie pokazywany jest przewidywany TSB

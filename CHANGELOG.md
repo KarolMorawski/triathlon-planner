@@ -5,6 +5,35 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.12.0] — 2026-04-28
+
+### Added
+
+#### `update_plan.py --config season.json` — whole-season update
+
+Rebuild the upcoming weeks of every race in a season config in one pass.
+
+- Same `--ftp`, `--vol-scale`, `--weight`, `--run-pace`, `--from-date`,
+  `--from-strava`, `--dry-run` flags now apply to all races.
+- Strava data is fetched **once** per run; `suggest()` still runs per race
+  because volume targets depend on distance.
+- Single confirmation prompt and single Garmin login for the whole batch.
+- Races without a saved state file are listed as "skipped"; the rest proceed.
+- `--target-time` is rejected with `--config` (each race has its own target);
+  use single-race mode (`--prefix`) for race-specific target overrides.
+- Per-race TSB prediction is printed for every race in the batch.
+
+```bash
+python3 update_plan.py --config season.json --ftp 270 --vol-scale 1.1
+python3 update_plan_en.py --config season.json --from-strava --dry-run
+```
+
+Single-race mode (`--prefix`) keeps the same UX. Internally the per-race logic
+was extracted into `_plan_race_update()`, `_predict_tsb()` and
+`_execute_upload()` so both modes share the same code path.
+
+---
+
 ## [1.11.1] — 2026-04-28
 
 ### Security
