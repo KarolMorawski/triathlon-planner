@@ -49,7 +49,9 @@ def power_to_speed(watts, weight_kg, cda=0.32):
         delta = f / df
         v -= delta
         if abs(delta) < 1e-9:
-            break
+            return max(1.0, v)
+    print(f"  ⚠ power_to_speed: did not converge (watts={watts}, weight={weight_kg}, cda={cda})",
+          file=sys.stderr)
     return max(1.0, v)
 
 
