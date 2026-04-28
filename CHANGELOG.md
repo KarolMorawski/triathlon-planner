@@ -5,6 +5,41 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.11.1] — 2026-04-28
+
+### Security
+
+- **OAuth token file now written with `0o600` permissions** (`~/.garmin_token`).
+  On multi-user systems the previous default umask left the token world-readable,
+  allowing other accounts on the same machine to steal the Garmin session.
+  Token I/O switched to context managers (closes a small file-handle leak).
+
+- **Plan prefix is now validated** against `^[A-Z0-9][A-Z0-9_-]*$` at every
+  entry point that opens a state file. Rejects `--prefix '../foo'` and similar
+  attempts to read or overwrite arbitrary paths outside `~/.triathlon_plans/`.
+
+- **Season config (JSON) is now schema-validated** before use. Malformed JSON
+  or missing required fields (`races`, `distance`, `date`) produce a clear
+  one-line error instead of a deep traceback.
+
+### Fixed
+
+- Negative or zero `--ftp`, `--weight`, `--cda` and out-of-range `--vol-scale`
+  are now rejected at the CLI with a clear message. Previously they propagated
+  into physics calculations and produced nonsense or `ZeroDivisionError`.
+- `update_plan.py` TSB prediction no longer swallows `Exception` blanket-style.
+  Only the optional `training_load` import failure is caught; any computation
+  error surfaces normally so it can be diagnosed.
+- Polish typo in `race_pacing.py` nutrition output: `punkatch` → `punktach`.
+- `power_to_speed()` (Newton's method) now warns to stderr when it fails to
+  converge in 60 iterations instead of silently returning a wrong speed.
+- ICS files now fold lines longer than 75 octets per RFC 5545. Long workout
+  names with Polish characters and emoji previously broke strict iCalendar
+  parsers (Thunderbird, some Google Calendar paths). Fold respects UTF-8
+  multi-byte boundaries.
+
+---
+
 ## [1.11.0] — 2026-04-28
 
 ### Added

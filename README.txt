@@ -47,6 +47,7 @@ PATH B — QUICK START WITH STRAVA
 GARMIN LOGIN — FIRST RUN
   On first run you will be asked for email + password (and MFA if enabled).
   After successful login, an OAuth token is saved to: ~/.garmin_token
+  with owner-only permissions (chmod 600) to prevent leakage on shared systems.
   All subsequent runs load this token — no password needed, no 429 risk.
   The token is valid for weeks/months and is auto-refreshed by the library.
 
@@ -66,6 +67,12 @@ COMMANDS:
 
 DISTANCES: 70.3 / full / olympic / sprint
 FULL GUIDE: open INSTRUKCJA.html in Chrome/Firefox
+
+INPUT VALIDATION
+  Race prefix / name:  must match ^[A-Z0-9][A-Z0-9_-]*$ (no dots or slashes)
+  --ftp, --weight, --cda:  must be > 0
+  --vol-scale:  must be in [0.1, 3.0]
+  Invalid values are rejected at the CLI with a clear error message.
 
 AUTO FTP FROM GARMIN
   Use --auto-ftp to read your current FTP directly from Garmin Connect
@@ -543,9 +550,16 @@ Istnieją dwa sposoby użycia plannera:
   Dane ze Stravy używane są TYLKO do sugestii. Waga i FTP nie są pobierane.
   Uruchamiaj strava_suggest.py okresowo, aby kalibrować plan zgodnie z formą.
 
+WALIDACJA WEJŚCIA
+  Prefix / nazwa wyścigu:  musi pasować do ^[A-Z0-9][A-Z0-9_-]*$ (bez kropek, slashy)
+  --ftp, --weight, --cda:  muszą być > 0
+  --vol-scale:  musi być w przedziale [0.1, 3.0]
+  Nieprawidłowe wartości są odrzucane na poziomie CLI z czytelnym komunikatem.
+
 GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
   Przy pierwszym uruchomieniu zostaniesz poproszony o email + hasło (i MFA jeśli włączone).
   Po udanym logowaniu token OAuth zostaje zapisany do: ~/.garmin_token
+  z uprawnieniami tylko dla właściciela (chmod 600) — zapobiega wyciekowi na systemach wieloużytkownikowych.
   Kolejne uruchomienia wczytują token — bez hasła, bez ryzyka 429.
   Token jest ważny tygodnie/miesiące i jest automatycznie odświeżany przez bibliotekę.
 
