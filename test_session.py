@@ -46,8 +46,9 @@ def _fresh_login():
     if result == "needs_mfa":
         mfa = input("MFA/2FA code: ").strip()
         client.resume_login(state, mfa)
-    # Save OAuth token as base64 string — valid for weeks/months
+    # Save OAuth token as base64 string with owner-only permissions
     TOKEN_FILE.write_text(client.client.dumps())
+    TOKEN_FILE.chmod(0o600)
     print(f"  ✓ Token saved to {TOKEN_FILE}")
     return client
 

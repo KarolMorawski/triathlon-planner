@@ -84,7 +84,8 @@ def login():
     if os.path.isfile(TOKEN_FILE):
         try:
             client = Garmin()
-            client.login(tokenstore=open(TOKEN_FILE).read())
+            with open(TOKEN_FILE) as f:
+                client.login(tokenstore=f.read())
             print("✓ Zalogowano do Garmin Connect (token)\n")
             return client
         except Exception:
@@ -95,7 +96,9 @@ def login():
     result, state = client.login()
     if result == "needs_mfa":
         client.resume_login(state, input("Kod MFA: ").strip())
-    open(TOKEN_FILE, "w").write(client.client.dumps())
+    with open(TOKEN_FILE, "w") as f:
+        f.write(client.client.dumps())
+    os.chmod(TOKEN_FILE, 0o600)
     return client
 
 

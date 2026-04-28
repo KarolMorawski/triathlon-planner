@@ -49,7 +49,8 @@ def login():
     if os.path.isfile(TOKEN_FILE):
         try:
             client = Garmin()
-            client.login(tokenstore=open(TOKEN_FILE).read())
+            with open(TOKEN_FILE) as f:
+                client.login(tokenstore=f.read())
             print("✓ Logged in to Garmin Connect (cached token)\n")
             return client
         except Exception:
@@ -63,8 +64,10 @@ def login():
     if result == "needs_mfa":
         client.resume_login(state, input("MFA/2FA code: ").strip())
 
-    # Save OAuth token — avoids SSO on next run
-    open(TOKEN_FILE, "w").write(client.client.dumps())
+    # Save OAuth token with owner-only permissions (avoids token leak on shared systems)
+    with open(TOKEN_FILE, "w") as f:
+        f.write(client.client.dumps())
+    os.chmod(TOKEN_FILE, 0o600)
     print(f"✓ Logged in to Garmin Connect (token saved to {TOKEN_FILE})\n")
     return client
 
