@@ -71,6 +71,18 @@ def login():
 def _http(client):
     return client.client
 
+
+def get_garmin_ftp(client):
+    """Pobiera aktualne FTP z profilu Garmin Connect. Zwraca None w razie błędu."""
+    try:
+        data = client.connectapi("/userprofile-service/userprofile/cycle-power-metrics")
+        ftp = data.get("functionalThresholdPower") or data.get("ftp")
+        if ftp and int(ftp) > 0:
+            return int(ftp)
+    except Exception:
+        pass
+    return None
+
 # ─── RACE PROFILES ───────────────────────────────────────────────────────────
 
 PROFILES = {
@@ -627,6 +639,8 @@ def main():
     p.add_argument("--dry-run",  action="store_true", help="Preview without uploading")
     p.add_argument("--reset",    action="store_true", help="Full reset each prefix before upload")
     p.add_argument("--ftp",       type=int,   help="FTP override in watts")
+    p.add_argument("--auto-ftp",  action="store_true",
+                   help="Read FTP from Garmin Connect (login required)")
     p.add_argument("--run-pace",  help="Run pace override MM:SS")
     p.add_argument("--vol-scale", type=float, default=1.0,
                    help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
@@ -643,6 +657,16 @@ def main():
     # CLI overrides
     if args.ftp:       cfg["ftp"]       = args.ftp
     if args.run_pace:  cfg["run_pace"]  = args.run_pace
+
+    if args.auto_ftp and not args.ftp:
+        print("Logging in to Garmin to read FTP...")
+        _c = login()
+        garmin_ftp = get_garmin_ftp(_c)
+        if garmin_ftp:
+            cfg["ftp"] = garmin_ftp
+            print(f"  Auto FTP from Garmin: {garmin_ftp}W\n")
+        else:
+            print("  ⚠ Could not read FTP from Garmin — using config value.\n")
 
     ftp       = cfg["ftp"]
     weight    = cfg.get("weight_kg", 75)

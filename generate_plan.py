@@ -62,6 +62,18 @@ def login():
 def _get_http(client):
     return client.client
 
+
+def get_garmin_ftp(client):
+    """Pobiera aktualne FTP z profilu Garmin Connect. Zwraca None w razie błędu."""
+    try:
+        data = client.connectapi("/userprofile-service/userprofile/cycle-power-metrics")
+        ftp = data.get("functionalThresholdPower") or data.get("ftp")
+        if ftp and int(ftp) > 0:
+            return int(ftp)
+    except Exception:
+        pass
+    return None
+
 # ─── DISTANCE PROFILES ───────────────────────────────────────────────────────
 
 PROFILES = {
@@ -646,6 +658,8 @@ def main():
     p.add_argument("--race-date",    help="Race date YYYY-MM-DD (e.g. 2026-09-15)")
     p.add_argument("--distance",     choices=list(PROFILES.keys()), help="Race distance")
     p.add_argument("--ftp",          type=int, help="FTP in watts (from MyWhoosh or Garmin)")
+    p.add_argument("--auto-ftp",     action="store_true",
+                   help="Read FTP from Garmin Connect (login required)")
     p.add_argument("--run-pace",     help="Target race pace MM:SS per km (e.g. 5:20)")
     p.add_argument("--target-time",  help="Target finish time H:MM:SS — derives run pace + bike zone")
     p.add_argument("--weight",       type=float, default=75, help="Body weight in kg")
@@ -668,6 +682,15 @@ def main():
     if not args.distance:
         print("Distance options:", ", ".join(PROFILES.keys()))
         args.distance = input("Distance (70.3 / full / olympic / sprint): ").strip()
+    if args.auto_ftp and not args.ftp:
+        print("Logging in to Garmin to read FTP...")
+        _c = login()
+        garmin_ftp = get_garmin_ftp(_c)
+        if garmin_ftp:
+            args.ftp = garmin_ftp
+            print(f"  Auto FTP from Garmin: {garmin_ftp}W\n")
+        else:
+            print("  ⚠ Could not read FTP from Garmin — enter it manually.")
     if not args.ftp:
         args.ftp = int(input("FTP in watts (from MyWhoosh or 20min test): ").strip())
     if not args.target_time and not args.run_pace:

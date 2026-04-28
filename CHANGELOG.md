@@ -5,6 +5,45 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.10.0] — 2026-04-28
+
+### Added
+
+#### `training_load.py` / `training_load_en.py` — training load estimation (TSS/CTL/ATL/TSB)
+
+New offline module — no Garmin login required.
+
+- Regenerates full workout structure from saved plan state
+- Estimates TSS per session: bike (NP method), run (rTSS), swim (50 TSS/h)
+- Computes PMC curves: CTL (fitness, TC=42d), ATL (fatigue, TC=7d), TSB (form = CTL−ATL)
+- Weekly bar chart with taper/race-week markers
+- Race-day form assessment: TSB 5–25 = good; outside range → taper advice
+- CLI: `--prefix WARSAW`, `--weeks 4`, `--list`
+
+#### `plan_review.py` / `plan_review_en.py` — planned vs actual comparison
+
+- Logs in to Garmin Connect and fetches activity history
+- Matches activities to planned workouts by (date, sport)
+- GARMIN_SPORT mapping handles type variants (road_cycling, trail_running, virtual_ride, etc.)
+- Shows ✓ with actual duration/power/pace or ✗ missed per session
+- Weekly completion bar and overall percentage
+- CLI: `--prefix WARSAW`, `--weeks 4`, `--list`
+
+#### `--auto-ftp` flag in all 4 planner scripts
+
+Added to `season_plan.py`, `season_plan_en.py`, `generate_plan.py`, `generate_plan_en.py`.
+
+- Reads FTP automatically from Garmin Connect (`/userprofile-service/userprofile/cycle-power-metrics`)
+- Graceful fallback to config/manual value if endpoint unavailable
+- Skipped if `--ftp` is provided explicitly
+
+```bash
+python3 generate_plan_en.py --race-date 2026-09-15 --distance 70.3 --auto-ftp --run-pace 5:20
+python3 season_plan_en.py --config season.json --auto-ftp
+```
+
+---
+
 ## [1.9.0] — 2026-04-28
 
 ### Dodane
