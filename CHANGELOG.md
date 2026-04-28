@@ -5,6 +5,44 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.8.0] — 2026-04-28
+
+### Dodane
+
+#### `strava_suggest.py` — kalibracja planu na podstawie Stravy
+
+Nowy skrypt analizujący ostatnie aktywności Strava i sugerujący parametry planu.
+
+- Czyta tokeny OAuth z `~/.config/strava-mcp/config.json` (auto-refresh przy wygaśnięciu)
+- Pobiera aktywności z ostatnich N tygodni (domyślnie 4)
+- Liczy tygodniową objętość per sport, średnie tempa, porównuje z bazą dystansu
+- Wypisuje gotowe parametry: `--target-time`, `--run-pace`, `--vol-scale`
+- Waga i FTP pozostają wpisywane ręcznie (świadoma decyzja użytkownika)
+
+Przykład użycia:
+```bash
+python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+python3 strava_suggest.py --distance full --weeks 8
+```
+
+#### `--vol-scale` flag w 4 skryptach planistycznych
+
+Mnożnik objętości (default 1.0). Skaluje czasy/dystanse w fazach base/build/taper, zachowując minima dla sesji progowych i tygodnia wyścigu.
+
+- `generate_plan.py` / `generate_plan_en.py`: argparse `--vol-scale`
+- `season_plan.py` / `season_plan_en.py`: argparse `--vol-scale` + obsługa `"vol_scale"` w JSON config
+- Sugerowane wartości pochodzą z `strava_suggest.py`
+
+### Zmienione
+
+#### README.txt — rozdzielone ścieżki użycia
+
+- Nowy QUICK START z dwoma ścieżkami: PATH A (bez Stravy) i PATH B (ze Stravą, rekomendowana)
+- Dodany KROK 4 w sekcji STRAVA MCP — opis `strava_suggest.py` z przykładem wyjścia
+- Wszystko w EN+PL
+
+---
+
 ## [1.7.0] — 2026-04-06
 
 ### Naprawione

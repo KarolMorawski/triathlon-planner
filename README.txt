@@ -1,9 +1,78 @@
 TRIATHLON SEASON PLANNER
 ========================
-QUICK START:
+
+There are two ways to use this planner:
+
+  PATH A — STANDALONE  (Garmin only)
+    Plan is generated from manually-entered FTP, run pace, weight, and
+    target time. No external services needed beyond Garmin Connect.
+
+  PATH B — STRAVA-CALIBRATED  (recommended)
+    Strava data is analyzed to suggest target time, race pace, and a
+    volume multiplier matched to your CURRENT fitness. Weight and FTP
+    remain manual entries.
+
+  Pick one path below.
+
+────────────────────────────────────────────────────────────
+PATH A — QUICK START WITHOUT STRAVA
+────────────────────────────────────────────────────────────
   1. pip install garminconnect
-  2. Edit season_example.json with your races
+  2. Edit season_example.json with your races (set ftp, run_pace, weight)
   3. python3 season_plan.py --config season_example.json --reset
+
+  Or single race:
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --target-time 5:00:00 --weight 92 --reset
+
+────────────────────────────────────────────────────────────
+PATH B — QUICK START WITH STRAVA
+────────────────────────────────────────────────────────────
+  1. pip install garminconnect
+  2. Connect Strava MCP (one-time, see "STRAVA MCP" section below)
+  3. Get suggestions from your recent training:
+     python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+
+     Output includes a ready-to-run command, e.g.:
+       --target-time 5:23:26 --run-pace 5:02 --vol-scale 0.6
+
+  4. Plug suggested values into the planner (FTP and weight stay manual):
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --weight 92 \
+         --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  Strava data is used ONLY to suggest. Weight and FTP are NOT pulled.
+  Re-run strava_suggest.py periodically to recalibrate as fitness changes.
+
+────────────────────────────────────────────────────────────
+ŚCIEŻKA A — SZYBKI START BEZ STRAVY
+────────────────────────────────────────────────────────────
+  1. pip install garminconnect
+  2. Edytuj season_example.json (ustaw ftp, run_pace, weight)
+  3. python3 season_plan.py --config season_example.json --reset
+
+  Albo pojedyncze zawody:
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --target-time 5:00:00 --weight 92 --reset
+
+────────────────────────────────────────────────────────────
+ŚCIEŻKA B — SZYBKI START ZE STRAVĄ
+────────────────────────────────────────────────────────────
+  1. pip install garminconnect
+  2. Podłącz Strava MCP (jednorazowo, sekcja "STRAVA MCP" poniżej)
+  3. Pobierz sugestie z ostatnich treningów:
+     python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+
+     Wynik zawiera gotową komendę, np.:
+       --target-time 5:23:26 --run-pace 5:02 --vol-scale 0.6
+
+  4. Wstaw sugerowane wartości do planera (FTP i waga pozostają ręcznie):
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --weight 92 \
+         --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  Dane ze Stravy używane są TYLKO do sugestii. Waga i FTP nie są pobierane.
+  Uruchamiaj strava_suggest.py okresowo, aby kalibrować plan zgodnie z formą.
 
 GARMIN LOGIN — FIRST RUN
   On first run you will be asked for email + password (and MFA if enabled).
@@ -162,6 +231,52 @@ NOTE: The MCP server is registered globally in Claude Code (not per project).
 The .mcp.json file in this repo is gitignored — it may point to a locally
 built version of the server and is not required for the npx setup above.
 
+STEP 4 — Calibrate the plan with strava_suggest.py
+  Once Strava is connected, run:
+
+    python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+    python3 strava_suggest.py --distance full --weeks 8       # longer window
+
+  The script reads OAuth tokens from ~/.config/strava-mcp/config.json
+  (auto-refreshes when expired), pulls last N weeks of activities, and
+  prints suggested plan parameters:
+
+    --target-time   estimated finish from current paces
+    --run-pace      projected race run pace
+    --vol-scale     volume multiplier (0.5–1.5) vs distance baseline
+
+  Output format:
+    Recent training volume (last 4 weeks → weekly average):
+      Run    26.9 km/wk  ( 11 sessions, 2.4 h/wk)
+             target  40 km/wk  [██████··············] 67%
+      Bike   48.8 km/wk  (  5 sessions, 1.6 h/wk)
+             target 150 km/wk  [███·················] 33% ⚠ low
+      Swim    4.8 km/wk  (  7 sessions, 1.6 h/wk)
+             target   6 km/wk  [███████·············] 80%
+
+    Average training paces:
+      Run:  5:14/km  →  race pace ~5:02/km
+      Bike: 30.3 km/h  →  race ~31.8 km/h
+      Swim: 1:58/100m
+
+    Suggested plan parameters:
+      --target-time 5:23:26
+      --run-pace    5:02
+      --vol-scale   0.6
+
+  Then plug those into generate_plan.py or season_plan.py:
+    python3 generate_plan.py --distance 70.3 --race-date 2026-09-15 \
+        --ftp 250 --weight 92 \
+        --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  WHAT IS USED FROM STRAVA: only training-derived metrics —
+    weekly volume per sport, average pace per sport, recent activity count.
+  WHAT IS NOT USED: weight, FTP — these always remain manual entries.
+
+  WHEN TO RE-RUN: every 2–4 weeks during training, before key transitions
+  (base→build, build→taper), or whenever you've had a significant change
+  in training volume. The vol-scale recalibrates the upcoming weeks.
+
 ---
 
 STRAVA MCP — PODŁĄCZENIE DO CLAUDE CODE
@@ -211,6 +326,52 @@ KROK 3 — Autoryzacja ze Stravą
 UWAGA: Serwer MCP jest zarejestrowany globalnie w Claude Code (nie per projekt).
 Plik .mcp.json w tym repo jest gitignorowany — może wskazywać na lokalnie
 skompilowaną wersję serwera i nie jest wymagany przy podejściu z npx.
+
+KROK 4 — Kalibracja planu przez strava_suggest.py
+  Po podłączeniu Stravy uruchom:
+
+    python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+    python3 strava_suggest.py --distance full --weeks 8       # dłuższe okno
+
+  Skrypt czyta tokeny OAuth z ~/.config/strava-mcp/config.json
+  (auto-refresh przy wygaśnięciu), pobiera aktywności z ostatnich N tygodni
+  i wypisuje sugerowane parametry planu:
+
+    --target-time   szacowany czas mety na podstawie aktualnych temp
+    --run-pace      przewidywane tempo biegu wyścigowego
+    --vol-scale     mnożnik objętości (0.5–1.5) względem bazy dystansu
+
+  Format wyjścia:
+    Recent training volume (last 4 weeks → weekly average):
+      Run    26.9 km/wk  ( 11 sesji, 2.4 h/tydz)
+             target  40 km/wk  [██████··············] 67%
+      Bike   48.8 km/wk  (  5 sesji, 1.6 h/tydz)
+             target 150 km/wk  [███·················] 33% ⚠ niskie
+      Swim    4.8 km/wk  (  7 sesji, 1.6 h/tydz)
+             target   6 km/wk  [███████·············] 80%
+
+    Average training paces:
+      Run:  5:14/km  →  tempo wyścigowe ~5:02/km
+      Bike: 30.3 km/h  →  wyścig ~31.8 km/h
+      Swim: 1:58/100m
+
+    Suggested plan parameters:
+      --target-time 5:23:26
+      --run-pace    5:02
+      --vol-scale   0.6
+
+  Następnie wstaw te wartości do generate_plan.py lub season_plan.py:
+    python3 generate_plan.py --distance 70.3 --race-date 2026-09-15 \
+        --ftp 250 --weight 92 \
+        --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  CO JEST POBIERANE ZE STRAVY: tylko metryki treningowe —
+    objętość tygodniowa per sport, średnie tempo per sport, liczba sesji.
+  CO NIE JEST POBIERANE: waga, FTP — zawsze pozostają wpisywane ręcznie.
+
+  KIEDY URUCHAMIAĆ: co 2–4 tygodnie w trakcie cyklu, przed kluczowymi
+  przejściami (baza→budowa, budowa→taper) lub gdy istotnie zmieniłeś
+  objętość treningu. vol-scale rekalibruje nadchodzące tygodnie.
 
 
 ==========================================================
