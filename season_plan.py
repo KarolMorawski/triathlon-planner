@@ -287,7 +287,7 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
-                        race_bike_pct=None):
+                        race_bike_pct=None, vol_scale=1.0):
     """
     Returns list of (workout_dict, date_str) for one race block.
     Counts back `weeks` from race_date.
@@ -346,6 +346,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
             vol = 0.3
         else:
             vol = min(1.0, 0.6 + (wk / taper_start_wk) * 0.4)
+        vol *= vol_scale
 
         def D(offset, _ws=wk_start): return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
         tag = f"{prefix}-T{wk:02d}"
@@ -602,8 +603,10 @@ def main():
     p.add_argument("--config",   help="JSON config file with races")
     p.add_argument("--dry-run",  action="store_true", help="Preview without uploading")
     p.add_argument("--reset",    action="store_true", help="Full reset each prefix before upload")
-    p.add_argument("--ftp",      type=int,   help="FTP override in watts")
-    p.add_argument("--run-pace", help="Run pace override MM:SS")
+    p.add_argument("--ftp",       type=int,   help="FTP override in watts")
+    p.add_argument("--run-pace",  help="Run pace override MM:SS")
+    p.add_argument("--vol-scale", type=float, default=1.0,
+                   help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
     args = p.parse_args()
 
     # Load config
@@ -618,10 +621,11 @@ def main():
     if args.ftp:       cfg["ftp"]       = args.ftp
     if args.run_pace:  cfg["run_pace"]  = args.run_pace
 
-    ftp    = cfg["ftp"]
-    weight = cfg.get("weight_kg", 75)
-    cda    = cfg.get("cda", 0.32)
-    races  = cfg["races"]
+    ftp       = cfg["ftp"]
+    weight    = cfg.get("weight_kg", 75)
+    cda       = cfg.get("cda", 0.32)
+    races     = cfg["races"]
+    vol_scale = args.vol_scale if args.vol_scale != 1.0 else cfg.get("vol_scale", 1.0)
 
     # Global run pace — optional if all races define target_time
     global_run_pace_ms = pace_to_ms(cfg["run_pace"]) if "run_pace" in cfg else None
@@ -638,6 +642,8 @@ def main():
         print(f"  Run pace:  {cfg['run_pace']}/km  (global default)")
     print(f"  Weight:    {weight}kg  |  CdA: {cda} m²")
     print(f"  Races:     {len(races)}")
+    if vol_scale != 1.0:
+        print(f"  Vol scale: {vol_scale}× (use strava_suggest.py to recalibrate)")
     print()
 
     # Generate all blocks
@@ -678,7 +684,7 @@ def main():
             print(f"      Bieg:     {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
 
         wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
-                                   race_bike_pct=race_bike_pct)
+                                   race_bike_pct=race_bike_pct, vol_scale=vol_scale)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
 

@@ -344,7 +344,7 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32):
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE",
-                  race_bike_pct=None):
+                  race_bike_pct=None, vol_scale=1.0):
     """
     Generate a list of (workout_dict, date_str) tuples.
 
@@ -400,6 +400,7 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
             vol = 0.3
         else:
             vol = min(1.0, 0.6 + (wk / taper_start_wk) * 0.4)
+        vol *= vol_scale
 
         def D(offset, _ws=wk_start):
             return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
@@ -625,6 +626,8 @@ def main():
     p.add_argument("--weight",       type=float, default=75, help="Body weight in kg")
     p.add_argument("--cda",          type=float, default=0.32, help="CdA m² for bike power model (default: 0.32)")
     p.add_argument("--prefix",       default=None, help="Workout name prefix (default: race name)")
+    p.add_argument("--vol-scale",    type=float, default=1.0,
+                   help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
     p.add_argument("--dry-run",      action="store_true", help="Preview without uploading")
     p.add_argument("--reset",        action="store_true", help="Full reset before uploading")
     args = p.parse_args()
@@ -686,8 +689,10 @@ def main():
     print(f"{'='*60}\n")
 
     # Generate plan
+    if args.vol_scale != 1.0:
+        print(f"Volume scale: {args.vol_scale}× (use strava_suggest.py to recalibrate)\n")
     workouts = generate_plan(race_date, distance, ftp, run_pace_ms, args.weight, prefix,
-                             race_bike_pct=race_bike_pct)
+                             race_bike_pct=race_bike_pct, vol_scale=args.vol_scale)
     print(f"Generated {len(workouts)} workouts\n")
 
     # Show schedule preview
