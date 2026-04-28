@@ -58,10 +58,25 @@ GARMIN LOGIN — FIRST RUN
 COMMANDS:
   python3 season_plan.py --reset                         interactive
   python3 season_plan.py --config season_example.json --reset
+  python3 season_plan.py --config season_example.json --auto-ftp  FTP from Garmin
   python3 season_plan.py --dry-run                       preview only
+
+  python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+      --auto-ftp --target-time 5:00:00 --weight 92 --reset
 
 DISTANCES: 70.3 / full / olympic / sprint
 FULL GUIDE: open INSTRUKCJA.html in Chrome/Firefox
+
+AUTO FTP FROM GARMIN
+  Use --auto-ftp to read your current FTP directly from Garmin Connect
+  instead of entering it manually. Works in all 4 planner scripts.
+  Requires a valid Garmin session (~/.garmin_token).
+  If the FTP endpoint is unavailable, falls back to the config/manual value.
+
+  python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+      --auto-ftp --run-pace 5:20 --weight 80 --reset
+  python3 generate_plan_en.py --race-date 2026-09-15 --distance 70.3 \
+      --auto-ftp --target-time 5:00:00 --weight 92 --reset
 
 UPDATING AN EXISTING PLAN (mid-season recalibration)
   After uploading a plan, its state is saved to: ~/.triathlon_plans/{PREFIX}.json
@@ -75,6 +90,35 @@ UPDATING AN EXISTING PLAN (mid-season recalibration)
   python3 update_plan.py --prefix WARSAW --dry-run       preview only
 
   By default updates from next Monday onwards (override with --from-date YYYY-MM-DD).
+
+TRACKING TRAINING LOAD (TSS/CTL/ATL/TSB)
+  training_load.py estimates planned TSS for each session and computes the
+  PMC (Performance Management Chart) without connecting to Garmin.
+  Requires a saved plan state (~/.triathlon_plans/{PREFIX}.json).
+
+  Metrics:
+    TSS  — Training Stress Score (bike: NP method; run: rTSS; swim: 50/h)
+    CTL  — Chronic Training Load (fitness), 42-day exponential average
+    ATL  — Acute Training Load (fatigue), 7-day exponential average
+    TSB  — Training Stress Balance (form) = CTL − ATL
+           TSB 5–25 = good form on race day
+           TSB < 5  = extend taper  |  TSB > 25 = shorten taper
+
+  python3 training_load.py --prefix WARSAW            full season
+  python3 training_load.py --prefix WARSAW --weeks 8  last 8 weeks
+  python3 training_load.py --list
+
+REVIEWING PROGRESS (planned vs actual)
+  plan_review.py fetches your Garmin activity history and compares it
+  against the training plan session by session.
+
+  python3 plan_review.py --prefix WARSAW              full plan review
+  python3 plan_review.py --prefix WARSAW --weeks 4    last 4 weeks only
+  python3 plan_review.py --list
+
+  Output per session: ✓ done (with actual duration/power/pace) or ✗ skipped.
+  Weekly completion bar + overall percentage.
+  Handles activity type variants: road_cycling, trail_running, virtual_ride, etc.
 
 MYWHOOSH / ZWIFT .ZWO FILES
 ============================
@@ -480,6 +524,15 @@ GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
     - Lub zresetuj hasło do Garmin — to zdejmuje blokadę
     - NIE próbuj logować się w pętli — każda próba pogarsza blokadę
 
+AUTO FTP Z GARMIN
+  Użyj flagi --auto-ftp aby odczytać aktualne FTP bezpośrednio z Garmin Connect
+  zamiast wpisywać je ręcznie. Działa we wszystkich 4 skryptach planowania.
+  Wymaga aktywnej sesji Garmin (~/.garmin_token).
+  Jeśli endpoint FTP jest niedostępny, skrypt korzysta z wartości z konfiguracji.
+
+  python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+      --auto-ftp --run-pace 5:20 --weight 80 --reset
+
 AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
   Po wgraniu planu jego stan jest zapisywany do: ~/.triathlon_plans/{PREFIX}.json
   Użyj update_plan.py aby zastąpić przyszłe tygodnie nowymi parametrami
@@ -492,6 +545,34 @@ AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
   python3 update_plan.py --prefix WARSAW --dry-run       podgląd bez zmian
 
   Domyślnie aktualizuje od następnego poniedziałku (zmień przez --from-date YYYY-MM-DD).
+
+ŚLEDZENIE OBCIĄŻENIA TRENINGOWEGO (TSS/CTL/ATL/TSB)
+  training_load.py szacuje planowane TSS dla każdej sesji i oblicza krzywe PMC
+  bez połączenia z Garmin. Wymaga zapisanego stanu planu (~/.triathlon_plans/{PREFIX}.json).
+
+  Metryki:
+    TSS  — Training Stress Score (rower: metoda NP; bieg: rTSS; pływanie: 50/h)
+    CTL  — Chronic Training Load (forma), wykładnicza średnia 42-dniowa
+    ATL  — Acute Training Load (zmęczenie), wykładnicza średnia 7-dniowa
+    TSB  — Training Stress Balance (dyspozycja) = CTL − ATL
+           TSB 5–25 = dobra forma w dniu wyścigu
+           TSB < 5  = wydłuż taper  |  TSB > 25 = skróć taper
+
+  python3 training_load.py --prefix WARSAW            cały sezon
+  python3 training_load.py --prefix WARSAW --weeks 8  ostatnie 8 tygodni
+  python3 training_load.py --list
+
+PRZEGLĄD POSTĘPÓW (zaplanowane vs wykonane)
+  plan_review.py pobiera historię aktywności z Garmin Connect i zestawia ją
+  z planem treningowym sesja po sesji.
+
+  python3 plan_review.py --prefix WARSAW              pełny przegląd planu
+  python3 plan_review.py --prefix WARSAW --weeks 4    ostatnie 4 tygodnie
+  python3 plan_review.py --list
+
+  Wynik per sesja: ✓ wykonano (z rzeczywistym czasem/mocą/tempem) lub ✗ pominięto.
+  Pasek uzupełnienia tygodnia + łączny procent wykonania.
+  Obsługuje warianty typów aktywności: road_cycling, trail_running, virtual_ride itp.
 
 PLIKI .ZWO DLA MYWHOOSH / ZWIFT
 ==================================
