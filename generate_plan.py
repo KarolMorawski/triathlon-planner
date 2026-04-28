@@ -207,6 +207,38 @@ def _swu(o, dist_m): return _swim_step(o, 1, "warmup",   dist_m)
 def _scd(o, dist_m): return _swim_step(o, 2, "cooldown", dist_m)
 def _sint(o, dist_m): return _swim_step(o, 3, "interval", dist_m)
 
+def _srest(o, secs):
+    return {
+        "type": "ExecutableStepDTO",
+        "stepOrder": o,
+        "stepType": {"stepTypeId": 5, "stepTypeKey": "rest", "displayOrder": 5},
+        "childStepId": None,
+        "description": None,
+        "endCondition": {"conditionTypeId": 2, "conditionTypeKey": "time",
+                         "displayOrder": 2, "displayable": True},
+        "endConditionValue": float(secs),
+        "targetType": _no_target(),
+        "targetValueOne": None, "targetValueTwo": None, "targetValueUnit": None,
+        "zoneNumber": None,
+        "secondaryTargetType": None, "secondaryTargetValueOne": None,
+        "secondaryTargetValueTwo": None, "secondaryTargetValueUnit": None,
+        "secondaryZoneNumber": None,
+        "strokeType": {"strokeTypeId": 0, "strokeTypeKey": None, "displayOrder": 0},
+        "equipmentType": {"equipmentTypeId": 0, "equipmentTypeKey": None, "displayOrder": 0},
+    }
+
+def _swim_set(start_order, total_dist, interval_dist, rest_secs):
+    """Generate alternating interval+rest steps for the main swim set.
+    Returns (steps_list, next_free_order)."""
+    n = max(1, round(total_dist / interval_dist))
+    each = total_dist // n
+    steps, o = [], start_order
+    for i in range(n):
+        steps.append(_sint(o, each)); o += 1
+        if i < n - 1:
+            steps.append(_srest(o, rest_secs)); o += 1
+    return steps, o
+
 def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
     sp = sport(sport_key)
     return {
@@ -214,7 +246,10 @@ def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
         "workoutName": name,
         "description": desc,
         "workoutSegments": [{"segmentOrder": 1, "sportType": sp, "workoutSteps": steps}],
-        "estimatedDurationInSecs": dur_s or int(sum(s["endConditionValue"] for s in steps)),
+        "estimatedDurationInSecs": dur_s or int(sum(
+            s["endConditionValue"] for s in steps
+            if s["endCondition"]["conditionTypeKey"] == "time"
+        )) or None,
         "estimatedDistanceInMeters": dist_m,
         "avgTrainingSpeed": None,
         "workoutProvider": None,
@@ -408,27 +443,30 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
 
         swim_base = int(profile["swim_m"] * 0.6 * vol)
 
-        # ── SWIM A — technique (Mon D0) ───────────────────────────────────────
+        # ── SWIM A — technique (Mon D0) — 100m intervals, 20s rest ──────────────
         dist_a = max(600, round(int(swim_base * 0.55) / 100) * 100)
         wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
+        int_steps, next_o = _swim_set(2, main_d, 100, 20)
         workouts.append((_wkt("swim", f"{tag} Swim Tech {dist_a}m",
-            f"Technique & intervals {dist_a}m",
-            [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_a), D(0)))
+            f"Technique & drills {dist_a}m | {main_d//100}×100m + 20s rest",
+            [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_a), D(0)))
 
-        # ── SWIM B — endurance (Thu D3) ───────────────────────────────────────
+        # ── SWIM B — endurance (Thu D3) — 200m intervals, 15s rest ──────────────
         dist_b = max(800, round(int(swim_base * 0.75) / 100) * 100)
         wu_d = min(400, dist_b // 4); main_d = max(300, dist_b - wu_d - 100)
+        int_steps, next_o = _swim_set(2, main_d, 200, 15)
         workouts.append((_wkt("swim", f"{tag} Swim Endurance {dist_b}m",
-            f"Endurance swim {dist_b}m",
-            [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_b), D(3)))
+            f"Endurance {dist_b}m | {main_d//200}×200m + 15s rest",
+            [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_b), D(3)))
 
-        # ── SWIM C — race-sim (Fri D4) — BUILD only ───────────────────────────
+        # ── SWIM C — race-sim (Fri D4) — 400m intervals, 10s rest — BUILD only ──
         if is_build:
             dist_c = max(400, round(int(profile["swim_m"] * 0.85 * vol) / 100) * 100)
             wu_d = min(200, dist_c // 5); main_d = max(200, dist_c - wu_d - 100)
+            int_steps, next_o = _swim_set(2, main_d, 400, 10)
             workouts.append((_wkt("swim", f"{tag} Swim Race-Sim {dist_c}m",
-                f"Race-pace swim {dist_c}m",
-                [_swu(1,wu_d), _sint(2,main_d), _scd(3,100)], dist_c), D(4)))
+                f"Race-pace {dist_c}m | {max(1,main_d//400)}×400m + 10s rest",
+                [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_c), D(4)))
 
         # ── BIKE A — main quality session (Tue D1) ────────────────────────────
         q = wk % 3
