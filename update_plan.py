@@ -338,6 +338,36 @@ przykłady:
 
     print(f"  Treningi do wgrania: {len(new_wkts)}")
 
+    # Predykcja TSB w dniu wyścigu
+    try:
+        from training_load import estimate_tss, compute_load
+        import math
+        from datetime import timedelta as _td
+        daily_tss = {}
+        for wkt, d in all_wkts:
+            tss = estimate_tss(wkt, ftp, run_pace_ms)
+            daily_tss[d] = daily_tss.get(d, 0.0) + tss
+        _weeks = {"sprint": 8, "olympic": 10, "70.3": 12, "full": 16}
+        plan_start = race_date - _td(weeks=_weeks.get(distance, 12))
+        pmc_start  = plan_start - _td(weeks=6)
+        pmc = compute_load(daily_tss, pmc_start, race_date)
+        rp  = pmc.get(race_date, {})
+        tsb, ctl = rp.get("tsb", 0), rp.get("ctl", 0)
+        if tsb < 5:
+            taper_date = (_next_monday() + _td(weeks=1)).isoformat()
+            print(f"\n  ⚠ Prognoza TSB w dniu wyścigu: {tsb:+.1f}  CTL: {ctl:.0f}")
+            print(f"    Za niskie (cel: 5–25). Rozważ dłuższy taper:")
+            print(f"    uruchom z --from-date {taper_date} (tydzień wcześniej)\n")
+        elif tsb > 25:
+            taper_date = (_next_monday() - _td(weeks=1)).isoformat()
+            print(f"\n  ⚠ Prognoza TSB w dniu wyścigu: {tsb:+.1f}  CTL: {ctl:.0f}")
+            print(f"    Za wysokie (cel: 5–25). Rozważ krótszy taper:")
+            print(f"    uruchom z --from-date {taper_date} (tydzień później)\n")
+        else:
+            print(f"\n  ✓ Prognoza TSB w dniu wyścigu: {tsb:+.1f}  CTL: {ctl:.0f}  — forma w normie\n")
+    except Exception:
+        pass
+
     if args.dry_run:
         print("\n  DRY RUN — podgląd przyszłych treningów po aktualizacji:\n")
         for wkt, d in sorted(new_wkts, key=lambda x: x[1]):

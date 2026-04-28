@@ -337,6 +337,35 @@ examples:
 
     print(f"  Workouts to upload: {len(new_wkts)}")
 
+    # Predicted race day TSB
+    try:
+        from training_load import estimate_tss, compute_load
+        from datetime import timedelta as _td
+        daily_tss = {}
+        for wkt, d in all_wkts:
+            tss = estimate_tss(wkt, ftp, run_pace_ms)
+            daily_tss[d] = daily_tss.get(d, 0.0) + tss
+        _weeks = {"sprint": 8, "olympic": 10, "70.3": 12, "full": 16}
+        plan_start = race_date - _td(weeks=_weeks.get(distance, 12))
+        pmc_start  = plan_start - _td(weeks=6)
+        pmc = compute_load(daily_tss, pmc_start, race_date)
+        rp  = pmc.get(race_date, {})
+        tsb, ctl = rp.get("tsb", 0), rp.get("ctl", 0)
+        if tsb < 5:
+            taper_date = (_next_monday() + _td(weeks=1)).isoformat()
+            print(f"\n  ⚠ Predicted race day TSB: {tsb:+.1f}  CTL: {ctl:.0f}")
+            print(f"    Too low (target: 5–25). Consider a longer taper:")
+            print(f"    re-run with --from-date {taper_date} (one week earlier)\n")
+        elif tsb > 25:
+            taper_date = (_next_monday() - _td(weeks=1)).isoformat()
+            print(f"\n  ⚠ Predicted race day TSB: {tsb:+.1f}  CTL: {ctl:.0f}")
+            print(f"    Too high (target: 5–25). Consider a shorter taper:")
+            print(f"    re-run with --from-date {taper_date} (one week later)\n")
+        else:
+            print(f"\n  ✓ Predicted race day TSB: {tsb:+.1f}  CTL: {ctl:.0f}  — on target\n")
+    except Exception:
+        pass
+
     if args.dry_run:
         print("\n  DRY RUN — future workouts after update:\n")
         for wkt, d in sorted(new_wkts, key=lambda x: x[1]):

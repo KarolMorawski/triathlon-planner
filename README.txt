@@ -120,6 +120,33 @@ REVIEWING PROGRESS (planned vs actual)
   Weekly completion bar + overall percentage.
   Handles activity type variants: road_cycling, trail_running, virtual_ride, etc.
 
+RACE PACING CALCULATOR
+  race_pacing.py shows three bike scenarios (conservative / target / aggressive)
+  and predicts run pace degradation + nutrition plan. No Garmin login needed.
+
+  python3 race_pacing.py --distance 70.3 --ftp 255 --weight 86
+  python3 race_pacing.py --distance 70.3 --ftp 255 --weight 86 --target-time 5:00:00
+  python3 race_pacing.py --distance full --ftp 255 --weight 86 --run-pace 5:20
+
+  Output:
+    Bike split options with power (W / % FTP), speed, and time for each scenario.
+    Run pace prediction per scenario using an empirical degradation model
+      (e.g. cycling at 82% FTP → ~6% slower run than standalone pace).
+    Estimated finish time = swim + bike + T1T2 + degraded run.
+    Nutrition plan for the target scenario: carbs (g/h) + fluid (ml/h)
+      for both bike and run legs.
+
+CALENDAR EXPORT (.ICS)
+  export_ics.py generates an iCalendar file importable into Google Calendar,
+  Apple Calendar, or Outlook. Each workout appears as an all-day event.
+
+  python3 export_ics.py --prefix WARSAW                   full plan
+  python3 export_ics.py --prefix WARSAW --future-only     upcoming only
+  python3 export_ics.py --prefix WARSAW --output plan.ics custom filename
+  python3 export_ics.py --list
+
+  Import instructions are printed after the file is generated.
+
 MYWHOOSH / ZWIFT .ZWO FILES
 ============================
 After uploading to Garmin, each script asks:
@@ -573,6 +600,33 @@ PRZEGLĄD POSTĘPÓW (zaplanowane vs wykonane)
   Wynik per sesja: ✓ wykonano (z rzeczywistym czasem/mocą/tempem) lub ✗ pominięto.
   Pasek uzupełnienia tygodnia + łączny procent wykonania.
   Obsługuje warianty typów aktywności: road_cycling, trail_running, virtual_ride itp.
+
+KALKULATOR TEMPA WYŚCIGOWEGO
+  race_pacing.py pokazuje trzy scenariusze jazdy rowerem (konserwatywny / docelowy /
+  agresywny) z prognozą spowolnienia biegu i planem żywienia. Bez logowania do Garmin.
+
+  python3 race_pacing.py --distance 70.3 --ftp 255 --weight 86
+  python3 race_pacing.py --distance 70.3 --ftp 255 --weight 86 --target-time 5:00:00
+  python3 race_pacing.py --distance full --ftp 255 --weight 86 --run-pace 5:20
+
+  Wynik:
+    Opcje tempa rowerowego: moc (W / % FTP), prędkość, czas dla 3 scenariuszy.
+    Prognoza tempa biegu per scenariusz wg modelu empirycznego
+      (np. jazda przy 82% FTP → ~6% wolniejszy bieg niż na świeżo).
+    Szacowany czas ukończenia = pływanie + rower + T1T2 + osłabiony bieg.
+    Plan żywienia dla scenariusza docelowego: węglowodany (g/h) + płyny (ml/h)
+      oddzielnie dla roweru i biegu.
+
+EKSPORT DO KALENDARZA (.ICS)
+  export_ics.py generuje plik iCalendar importowalny do Google Calendar,
+  Apple Calendar lub Outlooka. Każdy trening jako wydarzenie całodniowe.
+
+  python3 export_ics.py --prefix WARSAW                   cały plan
+  python3 export_ics.py --prefix WARSAW --future-only     tylko przyszłe
+  python3 export_ics.py --prefix WARSAW --output plan.ics własna nazwa pliku
+  python3 export_ics.py --list
+
+  Instrukcje importu są wypisywane po wygenerowaniu pliku.
 
 PLIKI .ZWO DLA MYWHOOSH / ZWIFT
 ==================================

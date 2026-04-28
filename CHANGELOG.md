@@ -5,6 +5,48 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.11.0] — 2026-04-28
+
+### Added
+
+#### `race_pacing.py` / `race_pacing_en.py` — race pacing calculator
+
+Standalone tool, no Garmin login required.
+
+- Three bike scenarios (conservative/target/aggressive) at race IF ±4%
+- Bike physics model (Newton's method, flat course): power → speed → split time
+- Run degradation model: piecewise linear, IF 0.65–1.00 → 0–25% slowdown
+- Estimated finish time for each scenario
+- Nutrition plan for the target scenario (carbs g/h + fluid ml/h per leg)
+- If `--target-time` given: derives target IF and run pace from splits
+- If `--run-pace` given: uses distance profile default IF
+
+```bash
+python3 race_pacing_en.py --distance 70.3 --ftp 255 --weight 86
+python3 race_pacing_en.py --distance 70.3 --ftp 255 --weight 86 --target-time 5:00:00
+```
+
+#### `export_ics.py` / `export_ics_en.py` — iCalendar export
+
+- Generates `.ics` from saved plan state (requires `~/.triathlon_plans/{PREFIX}.json`)
+- Each workout = all-day VEVENT (DTSTART/DTEND VALUE=DATE)
+- Race day marked as a separate event with target time in description
+- `--future-only` to export only upcoming workouts
+- Import instructions printed after generation
+
+```bash
+python3 export_ics_en.py --prefix WARSAW --future-only
+```
+
+#### TSB prediction in `update_plan.py` / `update_plan_en.py`
+
+- After generating the updated plan, computes predicted race day TSB/CTL
+  using the same PMC model as `training_load.py` (imports `estimate_tss`, `compute_load`)
+- TSB 5–25 → "on target"; outside range → specific `--from-date` suggestion
+- Wrapped in try/except so missing `training_load.py` is silently skipped
+
+---
+
 ## [1.10.0] — 2026-04-28
 
 ### Added
