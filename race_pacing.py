@@ -184,7 +184,7 @@ def print_report(distance, ftp, weight_kg, cda, run_pace_fresh_ms, target_if):
         print(f"    Węglowodany: {cb}g  ({cb/(tgt_bike_min/60):.0f}g/h)  — żele/batony co ~30 min")
         print(f"    Płyny:       {fb}ml  ({fb/(tgt_bike_min/60):.0f}ml/h) — bidony izotoniku")
         print(f"  Bieg ({_fmt_dur(tgt_run_min)}):")
-        print(f"    Węglowodany: {cr}g  ({cr/(tgt_run_min/60):.0f}g/h)  — żele na punkatch")
+        print(f"    Węglowodany: {cr}g  ({cr/(tgt_run_min/60):.0f}g/h)  — żele na punktach")
         print(f"    Płyny:       {fr}ml  ({fr/(tgt_run_min/60):.0f}ml/h) — pij na każdym punkcie")
         print(f"  {'─'*58}")
         print(f"  RAZEM: ~{cb+cr}g węglowodanów  |  ~{fb+fr}ml płynów")
