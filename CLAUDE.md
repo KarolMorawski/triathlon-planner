@@ -154,7 +154,4 @@ client.login(tokenstore=open(TOKEN_FILE).read())
 - test: testy
 
 ## Backlog (planowane funkcje)
-- [ ] Automatyczne FTP z API Garmin (get_garmin_ftp w season_plan/generate_plan)
-- [ ] Plan Review — porównanie zaplanowane vs wykonane (plan_review.py)
-- [ ] Training Load — TSS/CTL/ATL/TSB (training_load.py)
 - [ ] SKILL.md dla claude.ai po pierwszym sezonie produkcyjnym
