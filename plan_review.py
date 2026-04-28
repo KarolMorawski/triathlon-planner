@@ -17,12 +17,20 @@ Użycie:
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from datetime import date, datetime, timedelta
 
 STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
 
 # Mapowanie Garmin → typ sportu planu
 GARMIN_SPORT = {
@@ -284,7 +292,9 @@ def main():
         p.print_help()
         return
 
-    state = load_state(args.prefix.upper())
+    prefix = prefix
+    _validate_prefix(prefix)
+    state = load_state(prefix)
     cfg   = state["config"]
 
     ftp           = cfg["ftp"]
@@ -303,9 +313,9 @@ def main():
     except ImportError:
         sys.exit("BŁĄD: Brak pliku season_plan.py w bieżącym katalogu.")
 
-    print(f"Generowanie planu {args.prefix.upper()}...")
+    print(f"Generowanie planu {prefix}...")
     all_wkts = generate_race_block(
-        race_date, distance, ftp, run_pace_ms, args.prefix.upper(),
+        race_date, distance, ftp, run_pace_ms, prefix,
         race_bike_pct=race_bike_pct, vol_scale=vol_scale
     )
 

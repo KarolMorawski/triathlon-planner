@@ -18,10 +18,18 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 from datetime import date, timedelta
 
 STATE_DIR = os.path.expanduser("~/.triathlon_plans")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
 
 
 # ─── STATE ────────────────────────────────────────────────────────────────────
@@ -270,7 +278,9 @@ def main():
         p.print_help()
         return
 
-    state = load_state(args.prefix.upper())
+    prefix = prefix
+    _validate_prefix(prefix)
+    state = load_state(prefix)
     cfg   = state["config"]
 
     ftp          = cfg["ftp"]
@@ -289,9 +299,9 @@ def main():
     except ImportError:
         sys.exit("ERROR: season_plan_en.py not found in current directory.")
 
-    print(f"Computing training load for plan {args.prefix.upper()}...")
+    print(f"Computing training load for plan {prefix}...")
     all_wkts = generate_race_block(
-        race_date, distance, ftp, run_pace_ms, args.prefix.upper(),
+        race_date, distance, ftp, run_pace_ms, prefix,
         race_bike_pct=race_bike_pct, vol_scale=vol_scale
     )
 

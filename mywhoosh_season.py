@@ -18,8 +18,17 @@ Usage:
 """
 
 import argparse
+import re
+import sys
 from pathlib import Path
 from dataclasses import dataclass
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape the output dir or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
 
 # ─── KONFIGURACJA ─────────────────────────────────────────────────────────────
 
@@ -496,7 +505,9 @@ def main():
     print(f"{'='*50}")
 
     if args.distance:
-        generate_for_distance(args.prefix.upper(), args.distance, args.ftp, args.output)
+        prefix = args.prefix.upper()
+        _validate_prefix(prefix)
+        generate_for_distance(prefix, args.distance, args.ftp, args.output)
     else:
         races = list(RACE_PLAN.keys()) if "all" in args.race else args.race
         print(f"  Zawody: {', '.join(races)}")

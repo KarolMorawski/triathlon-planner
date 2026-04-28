@@ -17,10 +17,18 @@ Użycie:
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date, timedelta
 
 STATE_DIR = os.path.expanduser("~/.triathlon_plans")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
 
 SPORT_ICON = {"running": "🏃", "cycling": "🚲", "swimming": "🏊"}
 SPORT_PL   = {"running": "Bieg", "cycling": "Rower", "swimming": "Pływanie"}
@@ -163,7 +171,9 @@ def main():
         p.print_help()
         return
 
-    state  = load_state(args.prefix.upper())
+    prefix_arg = args.prefix.upper()
+    _validate_prefix(prefix_arg)
+    state  = load_state(prefix_arg)
     cfg    = state["config"]
     prefix = state["prefix"]
 

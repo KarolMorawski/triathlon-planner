@@ -24,6 +24,7 @@ Config file format (season.json):
 """
 
 import argparse
+import re
 import sys
 import time
 import json
@@ -35,6 +36,13 @@ from collections import defaultdict
 # ─── GARMIN LOGIN ────────────────────────────────────────────────────────────
 
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"ERROR: Invalid race name '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
 STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
 
 def login():
@@ -702,7 +710,8 @@ def main():
     for race in races:
         rdate  = date.fromisoformat(race["date"])
         dist   = race["distance"]
-        prefix = race["name"]
+        prefix = race["name"].upper()
+        _validate_prefix(prefix)
         prof   = PROFILES[dist]
         wks    = prof["weeks"]
         start  = rdate - timedelta(weeks=wks)

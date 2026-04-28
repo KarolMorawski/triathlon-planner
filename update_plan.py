@@ -19,11 +19,19 @@ Użycie:
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from datetime import date, timedelta
 
 STATE_DIR = os.path.expanduser("~/.triathlon_plans")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
 
 
 # ─── STATE I/O ────────────────────────────────────────────────────────────────
@@ -236,7 +244,9 @@ przykłady:
         p.print_help()
         return
 
-    state = load_state(args.prefix.upper())
+    prefix = args.prefix.upper()
+    _validate_prefix(prefix)
+    state = load_state(prefix)
     today = date.today()
     past, future = show_status(state, today)
 

@@ -16,6 +16,7 @@ Supported distances: 70.3 (Half Ironman), full (Ironman), olympic, sprint
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import math
@@ -26,6 +27,13 @@ from collections import defaultdict
 # ─── GARMIN CONNECTION ───────────────────────────────────────────────────────
 
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+
+_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
+
+def _validate_prefix(p):
+    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
+    if not _PREFIX_RE.match(p):
+        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
 STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
 
 def login():
@@ -707,7 +715,8 @@ def main():
     race_date = date.fromisoformat(args.race_date)
     distance  = args.distance
     ftp       = args.ftp
-    prefix    = args.prefix
+    prefix    = args.prefix.upper()
+    _validate_prefix(prefix)
     profile   = PROFILES[distance]
 
     # Resolve run pace and bike zone from target time or explicit pace
