@@ -173,6 +173,8 @@ td code{font-size:11px;}
     <a href="#s7"><span class="toc-num">7</span>Uruchamianie: paczka sezonu</a>
     <a href="#s8"><span class="toc-num">8</span>Power i pace — jak działa</a>
     <a href="#s9"><span class="toc-num">9</span>Rozwiązywanie problemów</a>
+    <a href="#s10"><span class="toc-num">10</span>Aktualizacja planu w trakcie sezonu</a>
+    <a href="#s11"><span class="toc-num">11</span>Narzędzia analityczne</a>
   </div>
 </div>
 
@@ -204,6 +206,17 @@ td code{font-size:11px;}
   <div class="alert info">
     <strong>Obie paczki są niezależne.</strong>
     Możesz korzystać z jednej lub obu jednocześnie. Plany w Garmin nie kolidują ze sobą — każdy wyścig ma unikalny prefix (np. WARSAW-T01, BERLIN-T01).
+  </div>
+
+  <h3 style="margin-top:18px;">Dodatkowe narzędzia (w tym samym folderze)</h3>
+  <div class="files">
+    <div class="file"><div class="fn">update_plan.py</div><div class="fd">Aktualizuje istniejący plan w trakcie sezonu — nowe FTP, vol-scale, integracja ze Stravą. Nie rusza już wykonanych treningów.</div></div>
+    <div class="file"><div class="fn">training_load.py</div><div class="fd">Oblicza planowane TSS/CTL/ATL/TSB bez logowania do Garmin. Pokazuje tygodniowy wykres obciążenia i formę w dniu wyścigu.</div></div>
+    <div class="file"><div class="fn">plan_review.py</div><div class="fd">Pobiera aktywności z Garmin i zestawia je z planem (✓ wykonano / ✗ pominięto). Tygodniowy raport wykonania.</div></div>
+    <div class="file"><div class="fn">race_pacing.py</div><div class="fd">Kalkulator tempa wyścigowego: 3 scenariusze roweru, prognoza spowolnienia biegu, plan żywienia. Bez logowania.</div></div>
+    <div class="file"><div class="fn">export_ics.py</div><div class="fd">Eksportuje cały plan do pliku .ics (Google Calendar, Apple Calendar, Outlook).</div></div>
+    <div class="file"><div class="fn">strava_suggest.py</div><div class="fd">Analizuje ostatnie tygodnie ze Stravy i sugeruje target time, tempo biegu i vol-scale.</div></div>
+    <div class="file"><div class="fn">mywhoosh_season.py</div><div class="fd">Generuje pliki .zwo dla MyWhoosh i Zwift na podstawie planu.</div></div>
   </div>
 </div>
 
@@ -707,6 +720,118 @@ td code{font-size:11px;}
     <strong>Szybka diagnostyka — uruchom suche przejście:</strong>
 <pre style="margin:8px 0 0;"><span class="cv">python generate_plan.py --dry-run</span></pre>
     Jeśli skrypt pokazuje listę treningów bez błędów — instalacja jest poprawna. Błędy pojawiają się dopiero przy połączeniu z Garmin.
+  </div>
+</div>
+
+<!-- 10. AKTUALIZACJA PLANU -->
+<div class="sec" id="s10">
+  <div class="sec-h">🔄 10. Aktualizacja planu w trakcie sezonu</div>
+  <p>Po 2–3 miesiącach treningu Twoja forma zmienia się — FTP rośnie, objętość może wymagać korekty.
+  <code>update_plan.py</code> zastępuje <strong>tylko przyszłe</strong> treningi nowymi parametrami,
+  nie ruszając już wykonanych sesji.</p>
+
+  <div class="alert info">
+    <strong>Kiedy aktualizować plan?</strong>
+    Co 6–8 tygodni, po retescie FTP, po ocenie formy przez Stravę lub gdy vol-scale nie odpowiada aktualnej kondycji.
+  </div>
+
+  <h3>Krok 1 — Sprawdź aktualny stan planu</h3>
+<pre><span class="cv">python update_plan.py --list</span>       <span class="cm"># lista wszystkich planów</span>
+<span class="cv">python update_plan.py --prefix WARSAW</span>  <span class="cm"># postęp i szczegóły planu</span></pre>
+
+  <h3>Krok 2 — Zdecyduj co zmieniasz</h3>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nowe FTP w watach po retescie lub pomiarze MyWhoosh.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobiera FTP automatycznie z Garmin Connect (wymaga tokenu ~/.garmin_token).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--vol-scale 1.1</div><div class="cmd-desc">Mnożnik objętości (0.5–1.5). 1.1 = 10% więcej treningów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--target-time 4:55:00</div><div class="cmd-desc">Nowy cel wyścigu — przeliczy tempo biegu i strefy rowerowe.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--from-strava</div><div class="cmd-desc">Automatyczna sugestia ze Stravy przed aktualizacją.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--from-date 2026-07-14</div><div class="cmd-desc">Aktualizuj od konkretnej daty (domyślnie: następny poniedziałek).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd bez wgrywania do Garmin.</div></div>
+  </div>
+
+  <h3>Krok 3 — Podgląd, potem aktualizacja</h3>
+<pre><span class="cm"># Sprawdź co się zmieni</span>
+<span class="cv">python update_plan.py --prefix WARSAW --ftp 270 --vol-scale 1.1 --dry-run</span>
+
+<span class="cm"># Wgraj do Garmin po potwierdzeniu</span>
+<span class="cv">python update_plan.py --prefix WARSAW --ftp 270 --vol-scale 1.1</span>
+
+<span class="cm"># Pełna aktualizacja przez Stravę</span>
+<span class="cv">python update_plan.py --prefix WARSAW --from-strava</span></pre>
+
+  <div class="alert ok">
+    <strong>Predykcja TSB w dniu wyścigu (automatyczna)</strong>
+    Po wygenerowaniu zaktualizowanego planu skrypt oblicza przewidywany TSB (formę) na dzień wyścigu.
+    Cel: <strong>TSB 5–25</strong>. Jeśli wartość jest poza tym oknem, skrypt sugeruje konkretną datę
+    <code>--from-date</code> do korekty taperu — wystarczy skopiować i uruchomić ponownie.
+  </div>
+
+  <div class="alert warn">
+    <strong>Co się dzieje z wykonanymi treningami?</strong>
+    Treningi z datą przed cutoff (domyślnie: następny poniedziałek) zostają nienaruszone.
+    Usuwane są tylko przyszłe zaplanowania z kalendarza Garmin i biblioteki treningów dla danego prefixu.
+  </div>
+</div>
+
+<!-- 11. NARZĘDZIA ANALITYCZNE -->
+<div class="sec" id="s11">
+  <div class="sec-h">📊 11. Narzędzia analityczne</div>
+  <p>Cztery dodatkowe skrypty do analizy formy i planowania wyścigu. Działają offline — nie wymagają logowania do Garmin (z wyjątkiem <code>plan_review.py</code>).</p>
+
+  <h3>Obciążenie treningowe — TSS/CTL/ATL/TSB</h3>
+  <p>Oblicza planowane krzywi formy PMC bez łączenia z Garmin. Wymaga zapisanego stanu planu (<code>~/.triathlon_plans/{PREFIX}.json</code>).</p>
+<pre><span class="cv">python training_load.py --prefix WARSAW</span>         <span class="cm"># cały sezon</span>
+<span class="cv">python training_load.py --prefix WARSAW --weeks 8</span> <span class="cm"># ostatnie 8 tygodni</span>
+<span class="cv">python training_load.py --list</span></pre>
+
+  <table>
+    <tr><th>Metryka</th><th>Znaczenie</th><th>Okno czasowe</th></tr>
+    <tr><td><strong>TSS</strong></td><td>Training Stress Score — obciążenie jednej sesji</td><td>dzienny</td></tr>
+    <tr><td><strong>CTL</strong></td><td>Chronic Training Load — długoterminowa forma (fitness)</td><td>42 dni</td></tr>
+    <tr><td><strong>ATL</strong></td><td>Acute Training Load — krótkoterminowe zmęczenie</td><td>7 dni</td></tr>
+    <tr><td><strong>TSB</strong></td><td>Training Stress Balance — dyspozycja = CTL − ATL</td><td>—</td></tr>
+  </table>
+  <div class="alert ok">
+    <strong>Interpretacja TSB w dniu wyścigu:</strong>
+    TSB 5–25 = dobra forma ✓ &nbsp;|&nbsp; TSB &lt; 5 = wydłuż taper &nbsp;|&nbsp; TSB &gt; 25 = skróć taper
+  </div>
+
+  <h3 style="margin-top:20px;">Przegląd postępów — zaplanowane vs wykonane</h3>
+  <p>Pobiera Twoje aktywności z Garmin Connect i zestawia je z planem. Wymaga aktywnego tokenu Garmin.</p>
+<pre><span class="cv">python plan_review.py --prefix WARSAW</span>           <span class="cm"># pełny przegląd</span>
+<span class="cv">python plan_review.py --prefix WARSAW --weeks 4</span>  <span class="cm"># ostatnie 4 tygodnie</span></pre>
+  <p>Wynik per sesja: <strong>✓ wykonano</strong> (z rzeczywistym czasem/mocą/tempem) lub <strong>✗ pominięto</strong>. Pasek ukończenia tygodnia i łączny procent planu.</p>
+
+  <h3 style="margin-top:20px;">Kalkulator tempa wyścigowego</h3>
+  <p>Pokazuje trzy scenariusze jazdy rowerem z prognozą spowolnienia biegu i planem żywienia. Bez logowania do Garmin.</p>
+<pre><span class="cm"># Trzy scenariusze na podstawie FTP i wagi</span>
+<span class="cv">python race_pacing.py --distance 70.3 --ftp 255 --weight 86</span>
+
+<span class="cm"># Z docelowym czasem ukończenia</span>
+<span class="cv">python race_pacing.py --distance 70.3 --ftp 255 --weight 86 --target-time 5:00:00</span>
+
+<span class="cm"># Z ręcznym tempem biegu (świeże tempo)</span>
+<span class="cv">python race_pacing.py --distance full --ftp 255 --weight 86 --run-pace 5:20</span></pre>
+
+  <table>
+    <tr><th>Scenariusz</th><th>Moc roweru</th><th>Efekt na bieg</th></tr>
+    <tr><td>Konserwatywny</td><td>Race IF −4%</td><td>≈ −2–4% tempa</td></tr>
+    <tr><td>Docelowy</td><td>Profilowy IF</td><td>≈ −5–8% tempa</td></tr>
+    <tr><td>Agresywny</td><td>Race IF +4%</td><td>≈ −10–14% tempa ⚠</td></tr>
+  </table>
+  <p>Plan żywienia zawiera węglowodany (g/h) i płyny (ml/h) osobno dla roweru i biegu.</p>
+
+  <h3 style="margin-top:20px;">Eksport do kalendarza (.ics)</h3>
+  <p>Generuje plik iCalendar z całym planem. Każdy trening to wydarzenie całodniowe. Wyścig zaznaczony osobno.</p>
+<pre><span class="cv">python export_ics.py --prefix WARSAW</span>                    <span class="cm"># cały plan</span>
+<span class="cv">python export_ics.py --prefix WARSAW --future-only</span>       <span class="cm"># tylko przyszłe</span>
+<span class="cv">python export_ics.py --prefix WARSAW --output plan.ics</span>   <span class="cm"># własna nazwa pliku</span></pre>
+
+  <div class="cmd-list" style="margin-top:8px;">
+    <div class="cmd-row"><div class="cmd-code">Google Calendar</div><div class="cmd-desc">calendar.google.com → Inne kalendarze (+) → Importuj</div></div>
+    <div class="cmd-row"><div class="cmd-code">Apple Calendar</div><div class="cmd-desc">Plik → Importuj → wybierz plik .ics</div></div>
+    <div class="cmd-row"><div class="cmd-code">Outlook</div><div class="cmd-desc">Plik → Otwórz i eksportuj → Importuj/eksportuj → Importuj plik iCalendar</div></div>
   </div>
 </div>
 

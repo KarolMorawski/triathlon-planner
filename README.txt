@@ -90,6 +90,9 @@ UPDATING AN EXISTING PLAN (mid-season recalibration)
   python3 update_plan.py --prefix WARSAW --dry-run       preview only
 
   By default updates from next Monday onwards (override with --from-date YYYY-MM-DD).
+  After generating the updated plan, predicted race day TSB is shown automatically
+  (requires training_load.py in the same directory). If TSB is outside the 5–25
+  target window, a specific --from-date suggestion is printed to adjust taper length.
 
 TRACKING TRAINING LOAD (TSS/CTL/ATL/TSB)
   training_load.py estimates planned TSS for each session and computes the
@@ -572,6 +575,9 @@ AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
   python3 update_plan.py --prefix WARSAW --dry-run       podgląd bez zmian
 
   Domyślnie aktualizuje od następnego poniedziałku (zmień przez --from-date YYYY-MM-DD).
+  Po wygenerowaniu zaktualizowanego planu automatycznie pokazywany jest przewidywany TSB
+  w dniu wyścigu (wymaga training_load.py w tym samym katalogu). Jeśli TSB wychodzi poza
+  okno 5–25, wypisywana jest sugestia daty --from-date do korekty taperu.
 
 ŚLEDZENIE OBCIĄŻENIA TRENINGOWEGO (TSS/CTL/ATL/TSB)
   training_load.py szacuje planowane TSS dla każdej sesji i oblicza krzywe PMC
