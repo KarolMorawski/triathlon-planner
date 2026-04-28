@@ -80,8 +80,8 @@ swimming = 4
 
 ### garminconnect 0.3.x
 ```python
-# Biblioteka używa self.client zamiast self.garth
-http = getattr(client, "garth", None) or getattr(client, "client", None)
+# 0.3.3+: http client dostępny przez client.client (nie client.garth)
+http = client.client
 
 # DELETE zaplanowania z kalendarza
 http.request("DELETE", "connectapi", f"/workout-service/schedule/{sid}", api=True)
@@ -93,7 +93,7 @@ http.request("DELETE", "connectapi", f"/workout-service/workout/{wid}", api=True
 client.connectapi(f"/calendar-service/year/{year}/month/{0_indexed_month}")
 ```
 
-### Logowanie — OAuth token (garth.dumps)
+### Logowanie — OAuth token (client.dumps)
 ```python
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
 
@@ -102,13 +102,13 @@ client = Garmin(email, password, return_on_mfa=True)
 result, state = client.login()
 if result == "needs_mfa":
     client.resume_login(state, mfa_code)
-open(TOKEN_FILE, "w").write(client.garth.dumps())
+open(TOKEN_FILE, "w").write(client.client.dumps())
 
 # Kolejne uruchomienia — wczytaj token (bez SSO, bez ryzyka 429)
 client = Garmin()
 client.login(tokenstore=open(TOKEN_FILE).read())
 ```
-- Token ważny tygodnie/miesiące, garth odświeża go automatycznie
+- Token ważny tygodnie/miesiące, biblioteka odświeża go automatycznie
 - NIE używać starego podejścia (login hasłem przy każdym uruchomieniu) — powoduje 429
 - Token współdzielony przez wszystkie 4 skrypty (`~/.garmin_token`)
 

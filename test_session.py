@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Integration test — Garmin OAuth token persistence (garth.dumps() approach).
+Integration test — Garmin OAuth token persistence (client.dumps() approach).
 
 This test uses a different login approach than season_plan.py:
-  - Saves OAuth tokens as a base64 string (garth.dumps()) to ~/.garmin_token
+  - Saves OAuth tokens as a base64 string (client.dumps()) to ~/.garmin_token
   - On subsequent runs loads the token directly — no password needed
-  - Tokens are refreshed automatically by garth (valid for weeks/months)
+  - Tokens are refreshed automatically (valid for weeks/months)
   - No 8h TTL — avoids 429 rate limit from repeated SSO logins
 
 Modes:
@@ -47,7 +47,7 @@ def _fresh_login():
         mfa = input("MFA/2FA code: ").strip()
         client.resume_login(state, mfa)
     # Save OAuth token as base64 string — valid for weeks/months
-    TOKEN_FILE.write_text(client.garth.dumps())
+    TOKEN_FILE.write_text(client.client.dumps())
     print(f"  ✓ Token saved to {TOKEN_FILE}")
     return client
 

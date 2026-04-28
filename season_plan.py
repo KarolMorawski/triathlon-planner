@@ -74,12 +74,12 @@ def login():
         client.resume_login(state, input("MFA/2FA code: ").strip())
 
     # Save OAuth token — avoids SSO on next run
-    open(TOKEN_FILE, "w").write(client.garth.dumps())
+    open(TOKEN_FILE, "w").write(client.client.dumps())
     print(f"✓ Logged in to Garmin Connect (token saved to {TOKEN_FILE})\n")
     return client
 
 def _http(client):
-    return getattr(client, "garth", None) or getattr(client, "client", None)
+    return client.client
 
 # ─── RACE PROFILES ───────────────────────────────────────────────────────────
 
