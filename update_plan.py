@@ -338,17 +338,19 @@ przykłady:
 
     print(f"  Treningi do wgrania: {len(new_wkts)}")
 
-    # Predykcja TSB w dniu wyścigu
+    # Predykcja TSB w dniu wyścigu (wymaga training_load.py w katalogu)
     try:
         from training_load import estimate_tss, compute_load
-        import math
+    except ImportError:
+        estimate_tss = compute_load = None
+    if estimate_tss and compute_load:
         from datetime import timedelta as _td
         daily_tss = {}
         for wkt, d in all_wkts:
             tss = estimate_tss(wkt, ftp, run_pace_ms)
             daily_tss[d] = daily_tss.get(d, 0.0) + tss
         _weeks = {"sprint": 8, "olympic": 10, "70.3": 12, "full": 16}
-        plan_start = race_date - _td(weeks=_weeks.get(distance, 12))
+        plan_start = race_date - _td(weeks=_weeks[distance])
         pmc_start  = plan_start - _td(weeks=6)
         pmc = compute_load(daily_tss, pmc_start, race_date)
         rp  = pmc.get(race_date, {})
@@ -365,8 +367,6 @@ przykłady:
             print(f"    uruchom z --from-date {taper_date} (tydzień później)\n")
         else:
             print(f"\n  ✓ Prognoza TSB w dniu wyścigu: {tsb:+.1f}  CTL: {ctl:.0f}  — forma w normie\n")
-    except Exception:
-        pass
 
     if args.dry_run:
         print("\n  DRY RUN — podgląd przyszłych treningów po aktualizacji:\n")
