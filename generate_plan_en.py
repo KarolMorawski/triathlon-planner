@@ -14,6 +14,7 @@ Supported distances: 70.3 (Half Ironman), full (Ironman), olympic, sprint
 """
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -25,6 +26,7 @@ from collections import defaultdict
 # ─── GARMIN CONNECTION ───────────────────────────────────────────────────────
 
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
 
 def login():
     try:
@@ -595,6 +597,7 @@ def upload_all(client, workouts, dry_run=False):
     """Upload workouts and schedule them."""
     print(f"Uploading {len(workouts)} workouts{'(DRY RUN)' if dry_run else ''}...")
     ok = fail = 0
+    uploaded = []
     for wkt, date_str in sorted(workouts, key=lambda x: x[1]):
         name = wkt["workoutName"]
         if dry_run:
@@ -605,6 +608,12 @@ def upload_all(client, workouts, dry_run=False):
             result = client.save_workout(wkt)
             wid = result.get("workoutId")
             client.schedule_workout(wid, date_str)
+            uploaded.append({
+                "name":       name,
+                "workout_id": wid,
+                "date":       date_str,
+                "sport":      wkt["sportType"]["sportTypeKey"],
+            })
             print(f"  ✓ {date_str}  {name}")
             ok += 1
             time.sleep(0.3)
@@ -613,6 +622,22 @@ def upload_all(client, workouts, dry_run=False):
             fail += 1
     print(f"\n{'DRY RUN: ' if dry_run else ''}Uploaded: {ok}" +
           (f" | Errors: {fail}" if fail else "") + "\n")
+    return ok, fail, uploaded
+
+def save_plan_state(prefix, config, uploaded):
+    """Persist uploaded workout IDs so update_plan.py can update future weeks."""
+    os.makedirs(STATE_DIR, exist_ok=True)
+    state = {
+        "version":      1,
+        "generated_at": date.today().isoformat(),
+        "prefix":       prefix,
+        "config":       config,
+        "workouts":     uploaded,
+    }
+    path = os.path.join(STATE_DIR, f"{prefix}.json")
+    with open(path, "w") as f:
+        json.dump(state, f, indent=2)
+    print(f"Plan state saved → {path}")
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
@@ -720,8 +745,22 @@ def main():
         print(f"FULL RESET: removing all workouts with prefix '{prefix}'...")
         clean_all(client, prefix)
 
-    upload_all(client, workouts)
+    ok, fail, uploaded = upload_all(client, workouts)
     print(f"✓ Done! View your plan at: https://connect.garmin.com/app/calendar\n")
+    plan_config = {
+        "race_date":    str(race_date),
+        "distance":     distance,
+        "ftp":          ftp,
+        "weight_kg":    args.weight,
+        "cda":          args.cda,
+        "vol_scale":    args.vol_scale,
+        "run_pace_ms":  run_pace_ms,
+        "run_pace_str": ms_to_pace(run_pace_ms),
+    }
+    if args.target_time:
+        plan_config["target_time"]   = args.target_time
+        plan_config["race_bike_pct"] = race_bike_pct
+    save_plan_state(prefix, plan_config, uploaded)
 
     # ── MyWhoosh / Zwift .zwo files ───────────────────────────────────────────
     zwo_ans = input("Generate .zwo files for MyWhoosh/Zwift? (yes/no): ").strip().lower()

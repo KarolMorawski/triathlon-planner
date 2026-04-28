@@ -5,6 +5,45 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.9.0] — 2026-04-28
+
+### Dodane
+
+#### `update_plan.py` / `update_plan_en.py` — aktualizacja istniejącego planu
+
+Nowy moduł do rekalibracji planu w trakcie sezonu (np. po 2 miesiącach treningu).
+
+- `update_plan.py --list` — lista wszystkich zapisanych planów z postępem
+- `update_plan.py --prefix WARSAW` — podgląd statusu (wykonano X, pozostało Y)
+- Aktualizuje tylko przyszłe treningi (od następnego poniedziałku lub `--from-date`)
+- Usuwa stare zaplanowania z kalendarza Garmin i stare treningi z biblioteki
+- Generuje nowe treningi z nowymi parametrami i wgrywa do Garmin
+- Opcja `--from-strava`: automatyczne sugestie ze Stravy przed aktualizacją
+- Zachowuje historię (wykonane treningi pozostają niezmienione)
+- Stan zapisywany do `~/.triathlon_plans/{PREFIX}.json`
+
+Parametry do aktualizacji: `--ftp`, `--vol-scale`, `--target-time`, `--run-pace`, `--weight`, `--dry-run`
+
+Przykład:
+```bash
+# Po 2 miesiącach — kalibracja przez Stravę
+python3 strava_suggest.py --distance 70.3
+python3 update_plan.py --prefix WARSAW --vol-scale 1.1 --ftp 265
+
+# Lub w jednym kroku ze Stravą
+python3 update_plan.py --prefix WARSAW --from-strava
+```
+
+#### Zapis stanu planu (`~/.triathlon_plans/{PREFIX}.json`)
+
+Wszystkie 4 skrypty planistyczne (`season_plan.py`, `season_plan_en.py`, `generate_plan.py`, `generate_plan_en.py`) zapisują po wgraniu planu plik stanu JSON zawierający:
+- konfigurację wyścigu (dystans, data, FTP, waga, vol_scale, tempo biegu)
+- listę wgranych treningów z datami i identyfikatorami Garmin (`workout_id`)
+
+Plik stanu jest bazą dla `update_plan.py` i nie jest wymagany do podstawowego użycia.
+
+---
+
 ## [1.8.0] — 2026-04-28
 
 ### Dodane

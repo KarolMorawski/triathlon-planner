@@ -35,6 +35,7 @@ from collections import defaultdict
 # ─── GARMIN LOGIN ────────────────────────────────────────────────────────────
 
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
+STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
 
 def login():
     try:
@@ -535,6 +536,7 @@ def clean_prefix(client, prefix):
 
 def upload_workouts(client, workouts, dry_run=False):
     ok = fail = 0
+    uploaded = []
     for wkt, date_str in sorted(workouts, key=lambda x: x[1]):
         name = wkt["workoutName"]
         if dry_run:
@@ -545,12 +547,33 @@ def upload_workouts(client, workouts, dry_run=False):
             result = client.save_workout(wkt)
             wid    = result.get("workoutId")
             client.schedule_workout(wid, date_str)
+            uploaded.append({
+                "name":       name,
+                "workout_id": wid,
+                "date":       date_str,
+                "sport":      wkt["sportType"]["sportTypeKey"],
+            })
             ok += 1
             time.sleep(0.25)
         except Exception as e:
             print(f"    ✗ {date_str}  {name}: {e}")
             fail += 1
-    return ok, fail
+    return ok, fail, uploaded
+
+def save_plan_state(prefix, config, uploaded):
+    """Persist uploaded workout IDs so update_plan.py can update future weeks."""
+    os.makedirs(STATE_DIR, exist_ok=True)
+    state = {
+        "version":      1,
+        "generated_at": date.today().isoformat(),
+        "prefix":       prefix,
+        "config":       config,
+        "workouts":     uploaded,
+    }
+    path = os.path.join(STATE_DIR, f"{prefix}.json")
+    with open(path, "w") as f:
+        json.dump(state, f, indent=2)
+    print(f"  Plan state saved → {path}")
 
 # ─── INTERACTIVE CONFIG ───────────────────────────────────────────────────────
 
@@ -633,6 +656,7 @@ def main():
     # Check for date conflicts between race blocks
     all_dates = defaultdict(list)
     all_workouts_by_prefix = {}
+    race_configs = {}
 
     print(f"\n{'═'*60}")
     print(f"  SEASON PLAN SUMMARY")
@@ -687,6 +711,20 @@ def main():
                                    race_bike_pct=race_bike_pct, vol_scale=vol_scale)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
+
+        race_configs[prefix] = {
+            "race_date":    race["date"],
+            "distance":     dist,
+            "ftp":          ftp,
+            "weight_kg":    weight,
+            "cda":          cda,
+            "vol_scale":    vol_scale,
+            "run_pace_ms":  run_pace_ms,
+            "run_pace_str": ms_to_pace(run_pace_ms),
+        }
+        if target_time:
+            race_configs[prefix]["target_time"]   = target_time
+            race_configs[prefix]["race_bike_pct"] = race_bike_pct
 
         by_sport = defaultdict(int)
         for wkt, _ in wkts:
@@ -745,10 +783,11 @@ def main():
             clean_prefix(client, prefix)
 
         print(f"  Uploading {len(wkts)} workouts...")
-        ok, fail = upload_workouts(client, wkts)
+        ok, fail, uploaded = upload_workouts(client, wkts)
         total_ok   += ok
         total_fail += fail
         print(f"  ✓ Done: {ok} uploaded" + (f" | {fail} failed" if fail else ""))
+        save_plan_state(prefix, race_configs[prefix], uploaded)
 
     print(f"\n{'═'*60}")
     print(f"  SEASON UPLOAD COMPLETE")

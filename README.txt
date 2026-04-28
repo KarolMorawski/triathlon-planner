@@ -44,36 +44,6 @@ PATH B — QUICK START WITH STRAVA
   Strava data is used ONLY to suggest. Weight and FTP are NOT pulled.
   Re-run strava_suggest.py periodically to recalibrate as fitness changes.
 
-────────────────────────────────────────────────────────────
-ŚCIEŻKA A — SZYBKI START BEZ STRAVY
-────────────────────────────────────────────────────────────
-  1. pip install garminconnect
-  2. Edytuj season_example.json (ustaw ftp, run_pace, weight)
-  3. python3 season_plan.py --config season_example.json --reset
-
-  Albo pojedyncze zawody:
-     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
-         --ftp 250 --target-time 5:00:00 --weight 92 --reset
-
-────────────────────────────────────────────────────────────
-ŚCIEŻKA B — SZYBKI START ZE STRAVĄ
-────────────────────────────────────────────────────────────
-  1. pip install garminconnect
-  2. Podłącz Strava MCP (jednorazowo, sekcja "STRAVA MCP" poniżej)
-  3. Pobierz sugestie z ostatnich treningów:
-     python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
-
-     Wynik zawiera gotową komendę, np.:
-       --target-time 5:23:26 --run-pace 5:02 --vol-scale 0.6
-
-  4. Wstaw sugerowane wartości do planera (FTP i waga pozostają ręcznie):
-     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
-         --ftp 250 --weight 92 \
-         --target-time 5:23:26 --vol-scale 0.6 --reset
-
-  Dane ze Stravy używane są TYLKO do sugestii. Waga i FTP nie są pobierane.
-  Uruchamiaj strava_suggest.py okresowo, aby kalibrować plan zgodnie z formą.
-
 GARMIN LOGIN — FIRST RUN
   On first run you will be asked for email + password (and MFA if enabled).
   After successful login, an OAuth token is saved to: ~/.garmin_token
@@ -84,17 +54,6 @@ GARMIN LOGIN — FIRST RUN
     - Wait a few hours (Garmin blocks IPs and accounts after too many attempts)
     - Or reset your Garmin password — this clears the block
     - Do NOT retry login in a loop — each attempt worsens the block
-
-GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
-  Przy pierwszym uruchomieniu zostaniesz poproszony o email + hasło (i MFA jeśli włączone).
-  Po udanym logowaniu token OAuth zostaje zapisany do: ~/.garmin_token
-  Kolejne uruchomienia wczytują token — bez hasła, bez ryzyka 429.
-  Token jest ważny tygodnie/miesiące i jest automatycznie odświeżany przez bibliotekę.
-
-  Jeśli logowanie kończy się błędem 429 (rate limit):
-    - Poczekaj kilka godzin (Garmin blokuje IP i konta po zbyt wielu próbach)
-    - Lub zresetuj hasło do Garmin — to zdejmuje blokadę
-    - NIE próbuj logować się w pętli — każda próba pogarsza blokadę
 
 COMMANDS:
   python3 season_plan.py --reset                         interactive
@@ -127,32 +86,6 @@ Workouts per distance:
   70.3     — 12 workouts  full    — 16 workouts
 
 Workout types: Z2 Endurance, Threshold 2x/3x20min, Race Sim,
-  Over-Under, VO2max 6x3min, Brick, Taper Spin, Pre-Race Check
-
----
-
-PLIKI .ZWO DLA MYWHOOSH / ZWIFT
-==================================
-Po wgraniu planu do Garmin każdy skrypt pyta:
-  "Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie)"
-
-Odpowiedz "tak" aby wygenerować pliki automatycznie.
-Pliki zapisywane do: ./mywhoosh_{PREFIX}/
-
-Można też uruchomić generator osobno:
-  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
-  python3 mywhoosh_season.py --list      (lista dostępnych planów)
-
-Skopiuj pliki do:
-  Mac:     ~/Documents/MyWhoosh/Workouts/
-  Windows: Documents\MyWhoosh\Workouts\
-  Zwift:   ~/Documents/Zwift/Workouts/<TWOJ_ID>/
-
-Liczba treningów per dystans:
-  sprint   —  8 treningów  olympic — 10 treningów
-  70.3     — 12 treningów  full    — 16 treningów
-
-Typy sesji: Z2 Endurance, Threshold 2x/3x20min, Race Sim,
   Over-Under, VO2max 6x3min, Brick, Taper Spin, Pre-Race Check
 
 USING garmin-venv (recommended)
@@ -276,102 +209,6 @@ STEP 4 — Calibrate the plan with strava_suggest.py
   WHEN TO RE-RUN: every 2–4 weeks during training, before key transitions
   (base→build, build→taper), or whenever you've had a significant change
   in training volume. The vol-scale recalibrates the upcoming weeks.
-
----
-
-STRAVA MCP — PODŁĄCZENIE DO CLAUDE CODE
-==========================================================
-
-Strava MCP pozwala Claude czytać Twoje aktywności bezpośrednio ze Stravy.
-Możesz pytać: "Ile km przebiegłem w tym miesiącu?" lub "Przeanalizuj ostatni trening."
-
-WYMAGANIA
-  - Node.js 18+ LTS  (https://nodejs.org)
-  - Claude Code CLI  (https://claude.ai/code)
-
-KROK 1 — Utwórz aplikację Strava API (jednorazowo)
-  1. Wejdź na: strava.com/settings/api
-  2. Kliknij "Create an App"
-  3. Wypełnij formularz:
-       Application Name:              cokolwiek (np. "Claude Assistant")
-       Category:                      cokolwiek
-       Website:                       http://localhost
-       Authorization Callback Domain: localhost   ← ważne!
-  4. Skopiuj Client ID i Client Secret
-
-KROK 2 — Zarejestruj serwer MCP w Claude Code
-  Wykonaj raz w terminalu:
-
-    claude mcp add --transport stdio strava -- npx @r-huijts/strava-mcp-server
-
-  Sprawdź czy działa:
-
-    claude mcp list
-    # Oczekiwany wynik:
-    # strava: npx @r-huijts/strava-mcp-server - ✓ Connected
-
-KROK 3 — Autoryzacja ze Stravą
-  Otwórz Claude Code w dowolnym projekcie i napisz:
-
-    "Connect my Strava account"
-
-  Otworzy się przeglądarka. Wpisz Client ID i Client Secret,
-  kliknij "Continue to Strava", autoryzuj i zamknij przeglądarkę.
-  Dane logowania są zapisywane w: ~/.config/strava-mcp/config.json
-
-  Od tej pory Strava pozostaje połączona między sesjami.
-  Sprawdzenie: "Am I connected to Strava?"
-  Ponowne połączenie: "Connect my Strava account"
-
-UWAGA: Serwer MCP jest zarejestrowany globalnie w Claude Code (nie per projekt).
-Plik .mcp.json w tym repo jest gitignorowany — może wskazywać na lokalnie
-skompilowaną wersję serwera i nie jest wymagany przy podejściu z npx.
-
-KROK 4 — Kalibracja planu przez strava_suggest.py
-  Po podłączeniu Stravy uruchom:
-
-    python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
-    python3 strava_suggest.py --distance full --weeks 8       # dłuższe okno
-
-  Skrypt czyta tokeny OAuth z ~/.config/strava-mcp/config.json
-  (auto-refresh przy wygaśnięciu), pobiera aktywności z ostatnich N tygodni
-  i wypisuje sugerowane parametry planu:
-
-    --target-time   szacowany czas mety na podstawie aktualnych temp
-    --run-pace      przewidywane tempo biegu wyścigowego
-    --vol-scale     mnożnik objętości (0.5–1.5) względem bazy dystansu
-
-  Format wyjścia:
-    Recent training volume (last 4 weeks → weekly average):
-      Run    26.9 km/wk  ( 11 sesji, 2.4 h/tydz)
-             target  40 km/wk  [██████··············] 67%
-      Bike   48.8 km/wk  (  5 sesji, 1.6 h/tydz)
-             target 150 km/wk  [███·················] 33% ⚠ niskie
-      Swim    4.8 km/wk  (  7 sesji, 1.6 h/tydz)
-             target   6 km/wk  [███████·············] 80%
-
-    Average training paces:
-      Run:  5:14/km  →  tempo wyścigowe ~5:02/km
-      Bike: 30.3 km/h  →  wyścig ~31.8 km/h
-      Swim: 1:58/100m
-
-    Suggested plan parameters:
-      --target-time 5:23:26
-      --run-pace    5:02
-      --vol-scale   0.6
-
-  Następnie wstaw te wartości do generate_plan.py lub season_plan.py:
-    python3 generate_plan.py --distance 70.3 --race-date 2026-09-15 \
-        --ftp 250 --weight 92 \
-        --target-time 5:23:26 --vol-scale 0.6 --reset
-
-  CO JEST POBIERANE ZE STRAVY: tylko metryki treningowe —
-    objętość tygodniowa per sport, średnie tempo per sport, liczba sesji.
-  CO NIE JEST POBIERANE: waga, FTP — zawsze pozostają wpisywane ręcznie.
-
-  KIEDY URUCHAMIAĆ: co 2–4 tygodnie w trakcie cyklu, przed kluczowymi
-  przejściami (baza→budowa, budowa→taper) lub gdy istotnie zmieniłeś
-  objętość treningu. vol-scale rekalibruje nadchodzące tygodnie.
 
 
 ==========================================================
@@ -570,6 +407,184 @@ TARGET FINISH TIME (optional)
     → Swim: ~1:20  T1+T2: ~0:10  Bike: ~5:45 @ ~171W (73% FTP)
     → Run:  ~3:45  @ 5:20/km
     Bike sessions Race Sim use ZR = 70–76% FTP instead of 69–75%.
+
+
+══════════════════════════════════════════════════════════════
+WERSJA POLSKA
+══════════════════════════════════════════════════════════════
+
+Istnieją dwa sposoby użycia plannera:
+
+  ŚCIEŻKA A — SAMODZIELNA  (tylko Garmin)
+    Plan generowany na podstawie ręcznie podanych FTP, tempa biegu,
+    wagi i czasu docelowego. Nie wymaga żadnych zewnętrznych serwisów.
+
+  ŚCIEŻKA B — KALIBROWANA STRAVĄ  (zalecana)
+    Dane ze Stravy służą do sugestii czasu docelowego, tempa wyścigu
+    i mnożnika objętości dopasowanego do AKTUALNEJ formy. Waga i FTP
+    pozostają wpisywane ręcznie.
+
+  Wybierz jedną ścieżkę poniżej.
+
+────────────────────────────────────────────────────────────
+ŚCIEŻKA A — SZYBKI START BEZ STRAVY
+────────────────────────────────────────────────────────────
+  1. pip install garminconnect
+  2. Edytuj season_example.json (ustaw ftp, run_pace, weight)
+  3. python3 season_plan.py --config season_example.json --reset
+
+  Albo pojedyncze zawody:
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --target-time 5:00:00 --weight 92 --reset
+
+────────────────────────────────────────────────────────────
+ŚCIEŻKA B — SZYBKI START ZE STRAVĄ
+────────────────────────────────────────────────────────────
+  1. pip install garminconnect
+  2. Podłącz Strava MCP (jednorazowo, sekcja "STRAVA MCP" poniżej)
+  3. Pobierz sugestie z ostatnich treningów:
+     python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+
+     Wynik zawiera gotową komendę, np.:
+       --target-time 5:23:26 --run-pace 5:02 --vol-scale 0.6
+
+  4. Wstaw sugerowane wartości do planera (FTP i waga pozostają ręcznie):
+     python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+         --ftp 250 --weight 92 \
+         --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  Dane ze Stravy używane są TYLKO do sugestii. Waga i FTP nie są pobierane.
+  Uruchamiaj strava_suggest.py okresowo, aby kalibrować plan zgodnie z formą.
+
+GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
+  Przy pierwszym uruchomieniu zostaniesz poproszony o email + hasło (i MFA jeśli włączone).
+  Po udanym logowaniu token OAuth zostaje zapisany do: ~/.garmin_token
+  Kolejne uruchomienia wczytują token — bez hasła, bez ryzyka 429.
+  Token jest ważny tygodnie/miesiące i jest automatycznie odświeżany przez bibliotekę.
+
+  Jeśli logowanie kończy się błędem 429 (rate limit):
+    - Poczekaj kilka godzin (Garmin blokuje IP i konta po zbyt wielu próbach)
+    - Lub zresetuj hasło do Garmin — to zdejmuje blokadę
+    - NIE próbuj logować się w pętli — każda próba pogarsza blokadę
+
+PLIKI .ZWO DLA MYWHOOSH / ZWIFT
+==================================
+Po wgraniu planu do Garmin każdy skrypt pyta:
+  "Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie)"
+
+Odpowiedz "tak" aby wygenerować pliki automatycznie.
+Pliki zapisywane do: ./mywhoosh_{PREFIX}/
+
+Można też uruchomić generator osobno:
+  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
+  python3 mywhoosh_season.py --list      (lista dostępnych planów)
+
+Skopiuj pliki do:
+  Mac:     ~/Documents/MyWhoosh/Workouts/
+  Windows: Documents\MyWhoosh\Workouts\
+  Zwift:   ~/Documents/Zwift/Workouts/<TWOJ_ID>/
+
+Liczba treningów per dystans:
+  sprint   —  8 treningów  olympic — 10 treningów
+  70.3     — 12 treningów  full    — 16 treningów
+
+Typy sesji: Z2 Endurance, Threshold 2x/3x20min, Race Sim,
+  Over-Under, VO2max 6x3min, Brick, Taper Spin, Pre-Race Check
+
+==========================================================
+STRAVA MCP — PODŁĄCZENIE DO CLAUDE CODE
+==========================================================
+
+Strava MCP pozwala Claude czytać Twoje aktywności bezpośrednio ze Stravy.
+Możesz pytać: "Ile km przebiegłem w tym miesiącu?" lub "Przeanalizuj ostatni trening."
+
+WYMAGANIA
+  - Node.js 18+ LTS  (https://nodejs.org)
+  - Claude Code CLI  (https://claude.ai/code)
+
+KROK 1 — Utwórz aplikację Strava API (jednorazowo)
+  1. Wejdź na: strava.com/settings/api
+  2. Kliknij "Create an App"
+  3. Wypełnij formularz:
+       Application Name:              cokolwiek (np. "Claude Assistant")
+       Category:                      cokolwiek
+       Website:                       http://localhost
+       Authorization Callback Domain: localhost   ← ważne!
+  4. Skopiuj Client ID i Client Secret
+
+KROK 2 — Zarejestruj serwer MCP w Claude Code
+  Wykonaj raz w terminalu:
+
+    claude mcp add --transport stdio strava -- npx @r-huijts/strava-mcp-server
+
+  Sprawdź czy działa:
+
+    claude mcp list
+    # Oczekiwany wynik:
+    # strava: npx @r-huijts/strava-mcp-server - ✓ Connected
+
+KROK 3 — Autoryzacja ze Stravą
+  Otwórz Claude Code w dowolnym projekcie i napisz:
+
+    "Connect my Strava account"
+
+  Otworzy się przeglądarka. Wpisz Client ID i Client Secret,
+  kliknij "Continue to Strava", autoryzuj i zamknij przeglądarkę.
+  Dane logowania są zapisywane w: ~/.config/strava-mcp/config.json
+
+  Od tej pory Strava pozostaje połączona między sesjami.
+  Sprawdzenie: "Am I connected to Strava?"
+  Ponowne połączenie: "Connect my Strava account"
+
+UWAGA: Serwer MCP jest zarejestrowany globalnie w Claude Code (nie per projekt).
+Plik .mcp.json w tym repo jest gitignorowany — może wskazywać na lokalnie
+skompilowaną wersję serwera i nie jest wymagany przy podejściu z npx.
+
+KROK 4 — Kalibracja planu przez strava_suggest.py
+  Po podłączeniu Stravy uruchom:
+
+    python3 strava_suggest.py --distance 70.3 --race-date 2026-09-15
+    python3 strava_suggest.py --distance full --weeks 8       # dłuższe okno
+
+  Skrypt czyta tokeny OAuth z ~/.config/strava-mcp/config.json
+  (auto-refresh przy wygaśnięciu), pobiera aktywności z ostatnich N tygodni
+  i wypisuje sugerowane parametry planu:
+
+    --target-time   szacowany czas mety na podstawie aktualnych temp
+    --run-pace      przewidywane tempo biegu wyścigowego
+    --vol-scale     mnożnik objętości (0.5–1.5) względem bazy dystansu
+
+  Format wyjścia:
+    Recent training volume (last 4 weeks → weekly average):
+      Run    26.9 km/wk  ( 11 sesji, 2.4 h/tydz)
+             target  40 km/wk  [██████··············] 67%
+      Bike   48.8 km/wk  (  5 sesji, 1.6 h/tydz)
+             target 150 km/wk  [███·················] 33% ⚠ niskie
+      Swim    4.8 km/wk  (  7 sesji, 1.6 h/tydz)
+             target   6 km/wk  [███████·············] 80%
+
+    Average training paces:
+      Run:  5:14/km  →  tempo wyścigowe ~5:02/km
+      Bike: 30.3 km/h  →  wyścig ~31.8 km/h
+      Swim: 1:58/100m
+
+    Suggested plan parameters:
+      --target-time 5:23:26
+      --run-pace    5:02
+      --vol-scale   0.6
+
+  Następnie wstaw te wartości do generate_plan.py lub season_plan.py:
+    python3 generate_plan.py --distance 70.3 --race-date 2026-09-15 \
+        --ftp 250 --weight 92 \
+        --target-time 5:23:26 --vol-scale 0.6 --reset
+
+  CO JEST POBIERANE ZE STRAVY: tylko metryki treningowe —
+    objętość tygodniowa per sport, średnie tempo per sport, liczba sesji.
+  CO NIE JEST POBIERANE: waga, FTP — zawsze pozostają wpisywane ręcznie.
+
+  KIEDY URUCHAMIAĆ: co 2–4 tygodnie w trakcie cyklu, przed kluczowymi
+  przejściami (baza→budowa, budowa→taper) lub gdy istotnie zmieniłeś
+  objętość treningu. vol-scale rekalibruje nadchodzące tygodnie.
 
 
 ==========================================================
