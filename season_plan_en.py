@@ -103,6 +103,30 @@ PROFILES = {
     "sprint":  {"label":"Sprint Distance",   "weeks":8,  "swim_m":750,  "bike_km":20,  "run_km":5,    "race_bike_pct":0.95},
 }
 
+
+def _validate_config(cfg, source="config"):
+    """Validate season config structure. Exits with a clear message on failure."""
+    if not isinstance(cfg, dict):
+        sys.exit(f"ERROR in {source}: top-level must be a JSON object")
+    if "ftp" not in cfg:
+        sys.exit(f"ERROR in {source}: missing required field 'ftp'")
+    if "races" not in cfg or not isinstance(cfg["races"], list) or not cfg["races"]:
+        sys.exit(f"ERROR in {source}: 'races' must be a non-empty list")
+    for i, race in enumerate(cfg["races"]):
+        if not isinstance(race, dict):
+            sys.exit(f"ERROR in {source}: races[{i}] must be an object")
+        for field in ("name", "date", "distance"):
+            if field not in race:
+                sys.exit(f"ERROR in {source}: races[{i}] missing '{field}'")
+        if race["distance"] not in PROFILES:
+            sys.exit(f"ERROR in {source}: races[{i}].distance='{race['distance']}' "
+                     f"not in {list(PROFILES.keys())}")
+        try:
+            date.fromisoformat(race["date"])
+        except (TypeError, ValueError):
+            sys.exit(f"ERROR in {source}: races[{i}].date='{race['date']}' "
+                     f"is not ISO format YYYY-MM-DD")
+
 # ─── SPORT TYPES ─────────────────────────────────────────────────────────────
 
 def _sport(key):
@@ -659,8 +683,12 @@ def main():
 
     # Load config
     if args.config:
-        with open(args.config) as f:
-            cfg = json.load(f)
+        try:
+            with open(args.config) as f:
+                cfg = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            sys.exit(f"ERROR: Cannot read config '{args.config}': {e}")
+        _validate_config(cfg, args.config)
         print(f"Loaded config: {args.config}")
     else:
         cfg = interactive_config()
