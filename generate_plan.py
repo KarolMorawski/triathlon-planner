@@ -682,6 +682,15 @@ def main():
     p.add_argument("--reset",        action="store_true", help="Full reset before uploading")
     args = p.parse_args()
 
+    if args.ftp is not None and args.ftp <= 0:
+        p.error(f"--ftp must be > 0 (got {args.ftp})")
+    if args.weight <= 0:
+        p.error(f"--weight must be > 0 (got {args.weight})")
+    if args.cda <= 0:
+        p.error(f"--cda must be > 0 (got {args.cda})")
+    if not (0.1 <= args.vol_scale <= 3.0):
+        p.error(f"--vol-scale must be in [0.1, 3.0] (got {args.vol_scale})")
+
     print("\n" + "="*60)
     print("  Triathlon Training Plan Generator")
     print("  Garmin Connect Upload Tool")

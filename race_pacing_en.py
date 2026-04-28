@@ -207,6 +207,10 @@ def main():
                    help="CdA in m² (default 0.32 — triathlon/TT position)")
     args = p.parse_args()
 
+    if args.ftp    <= 0: p.error(f"--ftp must be > 0 (got {args.ftp})")
+    if args.weight <= 0: p.error(f"--weight must be > 0 (got {args.weight})")
+    if args.cda    <= 0: p.error(f"--cda must be > 0 (got {args.cda})")
+
     run_pace_ms = None
     target_if   = RACE_IF[args.distance]
 

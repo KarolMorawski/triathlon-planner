@@ -490,6 +490,9 @@ def main():
                    help="Wyświetl dostępne zawody i dystanse")
     args = p.parse_args()
 
+    if args.ftp <= 0:
+        p.error(f"--ftp musi być > 0 (otrzymano {args.ftp})")
+
     if args.list:
         print("\nDostępne zawody (--race):")
         for key, plan in RACE_PLAN.items():

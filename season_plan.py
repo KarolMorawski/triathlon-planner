@@ -685,6 +685,15 @@ def main():
     races     = cfg["races"]
     vol_scale = args.vol_scale if args.vol_scale != 1.0 else cfg.get("vol_scale", 1.0)
 
+    if ftp <= 0:
+        p.error(f"FTP must be > 0 (got {ftp})")
+    if weight <= 0:
+        p.error(f"weight must be > 0 (got {weight})")
+    if cda <= 0:
+        p.error(f"cda must be > 0 (got {cda})")
+    if not (0.1 <= vol_scale <= 3.0):
+        p.error(f"vol_scale must be in [0.1, 3.0] (got {vol_scale})")
+
     # Global run pace — optional if all races define target_time
     global_run_pace_ms = pace_to_ms(cfg["run_pace"]) if "run_pace" in cfg else None
 

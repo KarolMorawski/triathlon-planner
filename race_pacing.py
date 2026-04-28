@@ -210,6 +210,10 @@ def main():
                    help="CdA [m²] (domyślnie 0.32 — pozycja TT)")
     args = p.parse_args()
 
+    if args.ftp    <= 0: p.error(f"--ftp musi być > 0 (otrzymano {args.ftp})")
+    if args.weight <= 0: p.error(f"--weight musi być > 0 (otrzymano {args.weight})")
+    if args.cda    <= 0: p.error(f"--cda musi być > 0 (otrzymano {args.cda})")
+
     run_pace_ms = None
     target_if   = RACE_IF[args.distance]
 

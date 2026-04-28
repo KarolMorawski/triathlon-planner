@@ -236,6 +236,13 @@ przykłady:
                    help="Podgląd zmian bez wgrywania do Garmin")
     args = p.parse_args()
 
+    if args.ftp is not None and args.ftp <= 0:
+        p.error(f"--ftp must be > 0 (got {args.ftp})")
+    if args.weight is not None and args.weight <= 0:
+        p.error(f"--weight must be > 0 (got {args.weight})")
+    if args.vol_scale is not None and not (0.1 <= args.vol_scale <= 3.0):
+        p.error(f"--vol-scale must be in [0.1, 3.0] (got {args.vol_scale})")
+
     if args.list:
         list_plans()
         return
