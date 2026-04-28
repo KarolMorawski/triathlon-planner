@@ -63,6 +63,19 @@ COMMANDS:
 DISTANCES: 70.3 / full / olympic / sprint
 FULL GUIDE: open INSTRUKCJA.html in Chrome/Firefox
 
+UPDATING AN EXISTING PLAN (mid-season recalibration)
+  After uploading a plan, its state is saved to: ~/.triathlon_plans/{PREFIX}.json
+  Use update_plan.py to replace future weeks with new parameters
+  without touching already-completed workouts.
+
+  python3 update_plan.py --list                          list saved plans
+  python3 update_plan.py --prefix WARSAW                 show progress
+  python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
+  python3 update_plan.py --prefix WARSAW --from-strava   auto-suggest from Strava
+  python3 update_plan.py --prefix WARSAW --dry-run       preview only
+
+  By default updates from next Monday onwards (override with --from-date YYYY-MM-DD).
+
 MYWHOOSH / ZWIFT .ZWO FILES
 ============================
 After uploading to Garmin, each script asks:
@@ -466,6 +479,19 @@ GARMIN LOGOWANIE — PIERWSZE URUCHOMIENIE
     - Poczekaj kilka godzin (Garmin blokuje IP i konta po zbyt wielu próbach)
     - Lub zresetuj hasło do Garmin — to zdejmuje blokadę
     - NIE próbuj logować się w pętli — każda próba pogarsza blokadę
+
+AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
+  Po wgraniu planu jego stan jest zapisywany do: ~/.triathlon_plans/{PREFIX}.json
+  Użyj update_plan.py aby zastąpić przyszłe tygodnie nowymi parametrami
+  bez zmiany już wykonanych treningów.
+
+  python3 update_plan.py --list                          lista zapisanych planów
+  python3 update_plan.py --prefix WARSAW                 postęp planu
+  python3 update_plan.py --prefix WARSAW --ftp 265 --vol-scale 1.1
+  python3 update_plan.py --prefix WARSAW --from-strava   auto-sugestie ze Stravy
+  python3 update_plan.py --prefix WARSAW --dry-run       podgląd bez zmian
+
+  Domyślnie aktualizuje od następnego poniedziałku (zmień przez --from-date YYYY-MM-DD).
 
 PLIKI .ZWO DLA MYWHOOSH / ZWIFT
 ==================================
