@@ -36,17 +36,6 @@ from collections import defaultdict
 
 TOKEN_FILE = os.path.expanduser("~/.garmin_token")
 
-# Legacy session dir kept for reference (no longer used for auth)
-SESSION_DIR   = os.path.expanduser("~/.garmin_session")
-SESSION_STAMP = os.path.join(SESSION_DIR, ".timestamp")
-SESSION_MAX_AGE = 8 * 3600
-
-def _session_valid():
-    """Legacy check — kept for test_session.py compatibility."""
-    if not os.path.isfile(SESSION_STAMP):
-        return False
-    return (time.time() - os.path.getmtime(SESSION_STAMP)) < SESSION_MAX_AGE
-
 def login():
     try:
         from garminconnect import Garmin
@@ -168,6 +157,7 @@ def swim_rest(o, secs):
                  extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
                         "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
 def swim_set(start_order, total_dist, interval_dist, rest_secs):
+    interval_dist = min(interval_dist, total_dist)
     n = max(1, round(total_dist / interval_dist))
     each = total_dist // n
     steps, o = [], start_order
@@ -175,7 +165,7 @@ def swim_set(start_order, total_dist, interval_dist, rest_secs):
         steps.append(swim_int(o, each)); o += 1
         if i < n - 1:
             steps.append(swim_rest(o, rest_secs)); o += 1
-    return steps, o
+    return steps, o, n, each
 
 # ─── WORKOUT BUILDER ─────────────────────────────────────────────────────────
 
@@ -244,12 +234,18 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
     Returns dict with all split times, paces, watts and run_pace_ms for
     use in generate_race_block().
     """
+    if ftp <= 0:
+        raise ValueError(f"FTP must be > 0 (got {ftp})")
     prof   = PROFILES[distance]
     ratios = SPLIT_RATIOS[distance]
+    if prof["swim_m"] <= 0:
+        raise ValueError(f"Swim distance must be > 0 (got {prof['swim_m']})")
 
     total_min = _parse_hms(target_time_str)
     t1t2      = float(custom_t1t2_min) if custom_t1t2_min is not None else ratios["t1t2_min"]
     active    = total_min - t1t2
+    if active <= 0:
+        raise ValueError(f"Target time {target_time_str} too short for {distance} (must exceed {t1t2} min T1+T2)")
 
     if custom_swim_min is not None:
         swim_min = float(custom_swim_min)
@@ -311,9 +307,14 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         Tue Bike-Z3, Wed Run-Easy, Thu Swim, Fri Swim+Bike-Spin, Sun Run-Easy
       Race week: 3 pre-race activation sessions on Fri
     """
+    if ftp <= 0:
+        raise ValueError(f"FTP must be > 0 (got {ftp})")
     prof  = PROFILES[distance]
     weeks = prof["weeks"]
     rp    = race_bike_pct if race_bike_pct is not None else prof["race_bike_pct"]
+    if rp > 0.95:
+        print(f"⚠ Race bike power {rp:.0%} FTP exceeds sustainable threshold — capping at 95% FTP")
+        rp = 0.95
 
     # Power zones
     z = lambda lo, hi: (round(ftp * lo), round(ftp * hi))
@@ -405,26 +406,26 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         # ── SWIM A — technique/intervals (Mon D0) — 100m intervals, 20s rest ───
         dist_a = max(600, round(int(swim_base * 0.55) / 100) * 100)
         wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
-        int_steps, next_o = swim_set(2, main_d, 100, 20)
+        int_steps, next_o, n_int, each_d = swim_set(2, main_d, 100, 20)
         workouts.append((_wkt("swim", f"{tag} Swim Tech {dist_a}m",
-            f"Technique & drills {dist_a}m | {main_d//100}×100m + 20s rest",
+            f"Technique & drills {dist_a}m | {n_int}×{each_d}m + 20s rest",
             [swim_wu(1, wu_d)] + int_steps + [swim_cd(next_o, 100)], dist_a), D(0)))
 
         # ── SWIM B — endurance (Thu D3) — 200m intervals, 15s rest ──────────────
         dist_b = max(800, round(int(swim_base * 0.75) / 100) * 100)
         wu_d = min(400, dist_b // 4); main_d = max(300, dist_b - wu_d - 100)
-        int_steps, next_o = swim_set(2, main_d, 200, 15)
+        int_steps, next_o, n_int, each_d = swim_set(2, main_d, 200, 15)
         workouts.append((_wkt("swim", f"{tag} Swim Endurance {dist_b}m",
-            f"Endurance {dist_b}m | {main_d//200}×200m + 15s rest",
+            f"Endurance {dist_b}m | {n_int}×{each_d}m + 15s rest",
             [swim_wu(1, wu_d)] + int_steps + [swim_cd(next_o, 100)], dist_b), D(3)))
 
         # ── SWIM C — race-sim (Fri D4) — 400m intervals, 10s rest — BUILD only ──
         if is_build:
             dist_c = max(400, round(int(prof["swim_m"] * 0.85 * vol) / 100) * 100)
             wu_d = min(200, dist_c // 5); main_d = max(200, dist_c - wu_d - 100)
-            int_steps, next_o = swim_set(2, main_d, 400, 10)
+            int_steps, next_o, n_int, each_d = swim_set(2, main_d, 400, 10)
             workouts.append((_wkt("swim", f"{tag} Swim Race-Sim {dist_c}m",
-                f"Race-pace {dist_c}m | {max(1,main_d//400)}×400m + 10s rest",
+                f"Race-pace {dist_c}m | {n_int}×{each_d}m + 10s rest",
                 [swim_wu(1, wu_d)] + int_steps + [swim_cd(next_o, 100)], dist_c), D(4)))
 
         # ── BIKE A — main quality session (Tue D1) ────────────────────────────
@@ -514,8 +515,8 @@ def clean_prefix(client, prefix):
                             f"/workout-service/schedule/{sid}", api=True)
                         removed_s += 1
                         time.sleep(0.08)
-                    except: pass
-        except: pass
+                    except Exception: pass
+        except Exception: pass
     print(f"    Removed {removed_s} scheduled entries")
 
     print(f"  Cleaning '{prefix}' from library...")
@@ -528,7 +529,7 @@ def clean_prefix(client, prefix):
                 f"/workout-service/workout/{w['workoutId']}", api=True)
             removed_l += 1
             time.sleep(0.08)
-        except: pass
+        except Exception: pass
     print(f"    Removed {removed_l} library workouts")
 
 def upload_workouts(client, workouts, dry_run=False):

@@ -102,6 +102,8 @@ def zwo(name: str, description: str, blocks: list, author: str = "Triathlon Plan
 # ─── GENERATORY TRENINGÓW ─────────────────────────────────────────────────────
 
 def make_z2_endurance(prefix: str, week: int, duration_min: int, ftp: int) -> tuple:
+    if duration_min < 20:
+        raise ValueError(f"Z2 endurance duration must be ≥20min (got {duration_min})")
     z = ZONES["z2"]
     main_s = duration_min * 60 - 900  # minus 10min warmup + 5min cooldown
     mid    = main_s // 2
@@ -146,6 +148,8 @@ def make_threshold(prefix: str, week: int, intervals_x3: bool, ftp: int) -> tupl
     return name, zwo(name, desc, blocks)
 
 def make_race_sim(prefix: str, week: int, duration_min: int, ftp: int) -> tuple:
+    if duration_min < 30:
+        raise ValueError(f"Race sim duration must be ≥30min (got {duration_min})")
     z      = ZONES["race"]
     main_s = duration_min * 60 - 1500  # minus 15min warmup + 10min cooldown
     mid    = main_s // 2
@@ -198,6 +202,8 @@ def make_vo2max(prefix: str, week: int, ftp: int) -> tuple:
     return name, zwo(name, desc, blocks)
 
 def make_brick(prefix: str, week: int, duration_min: int, ftp: int) -> tuple:
+    if duration_min < 30:
+        raise ValueError(f"Brick duration must be ≥30min (got {duration_min})")
     z      = ZONES["race"]
     main_s = duration_min * 60 - 1500
     name   = f"{prefix}-T{week:02d} Brick Bike {duration_min}min"
@@ -213,6 +219,8 @@ def make_brick(prefix: str, week: int, duration_min: int, ftp: int) -> tuple:
     return name, zwo(name, desc, blocks)
 
 def make_taper(prefix: str, week: int, duration_min: int, ftp: int) -> tuple:
+    if duration_min < 20:
+        raise ValueError(f"Taper duration must be ≥20min (got {duration_min})")
     z      = ZONES["z2"]
     main_s = duration_min * 60 - 900
     name   = f"{prefix}-T{week:02d} Taper Spin {duration_min}min"

@@ -229,7 +229,8 @@ def _srest(o, secs):
 
 def _swim_set(start_order, total_dist, interval_dist, rest_secs):
     """Generate alternating interval+rest steps for the main swim set.
-    Returns (steps_list, next_free_order)."""
+    Returns (steps_list, next_free_order, n_intervals, each_dist)."""
+    interval_dist = min(interval_dist, total_dist)
     n = max(1, round(total_dist / interval_dist))
     each = total_dist // n
     steps, o = [], start_order
@@ -237,7 +238,7 @@ def _swim_set(start_order, total_dist, interval_dist, rest_secs):
         steps.append(_sint(o, each)); o += 1
         if i < n - 1:
             steps.append(_srest(o, rest_secs)); o += 1
-    return steps, o
+    return steps, o, n, each
 
 def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
     sp = sport(sport_key)
@@ -302,12 +303,18 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32):
       P = (0.5 × rho × CdA × v³  +  Crr × m × g × v) / eta
     Returns dict with split times, paces, watts and run_pace_ms.
     """
+    if ftp <= 0:
+        raise ValueError(f"FTP must be > 0 (got {ftp})")
     prof   = PROFILES[distance]
     ratios = SPLIT_RATIOS[distance]
+    if prof["swim_m"] <= 0:
+        raise ValueError(f"Swim distance must be > 0 (got {prof['swim_m']})")
 
     total_min = _parse_hms(target_time_str)
     t1t2      = ratios["t1t2_min"]
     active    = total_min - t1t2
+    if active <= 0:
+        raise ValueError(f"Target time {target_time_str} too short for {distance} (must exceed {t1t2} min T1+T2)")
     swim_min  = active * ratios["swim_pct"]
     bike_min  = active * ratios["bike_pct"]
     run_min   = active * ratios["run_pct"]
@@ -354,9 +361,15 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
         Tue Bike-Z3, Wed Run-Easy, Thu Swim, Fri Swim+Bike-Spin, Sun Run-Easy
       Race week: 3 pre-race activation sessions on Friday
     """
+    if ftp <= 0:
+        raise ValueError(f"FTP must be > 0 (got {ftp})")
     profile  = PROFILES[distance]
     weeks    = profile["weeks"]
     rp       = race_bike_pct if race_bike_pct is not None else profile["race_pace_pct"]
+    # Cap race power at sustainable level — sub-1 hour TT power, never above FTP
+    if rp > 0.95:
+        print(f"⚠ Race bike power {rp:.0%} FTP exceeds sustainable threshold — capping at 95% FTP")
+        rp = 0.95
 
     # Power zones
     z = lambda lo, hi: (round(ftp * lo), round(ftp * hi))
@@ -446,26 +459,26 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
         # ── SWIM A — technique (Mon D0) — 100m intervals, 20s rest ──────────────
         dist_a = max(600, round(int(swim_base * 0.55) / 100) * 100)
         wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
-        int_steps, next_o = _swim_set(2, main_d, 100, 20)
+        int_steps, next_o, n_int, each_d = _swim_set(2, main_d, 100, 20)
         workouts.append((_wkt("swim", f"{tag} Swim Tech {dist_a}m",
-            f"Technique & drills {dist_a}m | {main_d//100}×100m + 20s rest",
+            f"Technique & drills {dist_a}m | {n_int}×{each_d}m + 20s rest",
             [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_a), D(0)))
 
         # ── SWIM B — endurance (Thu D3) — 200m intervals, 15s rest ──────────────
         dist_b = max(800, round(int(swim_base * 0.75) / 100) * 100)
         wu_d = min(400, dist_b // 4); main_d = max(300, dist_b - wu_d - 100)
-        int_steps, next_o = _swim_set(2, main_d, 200, 15)
+        int_steps, next_o, n_int, each_d = _swim_set(2, main_d, 200, 15)
         workouts.append((_wkt("swim", f"{tag} Swim Endurance {dist_b}m",
-            f"Endurance {dist_b}m | {main_d//200}×200m + 15s rest",
+            f"Endurance {dist_b}m | {n_int}×{each_d}m + 15s rest",
             [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_b), D(3)))
 
         # ── SWIM C — race-sim (Fri D4) — 400m intervals, 10s rest — BUILD only ──
         if is_build:
             dist_c = max(400, round(int(profile["swim_m"] * 0.85 * vol) / 100) * 100)
             wu_d = min(200, dist_c // 5); main_d = max(200, dist_c - wu_d - 100)
-            int_steps, next_o = _swim_set(2, main_d, 400, 10)
+            int_steps, next_o, n_int, each_d = _swim_set(2, main_d, 400, 10)
             workouts.append((_wkt("swim", f"{tag} Swim Race-Sim {dist_c}m",
-                f"Race-pace {dist_c}m | {max(1,main_d//400)}×400m + 10s rest",
+                f"Race-pace {dist_c}m | {n_int}×{each_d}m + 10s rest",
                 [_swu(1,wu_d)] + int_steps + [_scd(next_o,100)], dist_c), D(4)))
 
         # ── BIKE A — main quality session (Tue D1) ────────────────────────────
@@ -545,7 +558,7 @@ def clean_all(client, prefix):
     # Clean calendar: 12 months
     today = date.today()
     removed_schedule = 0
-    for delta_m in range(0, 13):
+    for delta_m in range(-1, 14):
         y = today.year + (today.month + delta_m - 1) // 12
         m = (today.month + delta_m - 1) % 12
         try:
@@ -560,8 +573,8 @@ def clean_all(client, prefix):
                             f"/workout-service/schedule/{sid}", api=True)
                         removed_schedule += 1
                         time.sleep(0.1)
-                    except: pass
-        except: pass
+                    except Exception: pass
+        except Exception: pass
     print(f"  Removed {removed_schedule} calendar entries")
 
     print(f"Cleaning library for prefix '{prefix}'...")
@@ -574,7 +587,7 @@ def clean_all(client, prefix):
                 f"/workout-service/workout/{w['workoutId']}", api=True)
             removed_lib += 1
             time.sleep(0.1)
-        except: pass
+        except Exception: pass
     print(f"  Removed {removed_lib} library workouts\n")
 
 def upload_all(client, workouts, dry_run=False):
@@ -601,13 +614,6 @@ def upload_all(client, workouts, dry_run=False):
           (f" | Errors: {fail}" if fail else "") + "\n")
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
-
-def parse_date(s):
-    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
-        try: return date.fromisoformat(s) if fmt == "%Y-%m-%d" else \
-             date(int(s.split(fmt[-2])[2]), int(s.split(fmt[-2])[1]), int(s.split(fmt[-2])[0]))
-        except: pass
-    raise ValueError(f"Cannot parse date: {s}")
 
 def main():
     p = argparse.ArgumentParser(description="Triathlon Training Plan Generator for Garmin Connect")
