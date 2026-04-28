@@ -76,6 +76,23 @@ def _ics_date(d):
     return d.strftime("%Y%m%d")
 
 
+def _fold(line, limit=74):
+    """RFC 5545 line folding — split lines >75 octets, respecting UTF-8 boundaries."""
+    encoded = line.encode("utf-8")
+    if len(encoded) <= limit + 1:
+        return line
+    chunks = []
+    pos = 0
+    while pos < len(encoded):
+        end = min(pos + limit, len(encoded))
+        # Don't split a multi-byte UTF-8 sequence: walk back to code-point boundary
+        while end < len(encoded) and (encoded[end] & 0xC0) == 0x80:
+            end -= 1
+        chunks.append(encoded[pos:end].decode("utf-8"))
+        pos = end
+    return "\r\n ".join(chunks)
+
+
 def generate_ics(state, workouts, prefix):
     cfg = state["config"]
     race_date = date.fromisoformat(cfg["race_date"])
@@ -135,7 +152,7 @@ def generate_ics(state, workouts, prefix):
         "END:VCALENDAR",
     ]
 
-    return "\r\n".join(lines)
+    return "\r\n".join(_fold(l) for l in lines)
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
