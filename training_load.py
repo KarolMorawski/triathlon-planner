@@ -281,7 +281,7 @@ def main():
         p.print_help()
         return
 
-    prefix = prefix
+    prefix = args.prefix.upper()
     _validate_prefix(prefix)
     state = load_state(prefix)
     cfg   = state["config"]

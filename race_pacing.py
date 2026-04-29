@@ -241,7 +241,7 @@ def main():
         print(f"\n  Z czasu docelowego {args.target_time}:")
         print(f"    Rower: ~{round(watts)}W ({target_if*100:.0f}% FTP) @ "
               f"{bike_speed*3.6:.1f} km/h  →  {_fmt_dur(bike_min)}")
-        print(f"    Bieg:  {_fmt_pace(run_pace_ms)}/km  →  {_fmt_dur(run_min)}")
+        print(f"    Bieg:  {_fmt_pace(run_pace_ms)}  →  {_fmt_dur(run_min)}")
 
     elif args.run_pace:
         run_pace_ms = _parse_pace(args.run_pace)
