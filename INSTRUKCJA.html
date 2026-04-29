@@ -147,7 +147,8 @@ td code{font-size:11px;}
   <div class="hdr-tag">Triathlon Training Tools — Kompletna dokumentacja</div>
   <h1>Instrukcja instalacji i uruchomienia</h1>
   <p>Krok po kroku od zera do gotowego planu treningowego w Garmin Connect.<br>
-     Obejmuje obie paczki: plan jednych zawodów i pełny sezon z wieloma startami.</p>
+     Obejmuje obie paczki: plan jednych zawodów i pełny sezon z wieloma startami.<br>
+     Każdy skrypt dostępny w wersji polskiej i angielskiej (<code>*_en.py</code>).</p>
   <div class="hdr-chips">
     <span class="chip">🪟 Windows 10/11</span>
     <span class="chip">🍎 macOS</span>
@@ -164,17 +165,19 @@ td code{font-size:11px;}
   <div class="toc-title">Spis treści</div>
   <div class="toc-grid">
     <a href="#s0"><span class="toc-num">0</span>Co jest w paczkach</a>
-    <a href="#s4"><span class="toc-num">4</span>Strava MCP — instalacja</a>
+    <a href="#s7"><span class="toc-num">7</span>Uruchamianie: sezon</a>
     <a href="#s1"><span class="toc-num">1</span>Instalacja Python</a>
-    <a href="#s5"><span class="toc-num">5</span>Garmin — logowanie przez terminal</a>
-    <a href="#s2"><span class="toc-num">2</span>Instalacja Node.js</a>
-    <a href="#s6"><span class="toc-num">6</span>Uruchamianie: jedna paczka</a>
-    <a href="#s3"><span class="toc-num">3</span>Środowisko Python + biblioteki</a>
-    <a href="#s7"><span class="toc-num">7</span>Uruchamianie: paczka sezonu</a>
     <a href="#s8"><span class="toc-num">8</span>Power i pace — jak działa</a>
+    <a href="#s2"><span class="toc-num">2</span>Instalacja Node.js</a>
     <a href="#s9"><span class="toc-num">9</span>Rozwiązywanie problemów</a>
-    <a href="#s10"><span class="toc-num">10</span>Aktualizacja planu w trakcie sezonu</a>
+    <a href="#s3"><span class="toc-num">3</span>Środowisko Python + biblioteki</a>
+    <a href="#s10"><span class="toc-num">10</span>Aktualizacja planu w sezonie</a>
+    <a href="#s4"><span class="toc-num">4</span>Strava MCP — instalacja</a>
     <a href="#s11"><span class="toc-num">11</span>Narzędzia analityczne</a>
+    <a href="#s5"><span class="toc-num">5</span>Garmin — logowanie przez terminal</a>
+    <a href="#s12"><span class="toc-num">12</span>MyWhoosh / Zwift (.zwo)</a>
+    <a href="#s6"><span class="toc-num">6</span>Uruchamianie: jedna paczka</a>
+    <a href="#s13"><span class="toc-num">13</span>Strava Suggest</a>
   </div>
 </div>
 
@@ -187,7 +190,8 @@ td code{font-size:11px;}
       <h3 style="color:var(--blue)">Paczka 1 — Jedne zawody</h3>
       <p style="font-size:12px;margin-top:4px;">Generuje plan na <strong>jeden wyścig</strong>. Interaktywny kreator lub parametry z linii komend.</p>
       <div class="pack-files">
-        <div class="pf">generate_plan.py &nbsp;← główny skrypt</div>
+        <div class="pf">generate_plan.py &nbsp;← główny skrypt (PL)</div>
+        <div class="pf">generate_plan_en.py ← wersja angielska</div>
         <div class="pf">INSTRUKCJA.html</div>
       </div>
     </div>
@@ -195,12 +199,18 @@ td code{font-size:11px;}
       <h3 style="color:var(--teal)">Paczka 2 — Sezon (wiele zawodów)</h3>
       <p style="font-size:12px;margin-top:4px;">Generuje plan na <strong>cały sezon</strong> z wieloma startami. Każdy wyścig ma swój blok treningowy.</p>
       <div class="pack-files">
-        <div class="pf">season_plan.py &nbsp;&nbsp;&nbsp;← główny skrypt</div>
+        <div class="pf">season_plan.py &nbsp;&nbsp;&nbsp;← główny skrypt (PL)</div>
+        <div class="pf">season_plan_en.py &nbsp;← wersja angielska</div>
         <div class="pf">season_example.json ← edytuj i uruchom</div>
         <div class="pf">generate_plan.py</div>
         <div class="pf">INSTRUKCJA.html</div>
       </div>
     </div>
+  </div>
+
+  <div class="alert info">
+    <strong>Wersje językowe skryptów</strong>
+    Każdy skrypt istnieje w wersji polskiej (np. <code>season_plan.py</code>) i angielskiej (<code>season_plan_en.py</code>). Logika i opcje CLI są identyczne — różnią się tylko komunikaty wyświetlane użytkownikowi. Możesz używać dowolnej wersji.
   </div>
 
   <div class="alert info">
@@ -210,13 +220,17 @@ td code{font-size:11px;}
 
   <h3 style="margin-top:18px;">Dodatkowe narzędzia (w tym samym folderze)</h3>
   <div class="files">
-    <div class="file"><div class="fn">update_plan.py</div><div class="fd">Aktualizuje istniejący plan w trakcie sezonu — nowe FTP, vol-scale, integracja ze Stravą. Nie rusza już wykonanych treningów.</div></div>
+    <div class="file"><div class="fn">update_plan.py</div><div class="fd">Aktualizuje istniejący plan w trakcie sezonu — nowe FTP, vol-scale, nowa waga, cel czasowy. Nie rusza już wykonanych treningów.</div></div>
     <div class="file"><div class="fn">training_load.py</div><div class="fd">Oblicza planowane TSS/CTL/ATL/TSB bez logowania do Garmin. Pokazuje tygodniowy wykres obciążenia i formę w dniu wyścigu.</div></div>
     <div class="file"><div class="fn">plan_review.py</div><div class="fd">Pobiera aktywności z Garmin i zestawia je z planem (✓ wykonano / ✗ pominięto). Tygodniowy raport wykonania.</div></div>
-    <div class="file"><div class="fn">race_pacing.py</div><div class="fd">Kalkulator tempa wyścigowego: 3 scenariusze roweru, prognoza spowolnienia biegu, plan żywienia. Bez logowania.</div></div>
+    <div class="file"><div class="fn">race_pacing.py</div><div class="fd">Kalkulator tempa wyścigowego: 3 scenariusze roweru, prognoza spowolnienia biegu, plan żywienia. Obsługuje model aerodynamiczny CdA. Bez logowania.</div></div>
     <div class="file"><div class="fn">export_ics.py</div><div class="fd">Eksportuje cały plan do pliku .ics (Google Calendar, Apple Calendar, Outlook).</div></div>
-    <div class="file"><div class="fn">strava_suggest.py</div><div class="fd">Analizuje ostatnie tygodnie ze Stravy i sugeruje target time, tempo biegu i vol-scale.</div></div>
-    <div class="file"><div class="fn">mywhoosh_season.py</div><div class="fd">Generuje pliki .zwo dla MyWhoosh i Zwift na podstawie planu.</div></div>
+    <div class="file"><div class="fn">strava_suggest.py</div><div class="fd">Analizuje ostatnie tygodnie ze Stravy i sugeruje target time, tempo biegu i vol-scale dla danego dystansu.</div></div>
+    <div class="file"><div class="fn">mywhoosh_season.py</div><div class="fd">Generuje pliki .zwo dla MyWhoosh i Zwift na podstawie planu. Obsługuje nazwy zawodów lub dystans.</div></div>
+  </div>
+  <div class="alert ok">
+    <strong>Każde narzędzie ma wersję _en.py</strong>
+    Pliki <code>update_plan_en.py</code>, <code>training_load_en.py</code>, <code>plan_review_en.py</code>, <code>race_pacing_en.py</code>, <code>export_ics_en.py</code> — identyczna logika, komunikaty po angielsku.
   </div>
 </div>
 
@@ -519,9 +533,14 @@ td code{font-size:11px;}
 <!-- 5. GARMIN LOGOWANIE -->
 <div class="sec" id="s5">
   <div class="sec-h">⌚ 5. Logowanie do Garmin przez terminal</div>
-  <p>Skrypty Python łączą się z Garmin Connect przez oficjalne API. Przy pierwszym uruchomieniu skrypt zapyta o login i hasło. Dane <strong>nie są nigdzie zapisywane</strong> — podajesz je jednorazowo przy każdym uruchomieniu.</p>
+  <p>Skrypty Python łączą się z Garmin Connect przez oficjalne API. Przy <strong>pierwszym uruchomieniu</strong> skrypt zapyta o login i hasło, a następnie zapisze token OAuth do pliku <code>~/.garmin_token</code>. Przy kolejnych uruchomieniach token jest odczytywany automatycznie — nie trzeba ponownie wpisywać hasła.</p>
 
-  <h3>Co skrypt robi przy logowaniu</h3>
+  <div class="alert ok">
+    <strong>Token OAuth — jak działa cache:</strong>
+    Token jest ważny przez tygodnie lub miesiące. Biblioteka odświeża go automatycznie. Wszystkie skrypty współdzielą ten sam plik <code>~/.garmin_token</code>, więc logowanie raz wystarczy dla wszystkich narzędzi.
+  </div>
+
+  <h3>Co skrypt robi przy pierwszym logowaniu</h3>
   <div class="steps">
     <div class="step"><div class="sn">1</div><div class="sb">
       <h4>Pyta o email i hasło</h4>
@@ -532,16 +551,18 @@ td code{font-size:11px;}
       <p>Jeśli masz włączoną weryfikację dwuetapową w Garmin Connect, skrypt automatycznie poprosi o kod po wpisaniu hasła. Wpisz kod z SMS lub aplikacji authenticator.</p>
     </div></div>
     <div class="step"><div class="sn">3</div><div class="sb">
-      <h4>Łączy się przez garminconnect (biblioteka Python)</h4>
-      <p>Biblioteka używa oficjalnego API Garmin Connect — dokładnie tak samo jak aplikacja mobilna. Sesja trwa do zamknięcia terminala.</p>
+      <h4>Zapisuje token do ~/.garmin_token</h4>
+      <p>Token jest zapisywany z uprawnieniami <code>600</code> (tylko właściciel może czytać). Przy kolejnych uruchomieniach skrypt odczyta go automatycznie.</p>
     </div></div>
   </div>
 
   <div class="alert info">
-    <strong>Jak wygląda poprawne logowanie:</strong>
+    <strong>Jak wygląda pierwsze logowanie:</strong>
 <pre style="margin:8px 0 0;font-size:11px;"><span class="cs">Garmin email:</span> <span class="cv">jan@example.com</span>
 <span class="cs">Garmin password:</span> <span class="cm">(hasło ukryte — wpisz i naciśnij Enter)</span>
 <span class="cv">✓ Logged in to Garmin Connect</span></pre>
+    <strong style="margin-top:10px;display:block;">Jak wygląda kolejne logowanie (token):</strong>
+<pre style="margin:8px 0 0;font-size:11px;"><span class="cv">✓ Logged in to Garmin Connect (cached token)</span></pre>
   </div>
 
   <div class="alert warn">
@@ -553,12 +574,19 @@ td code{font-size:11px;}
     <strong>Masz włączone Single Sign-On przez Google / Facebook?</strong>
     Garmin API wymaga bezpośredniego loginu i hasła Garmin. Jeśli logujesz się przez Google, musisz ustawić oddzielne hasło Garmin: connect.garmin.com → Ustawienia konta → Zmień hasło.
   </div>
+
+  <div class="alert warn">
+    <strong>Token wygasł lub skrypt prosi ponownie o hasło:</strong>
+    Usuń stary token i zaloguj się od nowa:<br>
+    Mac/Linux: <code>rm ~/.garmin_token</code><br>
+    Windows: <code>del %USERPROFILE%\.garmin_token</code>
+  </div>
 </div>
 
 <!-- 6. PACZKA JEDNE ZAWODY -->
 <div class="sec" id="s6">
   <div class="sec-h">🎯 6. Uruchamianie: Paczka 1 — Jedne zawody</div>
-  <p>Skrypt <code>generate_plan.py</code> tworzy blok treningowy pod jeden wyścig i wgrywa go do Garmin Connect.</p>
+  <p>Skrypt <code>generate_plan.py</code> (lub <code>generate_plan_en.py</code>) tworzy blok treningowy pod jeden wyścig i wgrywa go do Garmin Connect.</p>
 
   <h3>Tryb interaktywny (zalecany dla nowych użytkowników)</h3>
 <pre><span class="cm"># Aktywuj środowisko (jeśli jeszcze nie aktywne)</span>
@@ -576,8 +604,8 @@ td code{font-size:11px;}
     <tr><td>FTP in watts</td><td><code>255</code></td><td>Twoje FTP z MyWhoosh lub testu 20-minutowego</td></tr>
     <tr><td>Run pace MM:SS/km</td><td><code>5:20</code></td><td>Docelowe tempo biegu na wyścigu</td></tr>
     <tr><td>Workout prefix</td><td><code>BERLIN</code></td><td>Skrót identyfikujący ten plan (wielkie litery)</td></tr>
-    <tr><td>Garmin email</td><td><code>jan@example.com</code></td><td>Login do Garmin Connect</td></tr>
-    <tr><td>Garmin password</td><td><em>(ukryte)</em></td><td>Hasło do Garmin Connect</td></tr>
+    <tr><td>Garmin email</td><td><code>jan@example.com</code></td><td>Login do Garmin Connect (tylko przy pierwszym logowaniu)</td></tr>
+    <tr><td>Garmin password</td><td><em>(ukryte)</em></td><td>Hasło do Garmin Connect (tylko przy pierwszym logowaniu)</td></tr>
   </table>
 
   <h3 style="margin-top:20px;">Tryb z parametrami (szybszy)</h3>
@@ -589,13 +617,31 @@ td code{font-size:11px;}
   <span class="ck">--prefix</span>    <span class="cv">BERLIN</span> \
   <span class="ck">--reset</span></pre>
 
-  <div class="div-label"><span>Dostępne opcje</span></div>
+  <h3 style="margin-top:20px;">Generowanie z docelowego czasu ukończenia</h3>
+  <p>Jeśli znasz cel czasowy zamiast tempa biegu, skrypt wyliczy tempo biegu i strefy rowerowe automatycznie z modelu fizycznego:</p>
+<pre><span class="cv">python generate_plan.py</span> \
+  <span class="ck">--race-date</span>    <span class="cv">2026-09-15</span> \
+  <span class="ck">--distance</span>     <span class="cv">70.3</span> \
+  <span class="ck">--ftp</span>          <span class="cv">255</span> \
+  <span class="ck">--target-time</span>  <span class="cv">5:00:00</span> \
+  <span class="ck">--weight</span>       <span class="cv">86</span> \
+  <span class="ck">--prefix</span>       <span class="cv">BERLIN</span> \
+  <span class="ck">--reset</span></pre>
+
+  <div class="div-label"><span>Wszystkie dostępne opcje</span></div>
   <div class="cmd-list">
     <div class="cmd-row"><div class="cmd-code">--reset</div><div class="cmd-desc"><strong>Zalecane.</strong> Usuwa stary plan z tym samym prefixem, wgrywa nowy. Zapobiega duplikatom w kalendarzu.</div></div>
     <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd planu bez wgrywania do Garmin. Pokaże daty i nazwy treningów.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--distance full</div><div class="cmd-desc">Full Ironman (16 tygodni). Inne opcje: <code>olympic</code>, <code>sprint</code>.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nadpisuje FTP z trybu interaktywnego.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--run-pace 4:50</div><div class="cmd-desc">Nadpisuje tempo biegu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--race-date YYYY-MM-DD</div><div class="cmd-desc">Data wyścigu np. <code>2026-09-15</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--distance 70.3</div><div class="cmd-desc">Dystans: <code>sprint</code> (8 tyg) / <code>olympic</code> (10 tyg) / <code>70.3</code> (12 tyg) / <code>full</code> (16 tyg).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--ftp 255</div><div class="cmd-desc">FTP w watach z MyWhoosh, Garmin lub testu 20-minutowego (×0.95).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobierz FTP automatycznie z Garmin Connect — wymaga zalogowania. Przydatne po automatycznym przeliczeniu przez Garmin.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 5:20</div><div class="cmd-desc">Docelowe tempo biegu na wyścigu (MM:SS/km). Wyklucza się z <code>--target-time</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--target-time 5:00:00</div><div class="cmd-desc">Docelowy czas ukończenia H:MM:SS. Skrypt wylicza tempo biegu i strefy rowerowe z modelu fizycznego. Wymaga podania <code>--weight</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weight 86</div><div class="cmd-desc">Masa ciała w kg. Używana przy <code>--target-time</code> do modelu oporów jazdy rowerem. Domyślnie 75.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--cda 0.32</div><div class="cmd-desc">Współczynnik aerodynamiczny CdA [m²]. Domyślnie 0.32 (pozycja TT/triathlonowa). Niższe = bardziej aerodynamiczne. Rower szosowy w standardowej pozycji ≈ 0.40.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix BERLIN</div><div class="cmd-desc">Prefix nazw treningów (np. BERLIN-T01). Domyślnie: nazwa wyścigu z interaktywnego kreatorze.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--vol-scale 1.0</div><div class="cmd-desc">Mnożnik objętości treningów (zakres 0.1–3.0). 1.1 = 10% więcej, 0.8 = 20% mniej. Użyj <code>strava_suggest.py</code> aby dobrać optymalnie.</div></div>
   </div>
 
   <div class="alert ok" style="margin-top:14px;">
@@ -607,7 +653,7 @@ td code{font-size:11px;}
 <!-- 7. PACZKA SEZON -->
 <div class="sec" id="s7">
   <div class="sec-h">📅 7. Uruchamianie: Paczka 2 — Sezon z wieloma zawodami</div>
-  <p>Skrypt <code>season_plan.py</code> obsługuje cały sezon. Każdy wyścig dostaje oddzielny blok treningowy z własnym prefixem. Plany nie kolidują ze sobą.</p>
+  <p>Skrypt <code>season_plan.py</code> (lub <code>season_plan_en.py</code>) obsługuje cały sezon. Każdy wyścig dostaje oddzielny blok treningowy z własnym prefixem. Plany nie kolidują ze sobą.</p>
 
   <h3>Metoda A — Plik konfiguracyjny JSON (zalecana)</h3>
   <p>Edytuj plik <code>season_example.json</code> w Notatniku lub innym edytorze tekstowym:</p>
@@ -631,7 +677,17 @@ td code{font-size:11px;}
   <h3>Metoda C — Podgląd bez wgrywania</h3>
 <pre><span class="cv">python season_plan.py --config season_example.json --dry-run</span></pre>
 
-  <div class="div-label"><span>Ważne zasady</span></div>
+  <div class="div-label"><span>Wszystkie dostępne opcje</span></div>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--config plik.json</div><div class="cmd-desc">Plik JSON z konfiguracją sezonu (wyścigi, FTP, tempo). Bez tej opcji uruchamia tryb interaktywny.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--reset</div><div class="cmd-desc"><strong>Zalecane.</strong> Usuwa stary plan per prefix, wgrywa nowy. Bezpieczne — nie rusza prefixów z innych wyścigów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd bez wgrywania do Garmin.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nadpisuje FTP ze wszystkich wyścigów. Przydatne gdy zrobiłeś retest po wygenerowaniu planu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobiera FTP automatycznie z Garmin Connect zamiast pytać lub używać wartości z pliku JSON.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 5:10</div><div class="cmd-desc">Nadpisuje tempo biegu dla wszystkich wyścigów w sezonie.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--vol-scale 1.1</div><div class="cmd-desc">Mnożnik objętości dla całego sezonu (0.1–3.0). Domyślnie 1.0.</div></div>
+  </div>
+
   <div class="alert info">
     <strong>Różne prefixy = brak konfliktów.</strong>
     WARSAW-T01, BERLIN-T01 to osobne treningi. <code>--reset</code> usuwa tylko treningi z danym prefixem — nie rusza pozostałych. Możesz bezpiecznie resetować jeden wyścig bez wpływu na inne.
@@ -704,11 +760,17 @@ td code{font-size:11px;}
   <h3 style="margin-top:14px">Skrypt prosi o MFA kod — co wpisać?</h3>
   <p>Wpisz 6-cyfrowy kod z aplikacji Google Authenticator, Authy lub z SMS od Garmin. Kod jest ważny 30 sekund — wpisz szybko i naciśnij Enter.</p>
 
+  <h3 style="margin-top:14px">Token Garmin wygasł — skrypt prosi ponownie o hasło</h3>
+  <p>Biblioteka automatycznie odświeża token gdy jest to możliwe. Jeśli jednak token wygasł całkowicie, skrypt poprosi o ponowne zalogowanie i automatycznie zapisze nowy token. Możesz też usunąć stary token ręcznie: <code>rm ~/.garmin_token</code> (Mac/Linux) lub <code>del %USERPROFILE%\.garmin_token</code> (Windows).</p>
+
   <h3 style="margin-top:14px">Treningi rowerowe pokazują kph zamiast watów</h3>
   <p>Stare treningi z błędnym formatem są jeszcze w Garmin. Uruchom skrypt z flagą <code>--reset</code> — usunie stare i wgra nowe z poprawnym formatem power target.</p>
 
   <h3 style="margin-top:14px">Duplikaty treningów w kalendarzu</h3>
   <p>Zawsze używaj flagi <code>--reset</code>. Skrypt usuwa stare treningi z tym samym prefixem przed wgraniem nowych.</p>
+
+  <h3 style="margin-top:14px">"No saved plan for PREFIX" w narzędziach analitycznych</h3>
+  <p>Narzędzia takie jak <code>training_load.py</code>, <code>plan_review.py</code>, <code>export_ics.py</code> wymagają wcześniejszego wgrania planu przez <code>generate_plan.py</code> lub <code>season_plan.py</code>. Uruchomienie z <code>--dry-run</code> NIE zapisuje stanu. Najpierw wgraj plan do Garmin (bez <code>--dry-run</code>).</p>
 
   <h3 style="margin-top:14px">Claude nie widzi narzędzi Strava po konfiguracji</h3>
   <p>Sprawdź plik <code>claude_desktop_config.json</code> pod kątem błędów JSON (walidator: <strong>jsonlint.com</strong>). Całkowicie zamknij i uruchom ponownie Claude Desktop. Sprawdź czy Node.js jest zainstalowane: <code>npx --version</code>.</p>
@@ -726,8 +788,8 @@ td code{font-size:11px;}
 <!-- 10. AKTUALIZACJA PLANU -->
 <div class="sec" id="s10">
   <div class="sec-h">🔄 10. Aktualizacja planu w trakcie sezonu</div>
-  <p>Po 2–3 miesiącach treningu Twoja forma zmienia się — FTP rośnie, objętość może wymagać korekty.
-  <code>update_plan.py</code> zastępuje <strong>tylko przyszłe</strong> treningi nowymi parametrami,
+  <p>Po 2–3 miesiącach treningu Twoja forma zmienia się — FTP rośnie, waga spada, objętość może wymagać korekty.
+  <code>update_plan.py</code> (lub <code>update_plan_en.py</code>) zastępuje <strong>tylko przyszłe</strong> treningi nowymi parametrami,
   nie ruszając już wykonanych sesji.</p>
 
   <div class="alert info">
@@ -736,29 +798,37 @@ td code{font-size:11px;}
   </div>
 
   <h3>Krok 1 — Sprawdź aktualny stan planu</h3>
-<pre><span class="cv">python update_plan.py --list</span>       <span class="cm"># lista wszystkich planów</span>
+<pre><span class="cv">python update_plan.py --list</span>           <span class="cm"># lista wszystkich planów</span>
 <span class="cv">python update_plan.py --prefix WARSAW</span>  <span class="cm"># postęp i szczegóły planu</span></pre>
 
-  <h3>Krok 2 — Zdecyduj co zmieniasz</h3>
-  <div class="cmd-list">
-    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nowe FTP w watach po retescie lub pomiarze MyWhoosh.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobiera FTP automatycznie z Garmin Connect (wymaga tokenu ~/.garmin_token).</div></div>
-    <div class="cmd-row"><div class="cmd-code">--vol-scale 1.1</div><div class="cmd-desc">Mnożnik objętości (0.5–1.5). 1.1 = 10% więcej treningów.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--target-time 4:55:00</div><div class="cmd-desc">Nowy cel wyścigu — przeliczy tempo biegu i strefy rowerowe.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--from-strava</div><div class="cmd-desc">Automatyczna sugestia ze Stravy przed aktualizacją.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--from-date 2026-07-14</div><div class="cmd-desc">Aktualizuj od konkretnej daty (domyślnie: następny poniedziałek).</div></div>
-    <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd bez wgrywania do Garmin.</div></div>
-  </div>
-
-  <h3>Krok 3 — Podgląd, potem aktualizacja</h3>
+  <h3>Krok 2 — Podgląd, potem aktualizacja</h3>
 <pre><span class="cm"># Sprawdź co się zmieni</span>
 <span class="cv">python update_plan.py --prefix WARSAW --ftp 270 --vol-scale 1.1 --dry-run</span>
 
 <span class="cm"># Wgraj do Garmin po potwierdzeniu</span>
 <span class="cv">python update_plan.py --prefix WARSAW --ftp 270 --vol-scale 1.1</span>
 
-<span class="cm"># Pełna aktualizacja przez Stravę</span>
+<span class="cm"># Aktualizacja całego sezonu przez plik JSON</span>
+<span class="cv">python update_plan.py --config season_example.json --ftp 270</span>
+
+<span class="cm"># Pełna aktualizacja na podstawie sugestii Stravy</span>
 <span class="cv">python update_plan.py --prefix WARSAW --from-strava</span></pre>
+
+  <div class="div-label"><span>Wszystkie dostępne opcje</span></div>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Lista wszystkich zapisanych planów w <code>~/.triathlon_plans/</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Aktualizuj konkretny wyścig. Użyj razem z opcjami zmiany parametrów poniżej.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--config plik.json</div><div class="cmd-desc">Aktualizuj wszystkie wyścigi z pliku konfiguracyjnego sezonu jednocześnie.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--ftp 270</div><div class="cmd-desc">Nowe FTP w watach po retescie lub pomiarze MyWhoosh.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobiera FTP automatycznie z Garmin Connect (wymaga aktywnego tokenu <code>~/.garmin_token</code>).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 5:10</div><div class="cmd-desc">Nowe tempo biegu na wyścigu MM:SS/km.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--target-time 4:55:00</div><div class="cmd-desc">Nowy cel wyścigu H:MM:SS — przeliczy tempo biegu i strefy rowerowe. Tylko w trybie <code>--prefix</code> (nie <code>--config</code>).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--vol-scale 1.1</div><div class="cmd-desc">Mnożnik objętości (0.5–1.5). 1.1 = 10% więcej treningów, 0.8 = 20% mniej.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weight 84</div><div class="cmd-desc">Nowa waga ciała w kg. Używana gdy podajesz <code>--target-time</code> do modelu oporów roweru.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--from-strava</div><div class="cmd-desc">Automatyczna sugestia ze Stravy przed aktualizacją — analizuje ostatnie tygodnie i proponuje vol-scale i tempo.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--from-date 2026-07-14</div><div class="cmd-desc">Aktualizuj treningi od konkretnej daty YYYY-MM-DD. Domyślnie: następny poniedziałek.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--dry-run</div><div class="cmd-desc">Podgląd bez wgrywania do Garmin. Zawsze sprawdź przed aktualizacją.</div></div>
+  </div>
 
   <div class="alert ok">
     <strong>Predykcja TSB w dniu wyścigu (automatyczna)</strong>
@@ -777,13 +847,20 @@ td code{font-size:11px;}
 <!-- 11. NARZĘDZIA ANALITYCZNE -->
 <div class="sec" id="s11">
   <div class="sec-h">📊 11. Narzędzia analityczne</div>
-  <p>Cztery dodatkowe skrypty do analizy formy i planowania wyścigu. Działają offline — nie wymagają logowania do Garmin (z wyjątkiem <code>plan_review.py</code>).</p>
+  <p>Pięć dodatkowych skryptów do analizy formy i planowania wyścigu. Większość działa offline bez logowania do Garmin.</p>
 
-  <h3>Obciążenie treningowe — TSS/CTL/ATL/TSB</h3>
-  <p>Oblicza planowane krzywi formy PMC bez łączenia z Garmin. Wymaga zapisanego stanu planu (<code>~/.triathlon_plans/{PREFIX}.json</code>).</p>
-<pre><span class="cv">python training_load.py --prefix WARSAW</span>         <span class="cm"># cały sezon</span>
-<span class="cv">python training_load.py --prefix WARSAW --weeks 8</span> <span class="cm"># ostatnie 8 tygodni</span>
-<span class="cv">python training_load.py --list</span></pre>
+  <!-- TRAINING LOAD -->
+  <h3>📈 Obciążenie treningowe — TSS/CTL/ATL/TSB</h3>
+  <p>Oblicza planowane krzywe formy PMC bez łączenia z Garmin. Wymaga zapisanego stanu planu (<code>~/.triathlon_plans/{PREFIX}.json</code>) — wgrywasz plan przez <code>generate_plan.py</code> lub <code>season_plan.py</code> i plik powstaje automatycznie.</p>
+<pre><span class="cv">python training_load.py --list</span>                      <span class="cm"># lista dostępnych planów</span>
+<span class="cv">python training_load.py --prefix WARSAW</span>              <span class="cm"># cały sezon</span>
+<span class="cv">python training_load.py --prefix WARSAW --weeks 8</span>    <span class="cm"># ostatnie 8 tygodni</span></pre>
+
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Lista wszystkich zapisanych planów z FTP, dystansem i progresem.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Prefix planu do wyświetlenia (wymagane jeśli nie --list).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weeks N</div><div class="cmd-desc">Pokaż tylko ostatnie N tygodni. Bez tej opcji pokazuje cały sezon.</div></div>
+  </div>
 
   <table>
     <tr><th>Metryka</th><th>Znaczenie</th><th>Okno czasowe</th></tr>
@@ -797,22 +874,40 @@ td code{font-size:11px;}
     TSB 5–25 = dobra forma ✓ &nbsp;|&nbsp; TSB &lt; 5 = wydłuż taper &nbsp;|&nbsp; TSB &gt; 25 = skróć taper
   </div>
 
-  <h3 style="margin-top:20px;">Przegląd postępów — zaplanowane vs wykonane</h3>
-  <p>Pobiera Twoje aktywności z Garmin Connect i zestawia je z planem. Wymaga aktywnego tokenu Garmin.</p>
-<pre><span class="cv">python plan_review.py --prefix WARSAW</span>           <span class="cm"># pełny przegląd</span>
-<span class="cv">python plan_review.py --prefix WARSAW --weeks 4</span>  <span class="cm"># ostatnie 4 tygodnie</span></pre>
+  <!-- PLAN REVIEW -->
+  <h3 style="margin-top:24px;">✅ Przegląd postępów — zaplanowane vs wykonane</h3>
+  <p>Pobiera Twoje aktywności z Garmin Connect i zestawia je z planem. Wymaga aktywnego tokenu Garmin (<code>~/.garmin_token</code>).</p>
+<pre><span class="cv">python plan_review.py --list</span>                        <span class="cm"># lista planów</span>
+<span class="cv">python plan_review.py --prefix WARSAW</span>               <span class="cm"># pełny przegląd</span>
+<span class="cv">python plan_review.py --prefix WARSAW --weeks 4</span>     <span class="cm"># ostatnie 4 tygodnie</span></pre>
+
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Lista wszystkich zapisanych planów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Prefix planu do przeglądu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weeks N</div><div class="cmd-desc">Pokaż tylko ostatnie N tygodni.</div></div>
+  </div>
   <p>Wynik per sesja: <strong>✓ wykonano</strong> (z rzeczywistym czasem/mocą/tempem) lub <strong>✗ pominięto</strong>. Pasek ukończenia tygodnia i łączny procent planu.</p>
 
-  <h3 style="margin-top:20px;">Kalkulator tempa wyścigowego</h3>
-  <p>Pokazuje trzy scenariusze jazdy rowerem z prognozą spowolnienia biegu i planem żywienia. Bez logowania do Garmin.</p>
+  <!-- RACE PACING -->
+  <h3 style="margin-top:24px;">🏁 Kalkulator tempa wyścigowego</h3>
+  <p>Pokazuje trzy scenariusze jazdy rowerem z prognozą spowolnienia biegu i planem żywienia. Model fizyczny uwzględnia opory aerodynamiczne i toczenia. Bez logowania do Garmin.</p>
 <pre><span class="cm"># Trzy scenariusze na podstawie FTP i wagi</span>
 <span class="cv">python race_pacing.py --distance 70.3 --ftp 255 --weight 86</span>
 
 <span class="cm"># Z docelowym czasem ukończenia</span>
 <span class="cv">python race_pacing.py --distance 70.3 --ftp 255 --weight 86 --target-time 5:00:00</span>
 
-<span class="cm"># Z ręcznym tempem biegu (świeże tempo)</span>
-<span class="cv">python race_pacing.py --distance full --ftp 255 --weight 86 --run-pace 5:20</span></pre>
+<span class="cm"># Z ręcznym tempem biegu i własnym CdA (rower szosowy)</span>
+<span class="cv">python race_pacing.py --distance full --ftp 255 --weight 86 --run-pace 5:20 --cda 0.40</span></pre>
+
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--distance 70.3</div><div class="cmd-desc"><strong>Wymagane.</strong> Dystans: <code>sprint</code> / <code>olympic</code> / <code>70.3</code> / <code>full</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--ftp 255</div><div class="cmd-desc"><strong>Wymagane.</strong> FTP w watach.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weight 86</div><div class="cmd-desc"><strong>Wymagane.</strong> Masa ciała w kg (bez roweru).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--target-time 5:00:00</div><div class="cmd-desc">Docelowy czas ukończenia H:MM:SS. Skrypt wstecznie wyznacza moc i tempo. Wyklucza się z <code>--run-pace</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 5:20</div><div class="cmd-desc">Tempo biegu na świeżo (bez zmęczenia rowerem) MM:SS/km. Skrypt oblicza prognozę spowolnienia po każdym scenariuszu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--cda 0.32</div><div class="cmd-desc">Współczynnik aerodynamiczny CdA [m²]. Domyślnie 0.32 (pozycja TT). Rower szosowy w standardowej pozycji ≈ 0.40. Niższe CdA = wyższe prędkości przy tej samej mocy.</div></div>
+  </div>
 
   <table>
     <tr><th>Scenariusz</th><th>Moc roweru</th><th>Efekt na bieg</th></tr>
@@ -822,16 +917,180 @@ td code{font-size:11px;}
   </table>
   <p>Plan żywienia zawiera węglowodany (g/h) i płyny (ml/h) osobno dla roweru i biegu.</p>
 
-  <h3 style="margin-top:20px;">Eksport do kalendarza (.ics)</h3>
+  <!-- EXPORT ICS -->
+  <h3 style="margin-top:24px;">📅 Eksport do kalendarza (.ics)</h3>
   <p>Generuje plik iCalendar z całym planem. Każdy trening to wydarzenie całodniowe. Wyścig zaznaczony osobno.</p>
-<pre><span class="cv">python export_ics.py --prefix WARSAW</span>                    <span class="cm"># cały plan</span>
-<span class="cv">python export_ics.py --prefix WARSAW --future-only</span>       <span class="cm"># tylko przyszłe</span>
-<span class="cv">python export_ics.py --prefix WARSAW --output plan.ics</span>   <span class="cm"># własna nazwa pliku</span></pre>
+<pre><span class="cv">python export_ics.py --list</span>                                  <span class="cm"># lista planów</span>
+<span class="cv">python export_ics.py --prefix WARSAW</span>                         <span class="cm"># cały plan</span>
+<span class="cv">python export_ics.py --prefix WARSAW --future-only</span>           <span class="cm"># tylko przyszłe</span>
+<span class="cv">python export_ics.py --prefix WARSAW --output moj_plan.ics</span>   <span class="cm"># własna nazwa</span></pre>
+
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Lista wszystkich zapisanych planów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Prefix planu do eksportu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--future-only</div><div class="cmd-desc">Eksportuj tylko treningi z datą w przyszłości (przydatne do importu w połowie sezonu).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--output nazwa.ics</div><div class="cmd-desc">Własna nazwa pliku wyjściowego. Domyślnie <code>{PREFIX}.ics</code> w bieżącym katalogu.</div></div>
+  </div>
 
   <div class="cmd-list" style="margin-top:8px;">
     <div class="cmd-row"><div class="cmd-code">Google Calendar</div><div class="cmd-desc">calendar.google.com → Inne kalendarze (+) → Importuj</div></div>
     <div class="cmd-row"><div class="cmd-code">Apple Calendar</div><div class="cmd-desc">Plik → Importuj → wybierz plik .ics</div></div>
     <div class="cmd-row"><div class="cmd-code">Outlook</div><div class="cmd-desc">Plik → Otwórz i eksportuj → Importuj/eksportuj → Importuj plik iCalendar</div></div>
+  </div>
+</div>
+
+<!-- 12. MYWHOOSH / ZWIFT -->
+<div class="sec" id="s12">
+  <div class="sec-h">🚲 12. MyWhoosh / Zwift — generowanie plików .zwo</div>
+  <p>Skrypt <code>mywhoosh_season.py</code> generuje ustrukturyzowane pliki treningowe <code>.zwo</code> kompatybilne z MyWhoosh i Zwift. Każdy trening zawiera rozgrzewkę, bloki interwałowe i schłodzenie ze strefami mocy opartymi na Twoim FTP.</p>
+
+  <div class="alert info">
+    <strong>Nie wymaga logowania do Garmin.</strong>
+    Działa całkowicie offline. Pliki .zwo generowane są na dysku lokalnym i trzeba je ręcznie załadować do MyWhoosh/Zwift.
+  </div>
+
+  <h3>Szybki start</h3>
+<pre><span class="cm"># Podgląd dostępnych zawodów i dystansów</span>
+<span class="cv">python mywhoosh_season.py --list</span>
+
+<span class="cm"># Wygeneruj dla wszystkich zawodów (domyślnie FTP=255, folder ./mywhoosh_2026)</span>
+<span class="cv">python mywhoosh_season.py --ftp 255</span>
+
+<span class="cm"># Wygeneruj tylko dla wybranych zawodów</span>
+<span class="cv">python mywhoosh_season.py --ftp 255 --race poznan gdynia</span>
+
+<span class="cm"># Wygeneruj według dystansu (bez nazwy zawodów)</span>
+<span class="cv">python mywhoosh_season.py --ftp 255 --distance 70.3 --prefix WARSAW</span>
+
+<span class="cm"># Własny folder wyjściowy</span>
+<span class="cv">python mywhoosh_season.py --ftp 255 --output ~/Desktop/moje_treningi</span></pre>
+
+  <div class="div-label"><span>Wszystkie dostępne opcje</span></div>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--ftp 255</div><div class="cmd-desc">FTP w watach. Wszystkie strefy mocy w plikach .zwo są obliczane na podstawie tej wartości. Domyślnie 255.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--output ./folder</div><div class="cmd-desc">Folder wyjściowy dla plików .zwo. Tworzony automatycznie jeśli nie istnieje. Domyślnie <code>./mywhoosh_2026</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--race poznan</div><div class="cmd-desc">Generuj tylko dla wybranych zawodów (po nazwie klucza). Możesz podać kilka: <code>--race poznan gdynia</code>. Domyślnie: <code>all</code> (wszystkie).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--distance 70.3</div><div class="cmd-desc">Generuj plan treningowy dla dystansu zamiast nazwy zawodów. Opcje: <code>sprint</code> / <code>olympic</code> / <code>70.3</code> / <code>full</code>. Wyklucza się z <code>--race</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Prefix nazw treningów gdy używasz <code>--distance</code>. Domyślnie <code>RACE</code>. Np. <code>WARSAW-T01 Z2 Endurance 60min</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Wyświetl dostępne zawody (klucze dla <code>--race</code>) i dystanse (klucze dla <code>--distance</code>) wraz z liczbą treningów.</div></div>
+  </div>
+
+  <h3 style="margin-top:20px;">Jak załadować pliki .zwo</h3>
+
+  <div class="os-wrap">
+  <div class="os-tabs" data-group="zwo">
+    <button class="os-tab active" onclick="sw(this,'zwo-myw')">MyWhoosh</button>
+    <button class="os-tab" onclick="sw(this,'zwo-zwift')">Zwift</button>
+  </div>
+
+  <div class="os-content active" id="os-zwo-myw">
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb">
+        <h4>Znajdź folder treningów MyWhoosh</h4>
+        <p>
+          Windows: <code>%USERPROFILE%\Documents\MyWhoosh\Workouts</code><br>
+          Mac: <code>~/Library/Application Support/MyWhoosh/Workouts</code><br>
+          Linux: <code>~/.local/share/MyWhoosh/Workouts</code>
+        </p>
+      </div></div>
+      <div class="step"><div class="sn">2</div><div class="sb">
+        <h4>Skopiuj pliki .zwo</h4>
+        <p>Skopiuj wygenerowane pliki <code>.zwo</code> do folderu Workouts. Jeśli folder nie istnieje, utwórz go ręcznie.</p>
+      </div></div>
+      <div class="step"><div class="sn">3</div><div class="sb">
+        <h4>Uruchom MyWhoosh i przejdź do Workouts</h4>
+        <p>Training → Workouts → Custom. Treningi pojawiają się na liście z nazwami z prefiksu (np. WARSAW-T01).</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="os-content" id="os-zwo-zwift">
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div class="sb">
+        <h4>Znajdź folder treningów Zwift</h4>
+        <p>
+          Windows: <code>%USERPROFILE%\Documents\Zwift\Workouts\{userID}</code><br>
+          Mac: <code>~/Documents/Zwift/Workouts/{userID}</code>
+        </p>
+      </div></div>
+      <div class="step"><div class="sn">2</div><div class="sb">
+        <h4>Skopiuj pliki .zwo do folderu użytkownika</h4>
+        <p>UserID to 8-cyfrowy numer widoczny w ścieżce. Skopiuj pliki .zwo do tego podfolderu.</p>
+      </div></div>
+      <div class="step"><div class="sn">3</div><div class="sb">
+        <h4>Uruchom Zwift → Training → Custom Workouts</h4>
+        <p>Treningi pojawią się na liście. Kliknij trening, żeby zobaczyć profil i strefy mocy.</p>
+      </div></div>
+    </div>
+  </div>
+  </div>
+
+  <h3 style="margin-top:20px;">Format .zwo — potwierdzone zachowanie</h3>
+  <table>
+    <tr><th>Element XML</th><th>Zastosowanie</th><th>Wartości mocy</th></tr>
+    <tr><td><code>&lt;Warmup&gt;</code></td><td>Rozgrzewka (rampa)</td><td>PowerLow → PowerHigh (% FTP)</td></tr>
+    <tr><td><code>&lt;SteadyState&gt;</code></td><td>Stały blok mocy</td><td>Power jako % FTP (np. <code>0.82</code>)</td></tr>
+    <tr><td><code>&lt;IntervalsT&gt;</code></td><td>Interwały</td><td>OnPower / OffPower jako % FTP</td></tr>
+    <tr><td><code>&lt;Cooldown&gt;</code></td><td>Schłodzenie (rampa)</td><td>PowerLow → PowerHigh (% FTP)</td></tr>
+  </table>
+  <div class="alert warn">
+    <strong>Element &lt;Ramp&gt; nie jest używany.</strong>
+    MyWhoosh nie obsługuje poprawnie elementu <code>&lt;Ramp&gt;</code>. Skrypt używa zamiast niego <code>&lt;Warmup&gt;</code> i <code>&lt;Cooldown&gt;</code> które działają prawidłowo.
+  </div>
+</div>
+
+<!-- 13. STRAVA SUGGEST -->
+<div class="sec" id="s13">
+  <div class="sec-h">📡 13. Strava Suggest — sugestia parametrów planu</div>
+  <p>Skrypt <code>strava_suggest.py</code> analizuje Twoje ostatnie aktywności ze Stravy i proponuje optymalne parametry dla nowego planu: docelowy czas ukończenia, tempo biegu i mnożnik objętości (vol-scale). Używa tokenu OAuth Strava — <strong>nie</strong> wymaga Strava MCP ani Claude Desktop.</p>
+
+  <div class="alert win">
+    <strong>Wymaganie: token Strava API</strong>
+    Skrypt potrzebuje pliku <code>~/.strava_token.json</code> z tokenem OAuth Strava. Token tworzysz raz przez Strava API (Client ID + Client Secret z sekcji 4). Przy pierwszym uruchomieniu skrypt poprowadzi przez proces autoryzacji w przeglądarce.
+  </div>
+
+  <h3>Uruchomienie</h3>
+<pre><span class="cm"># Sugestia dla dystansu 70.3 na podstawie ostatnich 4 tygodni</span>
+<span class="cv">python strava_suggest.py --distance 70.3</span>
+
+<span class="cm"># Z datą wyścigu (sugestia uwzględnia czas na adaptację)</span>
+<span class="cv">python strava_suggest.py --distance 70.3 --race-date 2026-09-15</span>
+
+<span class="cm"># Szersze okno analizy (ostatnie 8 tygodni)</span>
+<span class="cv">python strava_suggest.py --distance full --weeks 8</span></pre>
+
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--distance 70.3</div><div class="cmd-desc"><strong>Wymagane.</strong> Dystans wyścigu: <code>sprint</code> / <code>olympic</code> / <code>70.3</code> / <code>full</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--race-date YYYY-MM-DD</div><div class="cmd-desc">Data wyścigu. Opcjonalna — jeśli podana, sugestia uwzględnia liczbę tygodni do wyścigu.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--weeks 4</div><div class="cmd-desc">Okno analizy aktywności ze Stravy w tygodniach. Domyślnie 4. Zwiększ do 8 jeśli masz nieregularny trening.</div></div>
+  </div>
+
+  <h3 style="margin-top:20px;">Co skrypt zwraca</h3>
+  <table>
+    <tr><th>Metryka</th><th>Opis</th><th>Jak użyć</th></tr>
+    <tr><td>Target time</td><td>Szacowany czas ukończenia na podstawie aktualnej formy</td><td><code>--target-time</code> w generate_plan.py</td></tr>
+    <tr><td>Run pace</td><td>Sugerowane tempo biegu MM:SS/km</td><td><code>--run-pace</code> w generate_plan.py</td></tr>
+    <tr><td>Vol-scale</td><td>Sugerowany mnożnik objętości (0.5–1.5)</td><td><code>--vol-scale</code> w generate_plan.py</td></tr>
+  </table>
+
+  <h3 style="margin-top:20px;">Integracja z generowaniem planu</h3>
+  <p>Skopiuj wartości z raportu i użyj je bezpośrednio:</p>
+<pre><span class="cm"># 1. Pobierz sugestię</span>
+<span class="cv">python strava_suggest.py --distance 70.3 --race-date 2026-09-15</span>
+
+<span class="cm"># 2. Skopiuj wynikowe wartości do generate_plan.py</span>
+<span class="cv">python generate_plan.py \</span>
+  <span class="ck">--race-date</span>    <span class="cv">2026-09-15</span> \
+  <span class="ck">--distance</span>     <span class="cv">70.3</span> \
+  <span class="ck">--ftp</span>          <span class="cv">255</span> \
+  <span class="ck">--target-time</span>  <span class="cv">5:10:00</span> \  <span class="cm"># z sugestii</span>
+  <span class="ck">--vol-scale</span>    <span class="cv">0.9</span> \    <span class="cm"># z sugestii</span>
+  <span class="ck">--prefix</span>       <span class="cv">WARSAW</span> \
+  <span class="ck">--reset</span></pre>
+
+  <div class="alert ok">
+    <strong>Alternatywa: --from-strava w update_plan.py</strong>
+    Jeśli masz już plan i chcesz go zaktualizować, użyj flagi <code>--from-strava</code> bezpośrednio w <code>update_plan.py</code> — to wywołuje ten sam silnik analizy bez potrzeby ręcznego kopiowania wartości.
   </div>
 </div>
 

@@ -5,6 +5,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.13.0] — 2026-04-29
+
+### Changed
+
+#### `INSTRUKCJA.html` — full documentation overhaul
+
+- Added sections 12 (MyWhoosh/Zwift .zwo) and 13 (Strava Suggest) — previously undocumented tools
+- Documented all missing CLI options: `--auto-ftp`, `--target-time`, `--weight`, `--cda`, `--prefix`, `--vol-scale` in `generate_plan.py`; `--ftp`, `--auto-ftp`, `--run-pace`, `--vol-scale` in `season_plan.py`; `--config`, `--run-pace`, `--weight` in `update_plan.py`; `--list` in `training_load.py`; `--cda` in `race_pacing.py`
+- Fixed incorrect Garmin login description — section 5 now correctly documents OAuth token caching (`~/.garmin_token`), shared across all scripts
+- Added troubleshooting entry for "No saved plan for PREFIX" (dry-run does not save state)
+- Added token refresh/reset instructions (Windows and Mac/Linux)
+- Added note about English versions (`*_en.py`) in header and section 0
+- Updated TOC to include sections 12 and 13
+
+---
+
 ## [1.12.0] — 2026-04-28
 
 ### Added
