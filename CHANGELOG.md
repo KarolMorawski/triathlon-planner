@@ -24,6 +24,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Warning printed when gap ≤ 2 weeks: "2. wynik może być 5-10% gorszy"
 - Science basis: TrainingPeaks, Purple Patch (Matt Dixon Episode 167), Joe Friel A/B/C classification — 1 easy day per race-hour before any intensity, Day-8 nervous-system reset, never attempt to peak twice in 2 weeks
 
+### Fixed
+
+- `season_plan.py` / `season_plan_en.py`: when the plan is generated with less than `full_weeks` remaining before the first race, the block is now truncated to available weeks from today — previously generated a full plan with workouts in the past
+
 ---
 
 ## [1.13.1] — 2026-05-02
