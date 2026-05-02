@@ -99,12 +99,17 @@ PROFILES = {
         "race_pace_pct": 0.72,
     },
     "olympic": {
-        "swim_m": 1500, "bike_km": 40,  "run_km": 10,   "weeks": 10,
+        "swim_m": 1500, "bike_km": 40,  "run_km": 10,    "weeks": 10,
         "label": "Olympic Distance",
         "race_pace_pct": 0.88,
     },
+    "quarter": {
+        "swim_m": 950,  "bike_km": 45,  "run_km": 10.55, "weeks": 9,
+        "label": "Quarter Ironman",
+        "race_pace_pct": 0.90,
+    },
     "sprint": {
-        "swim_m": 750,  "bike_km": 20,  "run_km": 5,    "weeks": 8,
+        "swim_m": 750,  "bike_km": 20,  "run_km": 5,     "weeks": 8,
         "label": "Sprint Distance",
         "race_pace_pct": 0.95,
     },
@@ -303,6 +308,7 @@ def ms_to_pace(ms):
 
 SPLIT_RATIOS = {
     "sprint":  {"t1t2_min":  5, "swim_pct": 0.13, "bike_pct": 0.47, "run_pct": 0.40},
+    "quarter": {"t1t2_min":  6, "swim_pct": 0.12, "bike_pct": 0.51, "run_pct": 0.37},
     "olympic": {"t1t2_min":  7, "swim_pct": 0.12, "bike_pct": 0.52, "run_pct": 0.36},
     "70.3":    {"t1t2_min": 10, "swim_pct": 0.11, "bike_pct": 0.53, "run_pct": 0.36},
     "full":    {"t1t2_min": 12, "swim_pct": 0.11, "bike_pct": 0.52, "run_pct": 0.37},

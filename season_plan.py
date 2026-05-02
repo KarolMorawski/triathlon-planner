@@ -97,10 +97,11 @@ def get_garmin_ftp(client):
 # ─── RACE PROFILES ───────────────────────────────────────────────────────────
 
 PROFILES = {
-    "70.3":    {"label":"Half Ironman 70.3", "weeks":12, "swim_m":1900, "bike_km":90,  "run_km":21.1, "race_bike_pct":0.82},
-    "full":    {"label":"Full Ironman",      "weeks":16, "swim_m":3800, "bike_km":180, "run_km":42.2, "race_bike_pct":0.72},
-    "olympic": {"label":"Olympic Distance",  "weeks":10, "swim_m":1500, "bike_km":40,  "run_km":10,   "race_bike_pct":0.88},
-    "sprint":  {"label":"Sprint Distance",   "weeks":8,  "swim_m":750,  "bike_km":20,  "run_km":5,    "race_bike_pct":0.95},
+    "70.3":    {"label":"Half Ironman 70.3",  "weeks":12, "swim_m":1900, "bike_km":90,  "run_km":21.1,  "race_bike_pct":0.82},
+    "full":    {"label":"Full Ironman",       "weeks":16, "swim_m":3800, "bike_km":180, "run_km":42.2,  "race_bike_pct":0.72},
+    "olympic": {"label":"Olympic Distance",   "weeks":10, "swim_m":1500, "bike_km":40,  "run_km":10,    "race_bike_pct":0.88},
+    "quarter": {"label":"Quarter Ironman",    "weeks":9,  "swim_m":950,  "bike_km":45,  "run_km":10.55, "race_bike_pct":0.90},
+    "sprint":  {"label":"Sprint Distance",    "weeks":8,  "swim_m":750,  "bike_km":20,  "run_km":5,     "race_bike_pct":0.95},
 }
 
 
@@ -248,6 +249,7 @@ def pace_to_ms(s):
 # Default split ratios (pct of active time after T1+T2) — based on age-group data
 SPLIT_RATIOS = {
     "sprint":  {"t1t2_min":  5, "swim_pct": 0.13, "bike_pct": 0.47, "run_pct": 0.40},
+    "quarter": {"t1t2_min":  6, "swim_pct": 0.12, "bike_pct": 0.51, "run_pct": 0.37},
     "olympic": {"t1t2_min":  7, "swim_pct": 0.12, "bike_pct": 0.52, "run_pct": 0.36},
     "70.3":    {"t1t2_min": 10, "swim_pct": 0.11, "bike_pct": 0.53, "run_pct": 0.36},
     "full":    {"t1t2_min": 12, "swim_pct": 0.11, "bike_pct": 0.52, "run_pct": 0.37},
