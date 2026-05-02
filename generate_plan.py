@@ -628,7 +628,7 @@ def upload_all(client, workouts, dry_run=False):
             ok += 1
             continue
         try:
-            result = client.save_workout(wkt)
+            result = client.upload_workout(wkt)
             wid = result.get("workoutId")
             client.schedule_workout(wid, date_str)
             uploaded.append({

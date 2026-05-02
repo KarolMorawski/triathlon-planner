@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.13.1] — 2026-05-02
+
+### Fixed
+
+- `season_plan.py`, `season_plan_en.py`, `generate_plan.py`, `generate_plan_en.py`: replaced deprecated `client.save_workout()` with `client.upload_workout()` — garminconnect 0.3.x renamed this method, causing all workout uploads to fail with `AttributeError`
+
+---
+
 ## [1.13.0] — 2026-04-29
 
 ### Changed
