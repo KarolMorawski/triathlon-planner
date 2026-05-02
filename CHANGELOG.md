@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.14.1] — 2026-05-02
+
+### Fixed
+
+- `ms_to_pace()` in all 4 scripts: changed `int(spk % 60)` to `round(spk % 60)` with carry handling — paces like `4:00` or `6:30` were displayed as `3:59` / `6:29` due to floating-point truncation
+
+---
+
 ## [1.14.0] — 2026-05-02
 
 ### Added

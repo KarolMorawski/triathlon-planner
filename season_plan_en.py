@@ -237,7 +237,8 @@ def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
     }
 
 def ms_to_pace(ms):
-    spk = 1000.0/ms; m=int(spk//60); s=int(spk%60)
+    spk = 1000.0/ms; m=int(spk//60); s=round(spk%60)
+    if s == 60: m += 1; s = 0
     return f"{m}:{s:02d}"
 
 def pace_to_ms(s):

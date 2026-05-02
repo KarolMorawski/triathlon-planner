@@ -301,7 +301,8 @@ def ms_to_pace(ms):
     """Convert m/s to pace string MM:SS/km"""
     sec_per_km = 1000.0 / ms
     m = int(sec_per_km // 60)
-    s = int(sec_per_km % 60)
+    s = round(sec_per_km % 60)
+    if s == 60: m += 1; s = 0
     return f"{m}:{s:02d}"
 
 # ─── TARGET TIME / SPLIT CALCULATOR ──────────────────────────────────────────
