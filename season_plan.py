@@ -905,9 +905,16 @@ def main():
         _validate_prefix(prefix)
         prof          = PROFILES[dist]
         full_weeks    = prof["weeks"]
-        gap_weeks     = (rdate - prev_race_date).days // 7 if prev_race_date else None
-        use_bridge    = gap_weeks is not None and gap_weeks <= 5
-        use_truncated = gap_weeks is not None and not use_bridge and gap_weeks < full_weeks
+        today         = date.today()
+        if prev_race_date is not None:
+            gap_weeks  = (rdate - prev_race_date).days // 7
+            first_race = False
+        else:
+            avail      = (rdate - today).days // 7
+            gap_weeks  = avail if avail < full_weeks else None
+            first_race = True
+        use_bridge    = not first_race and gap_weeks is not None and gap_weeks <= 5
+        use_truncated = gap_weeks is not None and not use_bridge
         block_weeks   = gap_weeks if (use_bridge or use_truncated) else full_weeks
         start         = rdate - timedelta(weeks=block_weeks)
 
@@ -930,6 +937,9 @@ def main():
             print(f"    Block: {start} → {race['date']}  ({block_weeks}w bridge — po {prev_race_date})")
             if gap_weeks <= 2:
                 print(f"    ⚠ Tylko {gap_weeks} tydz. po poprzednim starcie — 2. wynik może być 5-10% gorszy")
+        elif use_truncated and first_race:
+            print(f"    Block: {start} → {race['date']}  ({block_weeks}w — za mało czasu, skrócony z {full_weeks})")
+            print(f"    ⚠ Plan skrócony: do startu zostało {block_weeks} tydz. zamiast {full_weeks}")
         else:
             print(f"    Block: {start} → {race['date']}  ({block_weeks} weeks)")
 
