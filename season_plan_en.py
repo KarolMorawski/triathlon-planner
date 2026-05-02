@@ -335,7 +335,7 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
-                        race_bike_pct=None, vol_scale=1.0):
+                        race_bike_pct=None, vol_scale=1.0, override_weeks=None):
     """
     Returns list of (workout_dict, date_str) for one race block.
     Counts back `weeks` from race_date.
@@ -358,7 +358,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
     if ftp <= 0:
         raise ValueError(f"FTP must be > 0 (got {ftp})")
     prof  = PROFILES[distance]
-    weeks = prof["weeks"]
+    weeks = override_weeks if override_weeks is not None else prof["weeks"]
     rp    = race_bike_pct if race_bike_pct is not None else prof["race_bike_pct"]
     if rp > 0.95:
         print(f"⚠ Race bike power {rp:.0%} FTP exceeds sustainable threshold — capping at 95% FTP")
@@ -538,6 +538,159 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [run_wu(1, 500), run_int(2, km_easy * 1000, easy * 0.97, easy * 1.03), run_cd(3, 500)]
             workouts.append((_wkt("run", f"{tag} Easy Run {km_easy}km @{ms_to_pace(easy)}/km",
                 "Easy recovery run", steps, (km_easy + 1) * 1000), D(4)))
+
+    return workouts
+
+
+def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
+                          gap_weeks, race_bike_pct=None, vol_scale=1.0):
+    """
+    Condensed block for a race that closely follows a previous race (gap_weeks 1-5).
+    Based on: TrainingPeaks, Purple Patch (Matt Dixon), Joe Friel.
+
+    Phase mapping by gap:
+      1w: [race]
+      2w: [recovery, race+activation]
+      3w: [recovery, taper, race]
+      4w: [recovery, sharpen, taper, race]
+      5w: [recovery, sharpen, sharpen, taper, race]
+
+    Recovery  (vol=0.45): Z1/Z2 only — swim, easy spin, easy run. No intensity.
+    Sharpening (vol=0.75): Z2 base + race-pace activation (nervous system reset).
+    Taper     (vol=0.60): Same structure as generate_race_block taper.
+    Race: Standard pre-race sessions + activation run Tue (gap<=2, "Day 8" reset).
+    """
+    if ftp <= 0:
+        raise ValueError(f"FTP must be > 0 (got {ftp})")
+    prof = PROFILES[distance]
+    rp   = race_bike_pct if race_bike_pct is not None else prof["race_bike_pct"]
+    if rp > 0.95:
+        rp = 0.95
+
+    z      = lambda lo, hi: (round(ftp * lo), round(ftp * hi))
+    Z1     = z(0.40, 0.55); Z2 = z(0.60, 0.72); Z3 = z(0.76, 0.87)
+    ZR     = z(rp - 0.03, rp + 0.03)
+    easy   = run_pace_ms * 0.85
+    z2_run = run_pace_ms * 0.93
+    race_p = run_pace_ms
+
+    plan_start = race_date - timedelta(weeks=gap_weeks)
+    workouts   = []
+
+    for wk in range(1, gap_weeks + 1):
+        wk_start    = plan_start + timedelta(weeks=wk - 1)
+        is_race     = (wk == gap_weeks)
+        is_taper    = not is_race and gap_weeks >= 3 and (wk == gap_weeks - 1)
+        is_sharpen  = not is_race and not is_taper and wk > 1
+        is_recovery = (wk == 1) and gap_weeks >= 2
+
+        def D(offset, _ws=wk_start): return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
+        tag = f"{prefix}-T{wk:02d}"
+
+        # ── RACE WEEK ──────────────────────────────────────────────────────────
+        if is_race:
+            # Activation run Tue D(1) — "Day 8" nervous system reset (gap<=2 only)
+            if gap_weeks <= 2:
+                steps = [run_wu(1, 300),
+                         run_int(2, 1500, race_p * 0.95, race_p * 1.05),
+                         run_int(3, 1500, race_p * 0.95, race_p * 1.05),
+                         run_cd(4, 300)]
+                workouts.append((_wkt("run", f"{tag} Activation 3.6km @{ms_to_pace(race_p)}/km",
+                    "Nervous system reset — short race-pace strides", steps, 3600), D(1)))
+            # Standard pre-race sessions Fri D(4)
+            steps = [bike_wu(1, 5), bike_int(2, 15, *Z2), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
+                f"FTP={ftp}W | pre-race activation", steps), D(4)))
+            steps = [run_wu(1, 500), run_int(2, 3000, easy * 0.95, easy * 1.05), run_cd(3, 500)]
+            workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
+                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(4)))
+            steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
+            workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
+                "Easy pre-race swim", steps, 700), D(4)))
+            continue
+
+        # ── TAPER WEEK ─────────────────────────────────────────────────────────
+        if is_taper:
+            vol = 0.6 * vol_scale
+            m = max(30, int(45 * vol))
+            steps = [bike_wu(1, 10), bike_int(2, m, *Z3), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Taper Z3 {m}min @{Z3[0]}-{Z3[1]}W",
+                f"FTP={ftp}W | taper activation", steps), D(1)))
+            m2 = max(20, int(30 * vol))
+            steps = [bike_wu(1, 10), bike_int(2, m2, *Z2), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Taper Spin {m2}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | taper spin", steps), D(4)))
+            km = max(5, int(8 * vol))
+            steps = [run_wu(1, 500), run_int(2, km * 1000, z2_run * 0.97, z2_run * 1.03), run_cd(3, 500)]
+            workouts.append((_wkt("run", f"{tag} Taper Run {km}km @{ms_to_pace(z2_run)}/km",
+                "Taper easy run", steps, (km + 1) * 1000), D(2)))
+            km2 = max(4, int(6 * vol))
+            steps = [run_wu(1, 500), run_int(2, km2 * 1000, easy * 0.97, easy * 1.03), run_cd(3, 500)]
+            workouts.append((_wkt("run", f"{tag} Taper Easy {km2}km @{ms_to_pace(easy)}/km",
+                "Taper recovery run", steps, (km2 + 1) * 1000), D(6)))
+            dist_a = max(800, round(int(prof["swim_m"] * 0.4 * vol) / 100) * 100)
+            wu_d = min(300, dist_a // 4); main_d = max(200, dist_a - wu_d - 100)
+            steps = [swim_wu(1, wu_d), swim_int(2, main_d), swim_cd(3, 100)]
+            workouts.append((_wkt("swim", f"{tag} Taper Swim {dist_a}m",
+                f"Taper swim {dist_a}m", steps, dist_a), D(3)))
+            dist_b = max(400, round(int(prof["swim_m"] * 0.25 * vol) / 100) * 100)
+            wu_d = min(200, dist_b // 4); main_d = max(200, dist_b - wu_d - 100)
+            steps = [swim_wu(1, wu_d), swim_int(2, main_d), swim_cd(3, 100)]
+            workouts.append((_wkt("swim", f"{tag} Taper Pre-Race Swim {dist_b}m",
+                f"Taper swim {dist_b}m", steps, dist_b), D(4)))
+            continue
+
+        # ── SHARPENING WEEK ────────────────────────────────────────────────────
+        if is_sharpen:
+            vol = 0.75 * vol_scale
+            # Activation run — race-pace strides (Tue)
+            steps = [run_wu(1, 500),
+                     run_int(2, 3000, race_p * 0.97, race_p * 1.03),
+                     run_int(3, 3000, race_p * 0.97, race_p * 1.03),
+                     run_cd(4, 500)]
+            workouts.append((_wkt("run", f"{tag} Activation 7km @{ms_to_pace(race_p)}/km",
+                "Nervous system reset — race-pace strides", steps, 7000), D(1)))
+            # Swim endurance (Wed)
+            dist_sw = max(1000, round(int(prof["swim_m"] * 0.65 * vol) / 100) * 100)
+            wu_d = min(300, dist_sw // 4); main_d = max(300, dist_sw - wu_d - 100)
+            int_steps, next_o, n_int, each_d = swim_set(2, main_d, 200, 15)
+            workouts.append((_wkt("swim", f"{tag} Swim Endurance {dist_sw}m",
+                f"Endurance {dist_sw}m | {n_int}×{each_d}m + 15s rest",
+                [swim_wu(1, wu_d)] + int_steps + [swim_cd(next_o, 100)], dist_sw), D(2)))
+            # Bike race sim (Thu)
+            m = max(40, int(60 * vol))
+            steps = [bike_wu(1, 15), bike_int(2, m, *ZR), bike_cd(3, 10)]
+            workouts.append((_wkt("bike", f"{tag} Race Sim {m}min @{ZR[0]}-{ZR[1]}W",
+                f"FTP={ftp}W | race pace sharpening", steps), D(3)))
+            # Easy Z2 bike (Sat)
+            m2 = max(45, int(70 * vol))
+            steps = [bike_wu(1, 10), bike_int(2, m2, *Z2), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Z2 Endurance {m2}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | aerobic maintenance", steps), D(5)))
+            # Long run (Sun)
+            km = min(14, max(10, int(prof["run_km"] * 0.75 * vol)))
+            steps = [run_wu(1, 500), run_int(2, km * 1000, z2_run * 0.96, z2_run * 1.04), run_cd(3, 500)]
+            workouts.append((_wkt("run", f"{tag} Long Run {km}km @{ms_to_pace(z2_run)}/km",
+                "Long Z2 run", steps, (km + 1) * 1000), D(6)))
+            continue
+
+        # ── RECOVERY WEEK ──────────────────────────────────────────────────────
+        if is_recovery:
+            vol = 0.45 * vol_scale
+            # Skip D(0) — may coincide with previous race day
+            dist_sw = max(400, round(int(prof["swim_m"] * 0.3 * vol) / 100) * 100)
+            wu_d = min(200, dist_sw // 4); main_d = max(200, dist_sw - wu_d - 100)
+            steps = [swim_wu(1, wu_d), swim_int(2, main_d), swim_cd(3, 100)]
+            workouts.append((_wkt("swim", f"{tag} Recovery Swim {dist_sw}m",
+                "Easy recovery swim Z1/Z2", steps, dist_sw), D(1)))
+            m = max(25, int(40 * vol))
+            steps = [bike_wu(1, 10), bike_int(2, m, *Z1), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Recovery Spin {m}min @{Z1[0]}-{Z1[1]}W",
+                f"FTP={ftp}W | easy recovery Z1", steps), D(3)))
+            km = max(4, int(7 * vol))
+            steps = [run_wu(1, 500), run_int(2, km * 1000, easy * 0.95, easy * 1.05), run_cd(3, 500)]
+            workouts.append((_wkt("run", f"{tag} Recovery Run {km}km @{ms_to_pace(easy)}/km",
+                "Easy recovery run Z1/Z2", steps, (km + 1) * 1000), D(5)))
 
     return workouts
 
@@ -742,16 +895,21 @@ def main():
         print(f"  Vol scale: {vol_scale}× (use strava_suggest.py to recalibrate)")
     print()
 
-    # Generate all blocks
+    # Generate all blocks (sorted by date to detect inter-race gaps)
     total_workouts = 0
-    for race in races:
+    prev_race_date = None
+    for race in sorted(races, key=lambda r: r["date"]):
         rdate  = date.fromisoformat(race["date"])
         dist   = race["distance"]
         prefix = race["name"].upper()
         _validate_prefix(prefix)
-        prof   = PROFILES[dist]
-        wks    = prof["weeks"]
-        start  = rdate - timedelta(weeks=wks)
+        prof          = PROFILES[dist]
+        full_weeks    = prof["weeks"]
+        gap_weeks     = (rdate - prev_race_date).days // 7 if prev_race_date else None
+        use_bridge    = gap_weeks is not None and gap_weeks <= 5
+        use_truncated = gap_weeks is not None and not use_bridge and gap_weeks < full_weeks
+        block_weeks   = gap_weeks if (use_bridge or use_truncated) else full_weeks
+        start         = rdate - timedelta(weeks=block_weeks)
 
         target_time = race.get("target_time")
         if target_time:
@@ -768,7 +926,12 @@ def main():
             race_bike_pct = None
 
         print(f"  ▸ {prefix:12s}  {race['date']}  {prof['label']}")
-        print(f"    Block: {start} → {race['date']}  ({wks} weeks)")
+        if use_bridge:
+            print(f"    Block: {start} → {race['date']}  ({block_weeks}w bridge — after {prev_race_date})")
+            if gap_weeks <= 2:
+                print(f"    ⚠ Only {gap_weeks} week(s) after previous race — 2nd result may be 5-10% slower")
+        else:
+            print(f"    Block: {start} → {race['date']}  ({block_weeks} weeks)")
 
         if target_time:
             s = splits
@@ -780,8 +943,14 @@ def main():
             print(f"      Bike:     {_fmt_hm(s['bike_min'])}  @ {s['bike_kmh']} km/h  →  ~{s['bike_watts']}W ({pct_str}){warn}")
             print(f"      Run:      {_fmt_hm(s['run_min'])}  @ {s['run_pace_str']}/km")
 
-        wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
-                                   race_bike_pct=race_bike_pct, vol_scale=vol_scale)
+        if use_bridge:
+            wkts = generate_bridge_block(rdate, dist, ftp, run_pace_ms, prefix,
+                                          gap_weeks, race_bike_pct=race_bike_pct,
+                                          vol_scale=vol_scale)
+        else:
+            wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
+                                        race_bike_pct=race_bike_pct, vol_scale=vol_scale,
+                                        override_weeks=gap_weeks if use_truncated else None)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
 
@@ -810,6 +979,7 @@ def main():
 
         for wkt, d in wkts:
             all_dates[d].append(prefix)
+        prev_race_date = rdate
 
     # Warn about overlapping dates
     overlaps = {d:ps for d,ps in all_dates.items() if len(ps) > 3}

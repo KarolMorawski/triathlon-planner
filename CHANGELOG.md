@@ -5,6 +5,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.14.0] — 2026-05-02
+
+### Added
+
+#### `season_plan.py` / `season_plan_en.py` — inter-race gap detection and bridge blocks
+
+- Races are now sorted by date before processing; the previous race date is tracked across the loop
+- When a race follows another closely (gap < full plan weeks), a condensed "bridge block" replaces the previously overlapping full-plan block:
+  - **gap ≤ 5 weeks**: `generate_bridge_block()` — research-based structure:
+    - 2w: recovery (Z1/Z2 only) + race week with Day-8 activation run
+    - 3w: recovery + taper + race
+    - 4w: recovery + sharpening (race-pace strides + Z2) + taper + race
+    - 5w: recovery + 2× sharpening + taper + race
+  - **gap 6–11 weeks (70.3)**: `generate_race_block()` with `override_weeks=gap_weeks` — truncated regular block, no overlap
+  - **gap ≥ full plan weeks**: unchanged full block
+- Summary prints bridge label and gap source (`Block: … (2w bridge — po 2026-06-07)`)
+- Warning printed when gap ≤ 2 weeks: "2. wynik może być 5-10% gorszy"
+- Science basis: TrainingPeaks, Purple Patch (Matt Dixon Episode 167), Joe Friel A/B/C classification — 1 easy day per race-hour before any intensity, Day-8 nervous-system reset, never attempt to peak twice in 2 weeks
+
+---
+
 ## [1.13.1] — 2026-05-02
 
 ### Fixed
