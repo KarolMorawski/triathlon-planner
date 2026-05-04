@@ -741,6 +741,10 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [swim_wu(1, wu_d), swim_int(2, main_d), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Recovery Swim {dist_sw}m",
                 "Easy recovery swim Z1/Z2", steps, dist_sw), D(1)))
+            m_z2 = max(30, int(45 * vol))
+            steps = [bike_wu(1, 10), bike_int(2, m_z2, *Z2), bike_cd(3, 5)]
+            workouts.append((_wkt("bike", f"{tag} Z2 Endurance {m_z2}min @{Z2[0]}-{Z2[1]}W",
+                f"FTP={ftp}W | aerobic maintenance", steps), D(2)))
             m = max(25, int(40 * vol))
             steps = [bike_wu(1, 10), bike_int(2, m, *Z1), bike_cd(3, 5)]
             workouts.append((_wkt("bike", f"{tag} Recovery Spin {m}min @{Z1[0]}-{Z1[1]}W",
