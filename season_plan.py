@@ -381,7 +381,8 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
     z2_run = run_pace_ms * 0.93
     race_p = run_pace_ms
 
-    taper_start_wk = weeks - 2   # first taper week (e.g. 14 for 16-week plan)
+    taper_weeks    = 1 if weeks <= 6 else 2  # short plans get 1 taper week to preserve quality sessions
+    taper_start_wk = weeks - taper_weeks
     plan_start = race_date - timedelta(weeks=weeks)
     workouts   = []
 

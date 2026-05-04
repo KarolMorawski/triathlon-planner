@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.15.2] — 2026-05-04
+
+### Fixed
+
+- `generate_race_block()`: taper length is now proportional to plan length. Previously always 2 taper weeks — for a 5-week truncated plan that consumed 40% of the block, leaving only 2 quality weeks and very few intervals/long runs. Now: 1 taper week when plan ≤ 6 weeks, 2 taper weeks otherwise. Effect on 5-week plan: intervals 2→6, long runs 2→3, taper sessions 12→6.
+
+---
+
 ## [1.15.1] — 2026-05-04
 
 ### Fixed
