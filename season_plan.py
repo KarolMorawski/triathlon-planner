@@ -1009,7 +1009,7 @@ def main():
         else:
             wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
                                         race_bike_pct=race_bike_pct, vol_scale=vol_scale,
-                                        override_weeks=block_weeks if first_race else None,
+                                        override_weeks=block_weeks,
                                         long_run_day=long_run_day)
         all_workouts_by_prefix[prefix] = wkts
         race_configs[prefix] = {

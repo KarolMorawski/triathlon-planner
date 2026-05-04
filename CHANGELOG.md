@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.17.2] — 2026-05-04
+
+### Fixed
+
+- `season_plan.py` / `season_plan_en.py`: krytyczny błąd — `override_weeks` nie był przekazywany do `generate_race_block` dla kolejnych wyścigów (nie-pierwszych). Mimo poprawnego wyliczenia `block_weeks = min(full_weeks, gap_weeks)` w v1.17.1, wartość była ignorowana (`override_weeks=block_weeks if first_race else None`). Skutek: Race B generował pełny blok 12-tygodniowy startujący 5 tygodni przed Race A, tworząc podwójne treningi w ostatnim tygodniu czerwca i pierwszym tygodniu lipca. Fix: `override_weeks=block_weeks` zawsze.
+
+---
+
 ## [1.17.1] — 2026-05-04
 
 ### Fixed
