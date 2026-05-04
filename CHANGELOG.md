@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.16.1] — 2026-05-04
+
+### Fixed
+
+- `season_plan.py` / `season_plan_en.py`: `quarter` distance was missing from interactive prompt text ("70.3/full/olympic/sprint"). The profile existed in code but users couldn't see it to type it — and if they typed it anyway it worked, but if they didn't know it existed they'd never use it. Both prompts now show `quarter`.
+
+---
+
 ## [1.16.0] — 2026-05-02
 
 ### Added

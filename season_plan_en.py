@@ -826,7 +826,7 @@ def interactive_config():
 
     races = []
     print("\nEnter your races (press Enter with empty name when done):")
-    print("Distances: 70.3 / full / olympic / sprint\n")
+    print("Distances: 70.3 / full / olympic / quarter / sprint\n")
 
     i = 1
     while True:
@@ -838,7 +838,7 @@ def interactive_config():
                 continue
             break
         date_s = input("  Race date YYYY-MM-DD: ").strip()
-        dist   = input("  Distance (70.3/full/olympic/sprint): ").strip()
+        dist   = input("  Distance (70.3/full/olympic/quarter/sprint): ").strip()
         if dist not in PROFILES:
             print(f"  Unknown distance, using 70.3")
             dist = "70.3"
