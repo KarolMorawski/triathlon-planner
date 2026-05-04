@@ -599,9 +599,9 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
         # ── BRICK RUN (Sat D5, after long ride) — BUILD only ────────────────
         if is_build:
             brick_km = max(3, min(5, int(km_long * 0.30)))
-            workouts.append((_wkt("run", f"{tag} Brick Run {brick_km}km @{ms_to_pace(easy)}/km",
-                "Brick: off-the-bike transition run",
-                [_rwu(1,300), _rint(2,brick_km*1000,easy*0.97,easy*1.03), _rcd(3,300)],
+            workouts.append((_wkt("run", f"{tag} Brick Run {brick_km}km @{ms_to_pace(race_p)}/km",
+                "Brick: off-the-bike transition run at race pace",
+                [_rwu(1,300), _rint(2,brick_km*1000,race_p*0.97,race_p*1.03), _rcd(3,300)],
                 (brick_km+1)*1000), D(5)))
 
         # ── RUN C — easy recovery (Fri D4) — BUILD only ──────────────────────

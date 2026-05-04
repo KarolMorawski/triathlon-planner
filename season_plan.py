@@ -564,9 +564,9 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         # ── BRICK RUN (Sat D5, after long ride) — BUILD only, Sun long run ─
         if is_build and long_run_day != 5:
             brick_km = max(3, min(5, int(km_long * 0.30)))
-            steps = [run_wu(1, 300), run_int(2, brick_km * 1000, easy * 0.97, easy * 1.03), run_cd(3, 300)]
-            workouts.append((_wkt("run", f"{tag} Brick Run {brick_km}km @{ms_to_pace(easy)}/km",
-                "Brick: off-the-bike transition run", steps, (brick_km + 1) * 1000), D(5)))
+            steps = [run_wu(1, 300), run_int(2, brick_km * 1000, race_p * 0.97, race_p * 1.03), run_cd(3, 300)]
+            workouts.append((_wkt("run", f"{tag} Brick Run {brick_km}km @{ms_to_pace(race_p)}/km",
+                "Brick: off-the-bike transition run at race pace", steps, (brick_km + 1) * 1000), D(5)))
 
         # ── RUN C — easy recovery (Fri D4, same day as Swim C) — BUILD only ──
         if is_build:
