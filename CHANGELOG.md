@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.17.1] — 2026-05-04
+
+### Fixed
+
+- `season_plan.py` / `season_plan_en.py`: nakładanie się bloków wyścigów gdy przerwa między startami jest dłuższa niż 5 tygodni ale krótsza niż pełny profil (np. gap=7 tygodni, profil=12 tygodni → blok Race B cofał się 5 tygodni przed Race A). Teraz dla kolejnych wyścigów (nie-bridge): `block_weeks = min(full_weeks, gap_weeks)`. Przykład: Race A 16 lipca, Race B 6 września (gap=7w, profil=12w) → Race B startuje 19 lipca, brak nakładania.
+
+---
+
 ## [1.17.0] — 2026-05-04
 
 ### Fixed
