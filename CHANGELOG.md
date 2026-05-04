@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.19.0] — 2026-05-04
+
+### Added
+
+- Wszystkie 4 skrypty: treningi **brick** (rower + bieg w jednym dniu) w soboty fazy BUILD. Po długiej jeździe (Bike C, D5) dodawany jest krótki bieg "off-the-bike" (`Brick Run`, 3–5 km, tempo Z1/Z2). W `season_plan.py` / `season_plan_en.py` brick pojawia się tylko gdy długi bieg jest w niedzielę (`long_run_day != 5`) — gdy długi bieg jest w sobotę, sobota już jest brickiem. Bricks nie pojawiają się w fazie bazowej ani taperie.
+
+---
+
 ## [1.18.0] — 2026-06-04
 
 ### Fixed
