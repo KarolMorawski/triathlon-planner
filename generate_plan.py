@@ -452,6 +452,19 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim",
                 [_swu(1,200), _sint(2,400), _scd(3,100)], 700), D(4)))
+            lbl = profile["label"]
+            workouts.append((_wkt("swim", f"{prefix} ZAWODY Pływanie {profile['swim_m']}m",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_sint(1, profile["swim_m"])], profile["swim_m"]), D(7)))
+            workouts.append((_wkt("bike", f"{prefix} ZAWODY Rower {profile['bike_km']:.0f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_run_step(1, 3, "interval", dist_m=int(profile["bike_km"]*1000),
+                           target_type=_no_target())]), D(7)))
+            workouts.append((_wkt("run", f"{prefix} ZAWODY Bieg {profile['run_km']:.1f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_run_step(1, 3, "interval", dist_m=int(profile["run_km"]*1000),
+                           target_type=_no_target())],
+                int(profile["run_km"]*1000)), D(7)))
             continue
 
         # ─────────────────────────── TAPER ───────────────────────────────────

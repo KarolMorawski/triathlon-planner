@@ -418,6 +418,18 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim", steps, 700), D(4)))
+            # ── DZIEŃ WYŚCIGU (D7 = race_date) ────────────────────────────────
+            lbl = prof["label"]
+            workouts.append((_wkt("swim", f"{prefix} ZAWODY Pływanie {prof['swim_m']}m",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(7)))
+            workouts.append((_wkt("bike", f"{prefix} ZAWODY Rower {prof['bike_km']:.0f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(7)))
+            workouts.append((_wkt("run", f"{prefix} ZAWODY Bieg {prof['run_km']:.1f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_step(1, 3,"interval",3, int(prof["run_km"]*1000), _no_tgt())],
+                int(prof["run_km"]*1000)), D(7)))
             continue
 
         # ─────────────────────────── TAPER ───────────────────────────────────
@@ -617,6 +629,18 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim", steps, 700), D(4)))
+            # ── DZIEŃ WYŚCIGU (D7 = race_date) ────────────────────────────────
+            lbl = prof["label"]
+            workouts.append((_wkt("swim", f"{prefix} ZAWODY Pływanie {prof['swim_m']}m",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(7)))
+            workouts.append((_wkt("bike", f"{prefix} ZAWODY Rower {prof['bike_km']:.0f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(7)))
+            workouts.append((_wkt("run", f"{prefix} ZAWODY Bieg {prof['run_km']:.1f}km",
+                f"DZIEŃ WYŚCIGU — {lbl}",
+                [_step(1, 3,"interval",3, int(prof["run_km"]*1000), _no_tgt())],
+                int(prof["run_km"]*1000)), D(7)))
             continue
 
         # ── TAPER WEEK ─────────────────────────────────────────────────────────

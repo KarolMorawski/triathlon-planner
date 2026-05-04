@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.16.0] — 2026-05-02
+
+### Added
+
+- Race day workouts (swim/bike/run at full race distance) are now added to the Garmin calendar on the race date for all 4 scripts (`season_plan.py`, `season_plan_en.py`, `generate_plan.py`, `generate_plan_en.py`). Workout names: `PREFIX ZAWODY Pływanie Xm / Rower Xkm / Bieg X.Xkm` (PL) and `PREFIX RACE Swim/Bike/Run` (EN). This fills the empty race weekend slot that previously showed no calendar entries.
+
+---
+
 ## [1.15.2] — 2026-05-04
 
 ### Fixed
