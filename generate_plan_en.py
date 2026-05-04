@@ -378,7 +378,7 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32):
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE",
-                  race_bike_pct=None, vol_scale=1.0, override_weeks=None):
+                  race_bike_pct=None, vol_scale=1.0, override_weeks=None, plan_start=None):
     """
     Generate a list of (workout_dict, date_str) tuples.
 
@@ -399,7 +399,6 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
     if ftp <= 0:
         raise ValueError(f"FTP must be > 0 (got {ftp})")
     profile  = PROFILES[distance]
-    weeks    = override_weeks if override_weeks is not None else profile["weeks"]
     rp       = race_bike_pct if race_bike_pct is not None else profile["race_pace_pct"]
     # Cap race power at sustainable level — sub-1 hour TT power, never above FTP
     if rp > 0.95:
@@ -417,9 +416,18 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
     z2_run = run_pace_ms * 0.93
     race_p = run_pace_ms
 
+    # Determine plan_start aligned to Monday
+    if plan_start is not None:
+        plan_start = plan_start - timedelta(days=plan_start.weekday())
+    else:
+        initial_weeks = override_weeks if override_weeks is not None else profile["weeks"]
+        raw = race_date - timedelta(weeks=initial_weeks)
+        plan_start = raw - timedelta(days=raw.weekday())
+    total_days      = (race_date - plan_start).days
+    weeks           = math.ceil(total_days / 7)
+    race_day_offset = total_days - (weeks - 1) * 7  # e.g. 6 for Sunday, 5 for Saturday
     taper_weeks    = 1 if weeks <= 6 else 2  # short plans get 1 taper week to preserve quality sessions
     taper_start_wk = weeks - taper_weeks
-    plan_start     = race_date - timedelta(weeks=weeks)
     workouts       = []
 
     for wk in range(1, weeks + 1):
@@ -456,16 +464,16 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
             lbl = profile["label"]
             workouts.append((_wkt("swim", f"{prefix} RACE Swim {profile['swim_m']}m",
                 f"RACE DAY — {lbl}",
-                [_sint(1, profile["swim_m"])], profile["swim_m"]), D(7)))
+                [_sint(1, profile["swim_m"])], profile["swim_m"]), D(race_day_offset)))
             workouts.append((_wkt("bike", f"{prefix} RACE Bike {profile['bike_km']:.0f}km",
                 f"RACE DAY — {lbl}",
                 [_run_step(1, 3, "interval", dist_m=int(profile["bike_km"]*1000),
-                           target_type=_no_target())]), D(7)))
+                           target_type=_no_target())]), D(race_day_offset)))
             workouts.append((_wkt("run", f"{prefix} RACE Run {profile['run_km']:.1f}km",
                 f"RACE DAY — {lbl}",
                 [_run_step(1, 3, "interval", dist_m=int(profile["run_km"]*1000),
                            target_type=_no_target())],
-                int(profile["run_km"]*1000)), D(7)))
+                int(profile["run_km"]*1000)), D(race_day_offset)))
             continue
 
         # ─────────────────────────── TAPER ───────────────────────────────────
@@ -761,10 +769,11 @@ def main():
     else:
         run_pace_ms = pace_to_ms(args.run_pace)
 
-    # Compute plan length — always start from today, cap at 24 weeks
+    # Compute plan length — always start from today's Monday, cap at 24 weeks
     today         = date.today()
-    avail_weeks   = max(1, (race_date - today).days // 7)
-    actual_weeks  = min(avail_weeks, 24)
+    today_monday  = today - timedelta(days=today.weekday())
+    avail_days    = (race_date - today_monday).days
+    actual_weeks  = min(math.ceil(avail_days / 7), 24)
     profile_weeks = profile["weeks"]
 
     print(f"\n{'='*60}")
@@ -797,7 +806,8 @@ def main():
         print(f"Volume scale: {args.vol_scale}× (use strava_suggest.py to recalibrate)\n")
     workouts = generate_plan(race_date, distance, ftp, run_pace_ms, args.weight, prefix,
                              race_bike_pct=race_bike_pct, vol_scale=args.vol_scale,
-                             override_weeks=actual_weeks)
+                             plan_start=today_monday,
+                             override_weeks=None)
     print(f"Generated {len(workouts)} workouts\n")
 
     # Show schedule preview

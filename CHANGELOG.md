@@ -5,6 +5,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.18.0] — 2026-06-04
+
+### Fixed
+
+- Wszystkie 4 skrypty: plan zaczynał się w ten sam dzień tygodnia co wyścig (np. niedziela) zamiast od poniedziałku. Jeśli wyścig jest w niedzielę, `plan_start = race_date - N*7` też daje niedzielę — plan startował 6 dni po dziś (poniedziałek). Fix: `plan_start` jest zawsze wyrównywany do najbliższego poniedziałku (`plan_start -= timedelta(days=plan_start.weekday())`). Liczba tygodni rekomputowana z Monday-aligned start przez ceiling division.
+- `D(7)` jako stały offset dla dnia wyścigu zastąpiony dynamicznym `D(race_day_offset)` = `(race_date - wk_start_ostatniego_tygodnia).days`. Dla niedzielnego wyścigu: D(6), dla soboty: D(5). Treningi pre-race D(4) = piątek przed wyścigiem — bez zmian.
+- `season_plan.py`: plan pierwszego wyścigu startuje od poniedziałku aktualnego tygodnia (`today_monday`). Bloki kolejnych wyścigów startują od poniedziałku po poprzednim wyścigu.
+
+---
+
 ## [1.17.3] — 2026-05-04
 
 ### Fixed

@@ -30,6 +30,7 @@ import time
 import json
 import getpass
 import os
+import math
 from datetime import date, timedelta
 from collections import defaultdict
 
@@ -341,7 +342,7 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
 
 def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
                         race_bike_pct=None, vol_scale=1.0, override_weeks=None,
-                        long_run_day=6):
+                        long_run_day=6, plan_start=None):
     """
     Returns list of (workout_dict, date_str) for one race block.
     Counts back `weeks` from race_date.
@@ -364,7 +365,6 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
     if ftp <= 0:
         raise ValueError(f"FTP must be > 0 (got {ftp})")
     prof  = PROFILES[distance]
-    weeks = override_weeks if override_weeks is not None else prof["weeks"]
     rp    = race_bike_pct if race_bike_pct is not None else prof["race_bike_pct"]
     if rp > 0.95:
         print(f"⚠ Race bike power {rp:.0%} FTP exceeds sustainable threshold — capping at 95% FTP")
@@ -381,9 +381,18 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
     z2_run = run_pace_ms * 0.93
     race_p = run_pace_ms
 
+    # Determine plan_start aligned to Monday
+    if plan_start is not None:
+        plan_start = plan_start - timedelta(days=plan_start.weekday())
+    else:
+        initial_weeks = override_weeks if override_weeks is not None else prof["weeks"]
+        raw = race_date - timedelta(weeks=initial_weeks)
+        plan_start = raw - timedelta(days=raw.weekday())
+    total_days      = (race_date - plan_start).days
+    weeks           = math.ceil(total_days / 7)
+    race_day_offset = total_days - (weeks - 1) * 7  # e.g. 6 for Sunday, 5 for Saturday
     taper_weeks    = 1 if weeks <= 6 else 2  # short plans get 1 taper week to preserve quality sessions
     taper_start_wk = weeks - taper_weeks
-    plan_start = race_date - timedelta(weeks=weeks)
     workouts   = []
 
     for wk in range(1, weeks + 1):
@@ -418,18 +427,18 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim", steps, 700), D(4)))
-            # ── RACE DAY (D7 = race_date) ──────────────────────────────────────
+            # ── RACE DAY ─────────────────────────────────────────────────────
             lbl = prof["label"]
             workouts.append((_wkt("swim", f"{prefix} RACE Swim {prof['swim_m']}m",
                 f"RACE DAY — {lbl}",
-                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(7)))
+                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(race_day_offset)))
             workouts.append((_wkt("bike", f"{prefix} RACE Bike {prof['bike_km']:.0f}km",
                 f"RACE DAY — {lbl}",
-                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(7)))
+                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(race_day_offset)))
             workouts.append((_wkt("run", f"{prefix} RACE Run {prof['run_km']:.1f}km",
                 f"RACE DAY — {lbl}",
                 [_step(1, 3,"interval",3, int(prof["run_km"]*1000), _no_tgt())],
-                int(prof["run_km"]*1000)), D(7)))
+                int(prof["run_km"]*1000)), D(race_day_offset)))
             continue
 
         # ─────────────────────────── TAPER ───────────────────────────────────
@@ -564,7 +573,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
 
 def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
                           gap_weeks, race_bike_pct=None, vol_scale=1.0,
-                          long_run_day=6):
+                          long_run_day=6, plan_start=None):
     """
     Condensed block for a race that closely follows a previous race (gap_weeks 1-5).
     Based on: TrainingPeaks, Purple Patch (Matt Dixon), Joe Friel.
@@ -595,15 +604,23 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
     z2_run = run_pace_ms * 0.93
     race_p = run_pace_ms
 
-    plan_start = race_date - timedelta(weeks=gap_weeks)
+    # Monday-align plan_start
+    if plan_start is not None:
+        plan_start = plan_start - timedelta(days=plan_start.weekday())
+    else:
+        raw = race_date - timedelta(weeks=gap_weeks)
+        plan_start = raw - timedelta(days=raw.weekday())
+    total_days      = (race_date - plan_start).days
+    weeks           = math.ceil(total_days / 7)
+    race_day_offset = total_days - (weeks - 1) * 7
     workouts   = []
 
-    for wk in range(1, gap_weeks + 1):
+    for wk in range(1, weeks + 1):
         wk_start    = plan_start + timedelta(weeks=wk - 1)
-        is_race     = (wk == gap_weeks)
-        is_taper    = not is_race and gap_weeks >= 3 and (wk == gap_weeks - 1)
+        is_race     = (wk == weeks)
+        is_taper    = not is_race and gap_weeks >= 3 and (wk == weeks - 1)
         is_sharpen  = not is_race and not is_taper and wk > 1
-        is_recovery = (wk == 1) and gap_weeks >= 2
+        is_recovery = (wk == 1) and weeks >= 2
 
         def D(offset, _ws=wk_start): return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
         def LRD(_ws=wk_start): return (_ws + timedelta(days=(long_run_day - _ws.weekday()) % 7)).strftime("%Y-%m-%d")
@@ -629,18 +646,18 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim", steps, 700), D(4)))
-            # ── RACE DAY (D7 = race_date) ──────────────────────────────────────
+            # ── RACE DAY ──────────────────────────────────────────────────────
             lbl = prof["label"]
             workouts.append((_wkt("swim", f"{prefix} RACE Swim {prof['swim_m']}m",
                 f"RACE DAY — {lbl}",
-                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(7)))
+                [swim_int(1, prof["swim_m"])], prof["swim_m"]), D(race_day_offset)))
             workouts.append((_wkt("bike", f"{prefix} RACE Bike {prof['bike_km']:.0f}km",
                 f"RACE DAY — {lbl}",
-                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(7)))
+                [_step(1, 3,"interval",3, int(prof["bike_km"]*1000), _no_tgt())]), D(race_day_offset)))
             workouts.append((_wkt("run", f"{prefix} RACE Run {prof['run_km']:.1f}km",
                 f"RACE DAY — {lbl}",
                 [_step(1, 3,"interval",3, int(prof["run_km"]*1000), _no_tgt())],
-                int(prof["run_km"]*1000)), D(7)))
+                int(prof["run_km"]*1000)), D(race_day_offset)))
             continue
 
         # ── TAPER WEEK ─────────────────────────────────────────────────────────
@@ -948,21 +965,25 @@ def main():
         prof          = PROFILES[dist]
         full_weeks    = prof["weeks"]
         today         = date.today()
+        today_monday  = today - timedelta(days=today.weekday())
         MAX_WEEKS     = 24   # cap for very long build-up periods
         if prev_race_date is not None:
-            gap_weeks  = (rdate - prev_race_date).days // 7
-            first_race = False
+            gap_weeks      = (rdate - prev_race_date).days // 7  # for bridge check
+            first_race     = False
+            plan_start_mon = prev_race_date + timedelta(days=1)
+            plan_start_mon -= timedelta(days=plan_start_mon.weekday())
         else:
-            avail      = max(1, (rdate - today).days // 7)
-            gap_weeks  = min(avail, MAX_WEEKS)   # plan always starts from today
-            first_race = True
+            first_race     = True
+            plan_start_mon = today_monday
+            if (rdate - plan_start_mon).days > MAX_WEEKS * 7:
+                raw = rdate - timedelta(weeks=MAX_WEEKS)
+                plan_start_mon = raw - timedelta(days=raw.weekday())
+            gap_weeks = 0  # unused for first race
         use_bridge    = not first_race and gap_weeks <= 5
-        # Sequential races: fill entire gap (no uncovered weeks), cap only at MAX_WEEKS
-        block_weeks   = (gap_weeks if (first_race or use_bridge)
-                         else min(gap_weeks, MAX_WEEKS))
+        block_weeks   = math.ceil((rdate - plan_start_mon).days / 7)
         use_truncated = block_weeks < full_weeks
         use_extended  = not first_race and not use_bridge and block_weeks > full_weeks
-        start         = rdate - timedelta(weeks=block_weeks)
+        start         = plan_start_mon
 
         target_time = race.get("target_time")
         if target_time:
@@ -1009,12 +1030,13 @@ def main():
         if use_bridge:
             wkts = generate_bridge_block(rdate, dist, ftp, run_pace_ms, prefix,
                                           gap_weeks, race_bike_pct=race_bike_pct,
-                                          vol_scale=vol_scale, long_run_day=long_run_day)
+                                          vol_scale=vol_scale, long_run_day=long_run_day,
+                                          plan_start=plan_start_mon)
         else:
             wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
                                         race_bike_pct=race_bike_pct, vol_scale=vol_scale,
-                                        override_weeks=block_weeks,
-                                        long_run_day=long_run_day)
+                                        long_run_day=long_run_day,
+                                        plan_start=plan_start_mon)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
 
