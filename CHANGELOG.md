@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.17.3] — 2026-05-04
+
+### Fixed
+
+- `season_plan.py` / `season_plan_en.py`: przerwa bez treningów po wyścigu gdy gap między startami jest dłuższy niż profil treningowy (np. gap=14w, profil=12w → plan startował 12 tygodni przed Race B, zostawiając 2 tygodnie bez treningów po Race A). Fix: `block_weeks = min(gap_weeks, MAX_WEEKS)` zamiast `min(full_weeks, gap_weeks)` — plan zawsze pokrywa cały gap (max 24 tygodnie). Dodano komunikat `Xw — profil: Yw + Zw bazy` dla bloków dłuższych niż profil.
+
+---
+
 ## [1.17.2] — 2026-05-04
 
 ### Fixed

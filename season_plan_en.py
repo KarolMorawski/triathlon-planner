@@ -957,10 +957,11 @@ def main():
             gap_weeks  = min(avail, MAX_WEEKS)   # plan always starts from today
             first_race = True
         use_bridge    = not first_race and gap_weeks <= 5
-        # For sequential races: cap block at gap to prevent overlap with previous race block
+        # Sequential races: fill entire gap (no uncovered weeks), cap only at MAX_WEEKS
         block_weeks   = (gap_weeks if (first_race or use_bridge)
-                         else min(full_weeks, gap_weeks))
+                         else min(gap_weeks, MAX_WEEKS))
         use_truncated = block_weeks < full_weeks
+        use_extended  = not first_race and not use_bridge and block_weeks > full_weeks
         start         = rdate - timedelta(weeks=block_weeks)
 
         target_time = race.get("target_time")
@@ -982,6 +983,9 @@ def main():
             print(f"    Block: {start} → {race['date']}  ({block_weeks}w bridge — after {prev_race_date})")
             if gap_weeks <= 2:
                 print(f"    ⚠ Only {gap_weeks} week(s) after previous race — 2nd result may be 5-10% slower")
+        elif use_extended:
+            extra = block_weeks - full_weeks
+            print(f"    Block: {start} → {race['date']}  ({block_weeks}w — profile: {full_weeks}w + {extra}w base)")
         elif use_truncated:
             reason = "not enough time" if first_race else "gap from previous race"
             print(f"    Block: {start} → {race['date']}  ({block_weeks}w — {reason}, truncated from {full_weeks})")
