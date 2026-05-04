@@ -5,6 +5,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.15.0] — 2026-05-04
+
+### Added
+
+#### `season_plan.py` / `season_plan_en.py` — configurable long run day
+
+- `generate_race_block()` and `generate_bridge_block()` now accept `long_run_day` parameter (5=Saturday, 6=Sunday, default 6)
+- Long run is placed on the correct calendar day-of-week regardless of which day the race falls on (previously `D(6)` was a fixed 6-day offset from week start, not necessarily a Sunday)
+- Interactive mode asks: *"Long run day — 6=Niedziela (domyślnie), 5=Sobota:"*
+- CLI: `--long-run-day 5` or `--long-run-day 6`
+- JSON config: `"long_run_day": 5`
+- Summary printout shows the chosen day
+
+---
+
 ## [1.14.1] — 2026-05-02
 
 ### Fixed

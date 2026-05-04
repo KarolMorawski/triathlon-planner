@@ -338,7 +338,8 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
-                        race_bike_pct=None, vol_scale=1.0, override_weeks=None):
+                        race_bike_pct=None, vol_scale=1.0, override_weeks=None,
+                        long_run_day=6):
     """
     Returns list of (workout_dict, date_str) for one race block.
     Counts back `weeks` from race_date.
@@ -400,6 +401,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         vol *= vol_scale
 
         def D(offset, _ws=wk_start): return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
+        def LRD(_ws=wk_start): return (_ws + timedelta(days=(long_run_day - _ws.weekday()) % 7)).strftime("%Y-%m-%d")
         tag = f"{prefix}-T{wk:02d}"
 
         # ─────────────────────────── RACE WEEK ───────────────────────────────
@@ -528,12 +530,12 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         workouts.append((_wkt("run", f"{tag} Tempo {km}km @{ms_to_pace(race_p)}/km",
             f"Race pace run {ms_to_pace(race_p)}/km", steps, (km + 2) * 1000), D(2)))
 
-        # ── RUN B — long run (Sun D6) ─────────────────────────────────────────
+        # ── RUN B — long run (weekend — long_run_day) ────────────────────────
         max_long = 18 if distance in ("full", "70.3") else 12
         km_long = min(max_long, max(8, int(prof["run_km"] * 0.85 * vol)))
         steps = [run_wu(1, 500), run_int(2, km_long * 1000, z2_run * 0.96, z2_run * 1.04), run_cd(3, 500)]
         workouts.append((_wkt("run", f"{tag} Long Run {km_long}km @{ms_to_pace(z2_run)}/km",
-            "Long Z2 run", steps, (km_long + 1) * 1000), D(6)))
+            "Long Z2 run", steps, (km_long + 1) * 1000), LRD()))
 
         # ── RUN C — easy recovery (Fri D4, same day as Swim C) — BUILD only ──
         if is_build:
@@ -546,7 +548,8 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
 
 
 def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
-                          gap_weeks, race_bike_pct=None, vol_scale=1.0):
+                          gap_weeks, race_bike_pct=None, vol_scale=1.0,
+                          long_run_day=6):
     """
     Condensed block for a race that closely follows a previous race (gap_weeks 1-5).
     Based on: TrainingPeaks, Purple Patch (Matt Dixon), Joe Friel.
@@ -588,6 +591,7 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
         is_recovery = (wk == 1) and gap_weeks >= 2
 
         def D(offset, _ws=wk_start): return (_ws + timedelta(days=offset)).strftime("%Y-%m-%d")
+        def LRD(_ws=wk_start): return (_ws + timedelta(days=(long_run_day - _ws.weekday()) % 7)).strftime("%Y-%m-%d")
         tag = f"{prefix}-T{wk:02d}"
 
         # ── RACE WEEK ──────────────────────────────────────────────────────────
@@ -674,7 +678,7 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
             km = min(14, max(10, int(prof["run_km"] * 0.75 * vol)))
             steps = [run_wu(1, 500), run_int(2, km * 1000, z2_run * 0.96, z2_run * 1.04), run_cd(3, 500)]
             workouts.append((_wkt("run", f"{tag} Long Run {km}km @{ms_to_pace(z2_run)}/km",
-                "Long Z2 run", steps, (km + 1) * 1000), D(6)))
+                "Long Z2 run", steps, (km + 1) * 1000), LRD()))
             continue
 
         # ── RECOVERY WEEK ──────────────────────────────────────────────────────
@@ -790,6 +794,8 @@ def interactive_config():
     weight = float(input("Body weight in kg (e.g. 80): ").strip() or "75")
     cda    = float(input("CdA (m²) for bike power model (press Enter for 0.32): ").strip() or "0.32")
     run_pace = input("Default run pace MM:SS/km — press Enter to set per race via target time: ").strip()
+    lrd_in = input("Long run day — 6=Sunday (default), 5=Saturday: ").strip()
+    long_run_day = 5 if lrd_in in ("5", "sat", "saturday") else 6
 
     races = []
     print("\nEnter your races (press Enter with empty name when done):")
@@ -817,7 +823,8 @@ def interactive_config():
         print(f"  ✓ Added {name} on {date_s} ({PROFILES[dist]['label']})\n")
         i += 1
 
-    cfg = {"ftp": ftp, "weight_kg": weight, "cda": cda, "races": races}
+    cfg = {"ftp": ftp, "weight_kg": weight, "cda": cda, "races": races,
+           "long_run_day": long_run_day}
     if run_pace:
         cfg["run_pace"] = run_pace
     return cfg
@@ -835,6 +842,8 @@ def main():
     p.add_argument("--run-pace",  help="Run pace override MM:SS")
     p.add_argument("--vol-scale", type=float, default=1.0,
                    help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
+    p.add_argument("--long-run-day", type=int, choices=[5, 6], default=None,
+                   help="Day for long run: 5=Saturday, 6=Sunday (default: 6)")
     args = p.parse_args()
 
     # Load config
@@ -867,7 +876,8 @@ def main():
     weight    = cfg.get("weight_kg", 75)
     cda       = cfg.get("cda", 0.32)
     races     = cfg["races"]
-    vol_scale = args.vol_scale if args.vol_scale != 1.0 else cfg.get("vol_scale", 1.0)
+    vol_scale    = args.vol_scale if args.vol_scale != 1.0 else cfg.get("vol_scale", 1.0)
+    long_run_day = args.long_run_day if args.long_run_day is not None else cfg.get("long_run_day", 6)
 
     if ftp <= 0:
         p.error(f"FTP must be > 0 (got {ftp})")
@@ -896,6 +906,8 @@ def main():
     print(f"  Races:     {len(races)}")
     if vol_scale != 1.0:
         print(f"  Vol scale: {vol_scale}× (use strava_suggest.py to recalibrate)")
+    lrd_name = "Saturday" if long_run_day == 5 else "Sunday"
+    print(f"  Long run: {lrd_name}")
     print()
 
     # Generate all blocks (sorted by date to detect inter-race gaps)
@@ -959,11 +971,12 @@ def main():
         if use_bridge:
             wkts = generate_bridge_block(rdate, dist, ftp, run_pace_ms, prefix,
                                           gap_weeks, race_bike_pct=race_bike_pct,
-                                          vol_scale=vol_scale)
+                                          vol_scale=vol_scale, long_run_day=long_run_day)
         else:
             wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
                                         race_bike_pct=race_bike_pct, vol_scale=vol_scale,
-                                        override_weeks=gap_weeks if use_truncated else None)
+                                        override_weeks=gap_weeks if use_truncated else None,
+                                        long_run_day=long_run_day)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)
 
