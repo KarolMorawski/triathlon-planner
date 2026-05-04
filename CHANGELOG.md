@@ -5,6 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.15.1] — 2026-05-04
+
+### Fixed
+
+- `swim_set()` / `_swim_set()` in all 4 scripts: interval distance `each` was computed as `total // n` (integer division), producing non-pool values like 87m or 216m. Now rounded to nearest 25m (`_r25` helper). Example: 4×87m → 4×100m.
+- `wu_d` for Swim C (race-sim): `dist_c // 5` could give non-25m values (e.g. 80m). Fixed with `_r25()`.
+
+---
+
 ## [1.15.0] — 2026-05-04
 
 ### Added

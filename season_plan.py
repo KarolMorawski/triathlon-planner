@@ -205,10 +205,12 @@ def swim_rest(o, secs):
     return _step(o, 5,"rest", 2, secs, _no_tgt(),
                  extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
                         "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
+_r25 = lambda x: max(25, round(x / 25) * 25)  # round to nearest pool length (25m)
+
 def swim_set(start_order, total_dist, interval_dist, rest_secs):
     interval_dist = min(interval_dist, total_dist)
     n = max(1, round(total_dist / interval_dist))
-    each = total_dist // n
+    each = _r25(total_dist / n)  # round to nearest 25m (pool length)
     steps, o = [], start_order
     for i in range(n):
         steps.append(swim_int(o, each)); o += 1
@@ -476,7 +478,7 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         # ── SWIM C — race-sim (Fri D4) — 400m intervals, 10s rest — BUILD only ──
         if is_build:
             dist_c = max(400, round(int(prof["swim_m"] * 0.85 * vol) / 100) * 100)
-            wu_d = min(200, dist_c // 5); main_d = max(200, dist_c - wu_d - 100)
+            wu_d = _r25(min(200, dist_c // 5)); main_d = max(200, dist_c - wu_d - 100)
             int_steps, next_o, n_int, each_d = swim_set(2, main_d, 400, 10)
             workouts.append((_wkt("swim", f"{tag} Swim Race-Sim {dist_c}m",
                 f"Race-pace {dist_c}m | {n_int}×{each_d}m + 10s rest",
