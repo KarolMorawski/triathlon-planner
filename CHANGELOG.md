@@ -5,6 +5,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.17.0] — 2026-05-04
+
+### Fixed
+
+- Plan zawsze startuje od dnia generowania (dzisiaj), a nie od `race_date - profile_weeks`. Wcześniej: wyścig za 18 tygodni + profil 12 tygodni → plan startował za 6 tygodni (luka bez treningów). Teraz: plan startuje dzisiaj i trwa tyle tygodni ile zostało do wyścigu (max 24). Dotyczy wszystkich 4 skryptów.
+- Dodano parametr `override_weeks` do `generate_plan()` w `generate_plan.py` i `generate_plan_en.py`.
+- `season_plan.py` / `season_plan_en.py`: dla pierwszego wyścigu `block_weeks = min(avail, 24)` zamiast `full_weeks` gdy `avail >= full_weeks`.
+- Komunikat w podsumowaniu: jeśli plan jest dłuższy niż profil, wyświetla "start od dzisiaj; profil: Xw".
+
+---
+
 ## [1.16.1] — 2026-05-04
 
 ### Fixed

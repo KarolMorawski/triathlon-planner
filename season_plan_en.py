@@ -948,16 +948,17 @@ def main():
         prof          = PROFILES[dist]
         full_weeks    = prof["weeks"]
         today         = date.today()
+        MAX_WEEKS     = 24   # cap for very long build-up periods
         if prev_race_date is not None:
             gap_weeks  = (rdate - prev_race_date).days // 7
             first_race = False
         else:
-            avail      = (rdate - today).days // 7
-            gap_weeks  = avail if avail < full_weeks else None
+            avail      = max(1, (rdate - today).days // 7)
+            gap_weeks  = min(avail, MAX_WEEKS)   # plan always starts from today
             first_race = True
-        use_bridge    = not first_race and gap_weeks is not None and gap_weeks <= 5
-        use_truncated = gap_weeks is not None and not use_bridge
-        block_weeks   = gap_weeks if (use_bridge or use_truncated) else full_weeks
+        use_bridge    = not first_race and gap_weeks <= 5
+        use_truncated = first_race and gap_weeks < full_weeks
+        block_weeks   = gap_weeks if (first_race or use_bridge) else full_weeks
         start         = rdate - timedelta(weeks=block_weeks)
 
         target_time = race.get("target_time")
@@ -979,9 +980,11 @@ def main():
             print(f"    Block: {start} → {race['date']}  ({block_weeks}w bridge — after {prev_race_date})")
             if gap_weeks <= 2:
                 print(f"    ⚠ Only {gap_weeks} week(s) after previous race — 2nd result may be 5-10% slower")
-        elif use_truncated and first_race:
+        elif use_truncated:
             print(f"    Block: {start} → {race['date']}  ({block_weeks}w — truncated from {full_weeks})")
             print(f"    ⚠ Plan truncated: only {block_weeks} week(s) until race (full plan: {full_weeks} weeks)")
+        elif first_race and block_weeks > full_weeks:
+            print(f"    Block: {start} → {race['date']}  ({block_weeks}w, starts today; profile: {full_weeks}w)")
         else:
             print(f"    Block: {start} → {race['date']}  ({block_weeks} weeks)")
 
@@ -1002,7 +1005,7 @@ def main():
         else:
             wkts = generate_race_block(rdate, dist, ftp, run_pace_ms, prefix,
                                         race_bike_pct=race_bike_pct, vol_scale=vol_scale,
-                                        override_weeks=gap_weeks if use_truncated else None,
+                                        override_weeks=block_weeks if first_race else None,
                                         long_run_day=long_run_day)
         all_workouts_by_prefix[prefix] = wkts
         total_workouts += len(wkts)

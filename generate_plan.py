@@ -378,12 +378,13 @@ def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32):
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
 
 def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE",
-                  race_bike_pct=None, vol_scale=1.0):
+                  race_bike_pct=None, vol_scale=1.0, override_weeks=None):
     """
     Generate a list of (workout_dict, date_str) tuples.
 
     race_bike_pct: override bike race zone center (% FTP); None = use profile default.
                    Derived automatically when --target-time is provided.
+    override_weeks: use instead of profile["weeks"] (e.g. to start plan from today).
 
     Weekly structure by phase:
       Base  (first ~1/3): 2/sport = 6 sessions/week
@@ -398,7 +399,7 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
     if ftp <= 0:
         raise ValueError(f"FTP must be > 0 (got {ftp})")
     profile  = PROFILES[distance]
-    weeks    = profile["weeks"]
+    weeks    = override_weeks if override_weeks is not None else profile["weeks"]
     rp       = race_bike_pct if race_bike_pct is not None else profile["race_pace_pct"]
     # Cap race power at sustainable level — sub-1 hour TT power, never above FTP
     if rp > 0.95:
@@ -760,11 +761,22 @@ def main():
     else:
         run_pace_ms = pace_to_ms(args.run_pace)
 
+    # Compute plan length — always start from today, cap at 24 weeks
+    today         = date.today()
+    avail_weeks   = max(1, (race_date - today).days // 7)
+    actual_weeks  = min(avail_weeks, 24)
+    profile_weeks = profile["weeks"]
+
     print(f"\n{'='*60}")
     print(f"  Race:      {profile['label']}")
     print(f"  Date:      {race_date}")
     print(f"  FTP:       {ftp}W  |  Weight: {args.weight}kg")
-    print(f"  Weeks:     {profile['weeks']}")
+    if actual_weeks < profile_weeks:
+        print(f"  Weeks:     {actual_weeks} (skrócony z {profile_weeks} — za mało czasu)")
+    elif actual_weeks > profile_weeks:
+        print(f"  Weeks:     {actual_weeks} (plan od dzisiaj; profil: {profile_weeks})")
+    else:
+        print(f"  Weeks:     {actual_weeks}")
     print(f"  Prefix:    {prefix}")
 
     if args.target_time:
@@ -784,7 +796,8 @@ def main():
     if args.vol_scale != 1.0:
         print(f"Volume scale: {args.vol_scale}× (use strava_suggest.py to recalibrate)\n")
     workouts = generate_plan(race_date, distance, ftp, run_pace_ms, args.weight, prefix,
-                             race_bike_pct=race_bike_pct, vol_scale=args.vol_scale)
+                             race_bike_pct=race_bike_pct, vol_scale=args.vol_scale,
+                             override_weeks=actual_weeks)
     print(f"Generated {len(workouts)} workouts\n")
 
     # Show schedule preview
