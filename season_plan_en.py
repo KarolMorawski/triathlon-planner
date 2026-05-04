@@ -420,13 +420,13 @@ def generate_race_block(race_date, distance, ftp, run_pace_ms, prefix,
         if is_race:
             steps = [bike_wu(1, 5), bike_int(2, 15, *Z2), bike_cd(3, 5)]
             workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
-                f"FTP={ftp}W | pre-race activation", steps), D(4)))
+                f"FTP={ftp}W | pre-race activation", steps), D(3)))
             steps = [run_wu(1, 500), run_int(2, 3000, easy * 0.95, easy * 1.05), run_cd(3, 500)]
             workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
-                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(4)))
+                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(3)))
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
-                "Easy pre-race swim", steps, 700), D(4)))
+                "Easy pre-race swim", steps, 700), D(3)))
             # ── RACE DAY ─────────────────────────────────────────────────────
             lbl = prof["label"]
             workouts.append((_wkt("swim", f"{prefix} RACE Swim {prof['swim_m']}m",
@@ -643,16 +643,16 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
                          run_cd(4, 300)]
                 workouts.append((_wkt("run", f"{tag} Activation 3.6km @{ms_to_pace(race_p)}/km",
                     "Nervous system reset — short race-pace strides", steps, 3600), D(1)))
-            # Standard pre-race sessions Fri D(4)
+            # Standard pre-race sessions Thu D(3) — Fri free for travel/packing
             steps = [bike_wu(1, 5), bike_int(2, 15, *Z2), bike_cd(3, 5)]
             workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
-                f"FTP={ftp}W | pre-race activation", steps), D(4)))
+                f"FTP={ftp}W | pre-race activation", steps), D(3)))
             steps = [run_wu(1, 500), run_int(2, 3000, easy * 0.95, easy * 1.05), run_cd(3, 500)]
             workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
-                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(4)))
+                f"Easy pre-race | {ms_to_pace(easy)}/km", steps, 4000), D(3)))
             steps = [swim_wu(1, 200), swim_int(2, 400), swim_cd(3, 100)]
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
-                "Easy pre-race swim", steps, 700), D(4)))
+                "Easy pre-race swim", steps, 700), D(3)))
             # ── RACE DAY ──────────────────────────────────────────────────────
             lbl = prof["label"]
             workouts.append((_wkt("swim", f"{prefix} RACE Swim {prof['swim_m']}m",

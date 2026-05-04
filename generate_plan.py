@@ -454,13 +454,13 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
         if is_race:
             workouts.append((_wkt("bike", f"{tag} Pre-Race Check 20min",
                 f"FTP={ftp}W | pre-race activation",
-                [_bwu(1,5), _bint(2,15,*Z2), _bcd(3,5)]), D(4)))
+                [_bwu(1,5), _bint(2,15,*Z2), _bcd(3,5)]), D(3)))
             workouts.append((_wkt("run", f"{tag} Pre-Race Activation 4km",
                 f"Easy pre-race | {ms_to_pace(easy)}/km",
-                [_rwu(1,500), _rint(2,3000,easy*0.95,easy*1.05), _rcd(3,500)], 4000), D(4)))
+                [_rwu(1,500), _rint(2,3000,easy*0.95,easy*1.05), _rcd(3,500)], 4000), D(3)))
             workouts.append((_wkt("swim", f"{tag} Pre-Race Swim 700m",
                 "Easy pre-race swim",
-                [_swu(1,200), _sint(2,400), _scd(3,100)], 700), D(4)))
+                [_swu(1,200), _sint(2,400), _scd(3,100)], 700), D(3)))
             lbl = profile["label"]
             workouts.append((_wkt("swim", f"{prefix} ZAWODY Pływanie {profile['swim_m']}m",
                 f"DZIEŃ WYŚCIGU — {lbl}",
