@@ -5,6 +5,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.21.0] — 2026-05-06
+
+### Fixed
+
+- **KRYTYCZNE**: Wszystkie 4 główne skrypty (`season_plan.py`, `season_plan_en.py`, `generate_plan.py`, `generate_plan_en.py`) wywoływały statyczne `mywhoosh_season.generate_for_distance()` przy generowaniu plików .zwo, co dawało hardcoded plany niespójne z treningami wgrywanymi do Garmin Connect (rotacja `wk%3`, brick run, taper, race_bike_pct były ignorowane). Naprawione: skrypty używają teraz `workouts_to_zwo(workouts, ftp, output_dir, prefix)` która konwertuje DOKŁADNIE te treningi które trafiły do Garmin (zero re-generation, byte-level sync).
+- `update_plan_en.py:336` importował polski `training_load` zamiast `training_load_en`. Funkcje były identyczne pod względem logiki, więc działało, ale łamało zasadę synchronizacji wersji językowych.
+
+### Removed
+
+- `mywhoosh_season.py`: usunięto ~270 linii martwego kodu — `DISTANCE_WORKOUTS`, `RACE_PLAN`, `GENERATORS`, `Zone` dataclass, `ZONES`, wszystkie funkcje `make_*` (z2_endurance/threshold/race_sim/over_under/vo2max/brick/taper/prerace), `_write_workouts`, `generate_for_distance`, `generate`, `free`. CLI uproszczone: usunięto `--race`, `--list`, flaga `--from-plan` jest teraz implicit (wszystkie wywołania CLI generują z planu Garmin).
+
+### BREAKING
+
+- `mywhoosh_season.py` CLI: usunięto `--race {warsaw,gdansk,gdynia,krakow,poznan}` i `--list`. `--race-date`, `--distance`, `--prefix` są teraz wymagane.
+- `mywhoosh_season.generate_for_distance()` i `generate()` usunięte z API. Użyj `workouts_to_zwo(workouts, ftp, output_dir, prefix)` lub `generate_from_season_plan(...)`.
+
+---
+
 ## [1.20.0] — 2026-05-06
 
 ### Added

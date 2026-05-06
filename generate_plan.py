@@ -865,9 +865,9 @@ def main():
     zwo_ans = input("Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie): ").strip().lower()
     if zwo_ans in ("tak", "t", "yes", "y"):
         try:
-            from mywhoosh_season import generate_for_distance
+            from mywhoosh_season import workouts_to_zwo
             out = f"./mywhoosh_{prefix.lower()}"
-            generate_for_distance(prefix, distance, ftp, out)
+            workouts_to_zwo(workouts, ftp, out, prefix=prefix)
         except ImportError:
             print("  Brak pliku mywhoosh_season.py — umieść go w tym samym folderze.")
 

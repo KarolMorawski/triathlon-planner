@@ -1138,13 +1138,18 @@ def main():
     zwo_ans = input("Wygenerować pliki .zwo dla MyWhoosh/Zwift? (tak/nie): ").strip().lower()
     if zwo_ans in ("tak", "t", "yes", "y"):
         try:
-            from mywhoosh_season import generate_for_distance
+            from mywhoosh_season import workouts_to_zwo
             print()
             for race in races:
-                prefix   = race["name"]
-                distance = race["distance"]
-                out      = f"./mywhoosh_{prefix.lower()}"
-                generate_for_distance(prefix, distance, ftp, out)
+                prefix = race["name"]
+                wkts   = all_workouts_by_prefix[prefix]
+                out    = f"./mywhoosh_{prefix.lower()}"
+                print(f"  {prefix}:")
+                workouts_to_zwo(wkts, ftp, out, prefix=prefix, print_footer=False)
+            print(f"\n  Skopiuj do:")
+            print(f"    Mac:     ~/Documents/MyWhoosh/Workouts/")
+            print(f"    Windows: Documents\\MyWhoosh\\Workouts\\")
+            print(f"    Zwift:   ~/Documents/Zwift/Workouts/<TWOJ_ID>/")
         except ImportError:
             print("  Brak pliku mywhoosh_season.py — umieść go w tym samym folderze.")
 

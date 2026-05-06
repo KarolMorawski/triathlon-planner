@@ -1139,13 +1139,18 @@ def main():
     zwo_ans = input("Generate .zwo files for MyWhoosh/Zwift? (yes/no): ").strip().lower()
     if zwo_ans in ("yes", "y"):
         try:
-            from mywhoosh_season import generate_for_distance
+            from mywhoosh_season import workouts_to_zwo
             print()
             for race in races:
-                prefix   = race["name"]
-                distance = race["distance"]
-                out      = f"./mywhoosh_{prefix.lower()}"
-                generate_for_distance(prefix, distance, ftp, out)
+                prefix = race["name"]
+                wkts   = all_workouts_by_prefix[prefix]
+                out    = f"./mywhoosh_{prefix.lower()}"
+                print(f"  {prefix}:")
+                workouts_to_zwo(wkts, ftp, out, prefix=prefix, print_footer=False)
+            print(f"\n  Copy to:")
+            print(f"    Mac:     ~/Documents/MyWhoosh/Workouts/")
+            print(f"    Windows: Documents\\MyWhoosh\\Workouts\\")
+            print(f"    Zwift:   ~/Documents/Zwift/Workouts/<YOUR_ID>/")
         except ImportError:
             print("  mywhoosh_season.py not found — place it in the same folder.")
 

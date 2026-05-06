@@ -331,9 +331,9 @@ def _plan_race_update(prefix, args, today, strava_stats=None):
 
 
 def _predict_tsb(plan_data):
-    """Print TSB prediction for race day. Skipped silently if training_load.py absent."""
+    """Print TSB prediction for race day. Skipped silently if training_load_en.py absent."""
     try:
-        from training_load import estimate_tss, compute_load
+        from training_load_en import estimate_tss, compute_load
     except ImportError:
         return
     daily_tss = {}
