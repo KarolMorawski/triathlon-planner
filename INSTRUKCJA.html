@@ -943,37 +943,58 @@ td code{font-size:11px;}
 <!-- 12. MYWHOOSH / ZWIFT -->
 <div class="sec" id="s12">
   <div class="sec-h">🚲 12. MyWhoosh / Zwift — generowanie plików .zwo</div>
-  <p>Skrypt <code>mywhoosh_season.py</code> generuje ustrukturyzowane pliki treningowe <code>.zwo</code> kompatybilne z MyWhoosh i Zwift. Każdy trening zawiera rozgrzewkę, bloki interwałowe i schłodzenie ze strefami mocy opartymi na Twoim FTP.</p>
+  <p>Skrypt <code>mywhoosh_season.py</code> generuje pliki <code>.zwo</code> kompatybilne z MyWhoosh i Zwift, <strong>identyczne</strong> z treningami rowerowymi wgrywanymi do Garmin Connect. Każdy plik zawiera rozgrzewkę, bloki/interwały i schłodzenie ze strefami mocy opartymi na Twoim FTP. Powtarzające się pary (interwał + odpoczynek) są automatycznie grupowane jako <code>&lt;IntervalsT Repeat=N&gt;</code>.</p>
 
   <div class="alert info">
-    <strong>Nie wymaga logowania do Garmin.</strong>
-    Działa całkowicie offline. Pliki .zwo generowane są na dysku lokalnym i trzeba je ręcznie załadować do MyWhoosh/Zwift.
+    <strong>Najprostsza droga:</strong> uruchom <code>season_plan.py</code> lub <code>generate_plan.py</code> i odpowiedz <code>tak</code> na pytanie „Wygenerować pliki .zwo dla MyWhoosh/Zwift?". Pliki powstają automatycznie z dokładnie tych treningów które trafiają do Garmin — bez ryzyka rozjazdu między urządzeniem na trenażerze a kalendarzem Garmin.
   </div>
 
+  <p>Bezpośrednie wywołanie <code>mywhoosh_season.py</code> przydaje się gdy chcesz <em>regenerować</em> pliki .zwo bez ponownego wgrywania do Garmin (np. po zmianie FTP lub gdy oryginalne pliki zostały usunięte). Wszystkie wymagane parametry znajdziesz w zapisanym planie w <code>~/.triathlon_plans/&lt;PREFIX&gt;.json</code>.</p>
+
   <h3>Szybki start</h3>
-<pre><span class="cm"># Podgląd dostępnych zawodów i dystansów</span>
-<span class="cv">python mywhoosh_season.py --list</span>
+<pre><span class="cm"># Pierwszy wyścig sezonu (race block, pełny profil treningowy)</span>
+<span class="cv">python mywhoosh_season.py \
+    --race-date 2026-06-07 --distance 70.3 \
+    --prefix WAW --ftp 255 --run-pace 5:10 \
+    --plan-start 2026-05-04</span>
 
-<span class="cm"># Wygeneruj dla wszystkich zawodów (domyślnie FTP=255, folder ./mywhoosh_2026)</span>
-<span class="cv">python mywhoosh_season.py --ftp 255</span>
+<span class="cm"># Kolejny wyścig blisko poprzedniego (bridge block — recovery + sharpen + taper)</span>
+<span class="cv">python mywhoosh_season.py \
+    --race-date 2026-07-19 --distance 70.3 \
+    --prefix GDY --ftp 255 --run-pace 5:10 \
+    --bridge-block --plan-start 2026-06-22</span>
 
-<span class="cm"># Wygeneruj tylko dla wybranych zawodów</span>
-<span class="cv">python mywhoosh_season.py --ftp 255 --race poznan gdynia</span>
-
-<span class="cm"># Wygeneruj według dystansu (bez nazwy zawodów)</span>
-<span class="cv">python mywhoosh_season.py --ftp 255 --distance 70.3 --prefix WARSAW</span>
+<span class="cm"># Wyścig z celem czasowym (np. sub-5h dla 70.3 wymaga ~91% FTP na rowerze)</span>
+<span class="cv">python mywhoosh_season.py \
+    --race-date 2026-08-30 --distance 70.3 \
+    --prefix PZN --ftp 255 --run-pace 4:52 \
+    --bridge-block --plan-start 2026-08-03 \
+    --race-bike-pct 0.908</span>
 
 <span class="cm"># Własny folder wyjściowy</span>
-<span class="cv">python mywhoosh_season.py --ftp 255 --output ~/Desktop/moje_treningi</span></pre>
+<span class="cv">python mywhoosh_season.py \
+    --race-date 2026-06-07 --distance 70.3 --prefix WAW \
+    --output ~/Desktop/moje_treningi</span></pre>
 
-  <div class="div-label"><span>Wszystkie dostępne opcje</span></div>
+  <div class="div-label"><span>Parametry wymagane</span></div>
   <div class="cmd-list">
-    <div class="cmd-row"><div class="cmd-code">--ftp 255</div><div class="cmd-desc">FTP w watach. Wszystkie strefy mocy w plikach .zwo są obliczane na podstawie tej wartości. Domyślnie 255.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--output ./folder</div><div class="cmd-desc">Folder wyjściowy dla plików .zwo. Tworzony automatycznie jeśli nie istnieje. Domyślnie <code>./mywhoosh_2026</code>.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--race poznan</div><div class="cmd-desc">Generuj tylko dla wybranych zawodów (po nazwie klucza). Możesz podać kilka: <code>--race poznan gdynia</code>. Domyślnie: <code>all</code> (wszystkie).</div></div>
-    <div class="cmd-row"><div class="cmd-code">--distance 70.3</div><div class="cmd-desc">Generuj plan treningowy dla dystansu zamiast nazwy zawodów. Opcje: <code>sprint</code> / <code>olympic</code> / <code>70.3</code> / <code>full</code>. Wyklucza się z <code>--race</code>.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--prefix WARSAW</div><div class="cmd-desc">Prefix nazw treningów gdy używasz <code>--distance</code>. Domyślnie <code>RACE</code>. Np. <code>WARSAW-T01 Z2 Endurance 60min</code>.</div></div>
-    <div class="cmd-row"><div class="cmd-code">--list</div><div class="cmd-desc">Wyświetl dostępne zawody (klucze dla <code>--race</code>) i dystanse (klucze dla <code>--distance</code>) wraz z liczbą treningów.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--race-date YYYY-MM-DD</div><div class="cmd-desc">Data wyścigu w formacie ISO (np. <code>2026-08-30</code>). Plan kończy się tego dnia.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--distance &lt;dystans&gt;</div><div class="cmd-desc">Dystans wyścigu. Opcje: <code>sprint</code> / <code>quarter</code> / <code>olympic</code> / <code>70.3</code> / <code>full</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--prefix &lt;PREFIX&gt;</div><div class="cmd-desc">Prefix nazw treningów (np. <code>POZNAN</code>, <code>WAW</code>, <code>GDY</code>). Tworzy podfolder <code>./mywhoosh_2026/&lt;prefix&gt;/</code>.</div></div>
+  </div>
+
+  <div class="div-label"><span>Parametry opcjonalne</span></div>
+  <div class="cmd-list">
+    <div class="cmd-row"><div class="cmd-code">--ftp 255</div><div class="cmd-desc">FTP w watach. Wszystkie strefy mocy w .zwo są skalowane do tej wartości. Domyślnie <code>255</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--run-pace 5:20</div><div class="cmd-desc">Tempo biegu w formacie <code>MM:SS</code>/km. Wpływa na cele biegowe (np. tempo race-pace). Domyślnie <code>5:20</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--output &lt;folder&gt;</div><div class="cmd-desc">Folder wyjściowy. Tworzony automatycznie. Domyślnie <code>./mywhoosh_2026</code>. W folderze powstaje podfolder <code>&lt;prefix&gt;/</code>.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--bridge-block</div><div class="cmd-desc">Generuj <em>bridge block</em> (recovery → sharpen → taper → race) zamiast pełnego race blocku. Używaj dla kolejnych wyścigów po pierwszym, gdy gap &le; 5 tygodni.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--plan-start YYYY-MM-DD</div><div class="cmd-desc">Data początku planu. Wyrównana automatycznie do najbliższego poniedziałku. Bez tego — start liczony od profilu dystansu (12 tyg. dla 70.3, 16 tyg. dla full itd.).</div></div>
+    <div class="cmd-row"><div class="cmd-code">--race-bike-pct 0.85</div><div class="cmd-desc">Docelowy % FTP na rowerze w wyścigu (np. <code>0.908</code> dla agresywnego sub-5h 70.3). Wpływa na trening Race Sim. Domyślnie z profilu dystansu (~<code>0.82</code> dla 70.3).</div></div>
+  </div>
+
+  <div class="alert info" style="margin-top:14px;">
+    <strong>Sync z Garmin gwarantowany:</strong> generowane <code>.zwo</code> są <em>byte-level identyczne</em> z treningami rowerowymi wgrywanymi do Garmin przez <code>season_plan.py</code> / <code>generate_plan.py</code>. Jeśli zmienisz FTP, wystarczy uruchomić ponownie z nowym <code>--ftp</code> i przegrać — bez ryzyka rozjazdu.
   </div>
 
   <h3 style="margin-top:20px;">Jak załadować pliki .zwo</h3>
