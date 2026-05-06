@@ -21,8 +21,9 @@ import unittest
 from pathlib import Path
 
 from garminconnect import Garmin, GarminConnectAuthenticationError
+from triathlon_core import TOKEN_FILE as _TOKEN_FILE_STR
 
-TOKEN_FILE = Path.home() / ".garmin_token"
+TOKEN_FILE = Path(_TOKEN_FILE_STR)
 
 
 def _load_client():
