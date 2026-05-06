@@ -5,6 +5,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.22.1] — 2026-05-06
+
+### Documentation
+
+- `README.txt`: zaktualizowano obie wersje (EN + PL) — tygodniowy rozkład fazy BUILD zawiera teraz Sobotę jako dwa treningi (Rower Długi + Bieg Brick); TYDZIEŃ WYŚCIGU poprawiony z piątku na czwartek (~3 dni przed startem); sekcja MYWHOOSH zaktualizowana o wymagane flagi (`--race-date`, `--distance`, `--prefix`) i usunięto nieistniejącą opcję `--list`; dodano opis sesji Brick Run (3–5km w tempie wyścigowym bezpośrednio po Rowerze Długim).
+
+---
+
 ## [1.22.0] — 2026-05-06
 
 ### Added

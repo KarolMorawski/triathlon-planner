@@ -179,8 +179,8 @@ Answer "tak" / "yes" to generate .zwo workout files automatically.
 Files are saved to: ./mywhoosh_{PREFIX}/
 
 You can also run the generator standalone:
-  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
-  python3 mywhoosh_season.py --list      (show all available plans)
+  python3 mywhoosh_season.py --race-date 2026-09-15 --distance 70.3 --prefix WARSAW
+  python3 mywhoosh_season.py --race-date 2026-09-15 --distance 70.3 --prefix WARSAW --ftp 255
 
 Copy generated files to:
   Mac:     ~/Documents/MyWhoosh/Workouts/
@@ -370,7 +370,7 @@ WEEKLY SCHEDULE
     Wed  Run Tempo
     Thu  Swim Endurance + Bike Z2 (double day)
     Fri  Swim Race-Sim + Run Easy (double day)
-    Sat  Bike Long Ride
+    Sat  Bike Long Ride + Brick Run (double day)
     Sun  Run Long
 
   TAPER phase (6 sessions/week, shortened):
@@ -380,8 +380,8 @@ WEEKLY SCHEDULE
     Fri  Swim Pre-Race (short) + Bike Spin (double day)
     Sun  Run Taper Easy (very easy)
 
-  RACE week (3 sessions, all on Friday ~3 days before race):
-    Fri  Bike Pre-Race Check (20min Z2)
+  RACE week (3 sessions, all on Thursday ~3 days before race):
+    Thu  Bike Pre-Race Check (20min Z2)
          Run Pre-Race Activation (4km easy)
          Swim Pre-Race (700m easy)
 
@@ -428,9 +428,10 @@ RUN SESSION TYPES
   Run Long (Sun)    — Z2 pace (93% of race pace), 8–18km
                       max 18km for full/70.3, max 12km for olympic/sprint
   Run Easy (Fri, build only) — easy pace (85% of race pace), 6–9km
+  Brick Run (Sat, build only) — race pace, 3–5km immediately after Long Ride
   Taper Run (Wed)  — Z2 pace, 5–8km, reduced
   Taper Easy (Sun) — easy pace, 4–6km, very reduced
-  Pre-Race (Fri)   — 4km easy (500m warmup + 3km + 500m cooldown)
+  Pre-Race (Thu, race week) — 4km easy (500m warmup + 3km + 500m cooldown)
 
   Run pace zones derived from input race pace:
     Easy   = race pace × 0.85  (slower)
@@ -469,7 +470,7 @@ SWIM SESSION TYPES
 
   Taper Swim (Thu)   — 40% of race distance × vol, min 800m
   Taper Pre-Race (Fri) — 25% of race distance × vol, min 400m
-  Pre-Race Swim (race week Fri) — fixed 700m easy
+  Pre-Race Swim (race week Thu) — fixed 700m easy
 
 
 VOLUME PROGRESSION
@@ -681,8 +682,8 @@ Odpowiedz "tak" aby wygenerować pliki automatycznie.
 Pliki zapisywane do: ./mywhoosh_{PREFIX}/
 
 Można też uruchomić generator osobno:
-  python3 mywhoosh_season.py --ftp 234 --distance 70.3 --prefix WARSAW
-  python3 mywhoosh_season.py --list      (lista dostępnych planów)
+  python3 mywhoosh_season.py --race-date 2026-09-15 --distance 70.3 --prefix WARSAW
+  python3 mywhoosh_season.py --race-date 2026-09-15 --distance 70.3 --prefix WARSAW --ftp 255
 
 Skopiuj pliki do:
   Mac:     ~/Documents/MyWhoosh/Workouts/
@@ -845,7 +846,7 @@ TYGODNIOWY ROZKŁAD TRENINGÓW
     Śr   Bieg Tempo
     Czw  Pływanie Wytrzymałościowe + Rower Z2 (dwa treningi)
     Pt   Pływanie Race-Sim + Bieg Łatwy (dwa treningi)
-    Sob  Rower Długi
+    Sob  Rower Długi + Bieg Brick (dwa treningi)
     Nd   Bieg Długi
 
   Faza TAPERING (6 sesji/tydzień, skrócone):
@@ -855,8 +856,8 @@ TYGODNIOWY ROZKŁAD TRENINGÓW
     Pt   Pływanie Pre-Race (krótkie) + Rower Spin (dwa treningi)
     Nd   Bieg Taper Łatwy (bardzo spokojny)
 
-  Tydzień WYŚCIGU (3 sesje, wszystkie w piątek ~3 dni przed startem):
-    Pt   Rower Pre-Race Check (20min Z2)
+  Tydzień WYŚCIGU (3 sesje, wszystkie w czwartek ~3 dni przed startem):
+    Czw  Rower Pre-Race Check (20min Z2)
          Bieg Aktywacja (4km łatwo)
          Pływanie Pre-Race (700m łatwo)
 
@@ -903,9 +904,10 @@ TYPY SESJI BIEGOWYCH
   Bieg Długi (Nd)    — tempo Z2 (93% tempa wyścigowego), 8–18km
                        max 18km dla full/70.3, max 12km dla olympic/sprint
   Bieg Łatwy (Pt, tylko budowa) — łatwe tempo (85% wyścigowego), 6–9km
+  Bieg Brick (Sob, tylko budowa) — tempo wyścigowe, 3–5km bezpośrednio po Rowerze Długim
   Bieg Taper (Śr)   — tempo Z2, 5–8km, skrócony
   Bieg Taper Łatwy (Nd) — łatwe tempo, 4–6km, mocno skrócony
-  Pre-Race (Pt)      — 4km łatwo (500m rozgrzewka + 3km + 500m schłodzenie)
+  Pre-Race (Czw, tydzień wyścigu) — 4km łatwo (500m rozgrzewka + 3km + 500m schłodzenie)
 
   Strefy tempa biegu na podstawie podanego tempa wyścigowego:
     Łatwe  = tempo wyścigowe × 0.85  (wolniej)
@@ -944,7 +946,7 @@ TYPY SESJI PŁYWACKICH
 
   Pływanie Taper (Czw)    — 40% dystansu wyścigu × vol, min 800m
   Pływanie Pre-Race (Pt)  — 25% dystansu wyścigu × vol, min 400m
-  Pre-Race Swim (piątek tygodnia wyścigowego) — stałe 700m łatwo
+  Pre-Race Swim (czwartek tygodnia wyścigowego) — stałe 700m łatwo
 
 
 PROGRESJA OBJĘTOŚCI
