@@ -24,33 +24,14 @@ Whole-season mode (same parameters applied to every race in the config):
 import argparse
 import json
 import os
-import re
 import sys
 import time
 from datetime import date, timedelta
-
-STATE_DIR = os.path.expanduser("~/.triathlon_plans")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
-
-
-# ─── STATE I/O ────────────────────────────────────────────────────────────────
-
-def load_state(prefix):
-    path = os.path.join(STATE_DIR, f"{prefix}.json")
-    if not os.path.exists(path):
-        sys.exit(
-            f"ERROR: No saved plan for prefix '{prefix}'\n"
-            f"  Expected: {path}\n"
-            f"  Run season_plan_en.py or generate_plan_en.py first to create a plan."
-        )
-    with open(path) as f:
-        return json.load(f)
+from triathlon_core import (
+    STATE_DIR,
+    validate_prefix_en as _validate_prefix,
+    load_state_en as load_state,
+)
 
 
 def save_state(state):

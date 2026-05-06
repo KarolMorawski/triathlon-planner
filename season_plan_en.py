@@ -24,61 +24,22 @@ Config file format (season.json):
 """
 
 import argparse
-import re
 import sys
 import time
 import json
-import getpass
 import os
 import math
 from datetime import date, timedelta
 from collections import defaultdict
-
-# ─── GARMIN LOGIN ────────────────────────────────────────────────────────────
-
-TOKEN_FILE = os.path.expanduser("~/.garmin_token")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"ERROR: Invalid race name '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
-STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
-
-def login():
-    try:
-        from garminconnect import Garmin
-    except ImportError:
-        print("ERROR: garminconnect not installed.")
-        print("Fix: pip install garminconnect")
-        sys.exit(1)
-
-    # Try cached OAuth token first (valid for weeks/months, no SSO hit)
-    if os.path.isfile(TOKEN_FILE):
-        try:
-            client = Garmin()
-            with open(TOKEN_FILE) as f:
-                client.login(tokenstore=f.read())
-            print("✓ Logged in to Garmin Connect (cached token)\n")
-            return client
-        except Exception:
-            print("  Cached token expired or invalid — fresh login required.")
-
-    # Fresh login — saves token for future runs
-    email    = input("Garmin email: ").strip()
-    password = getpass.getpass("Garmin password: ")
-    client   = Garmin(email=email, password=password, return_on_mfa=True)
-    result, state = client.login()
-    if result == "needs_mfa":
-        client.resume_login(state, input("MFA/2FA code: ").strip())
-
-    # Save OAuth token with owner-only permissions (avoids token leak on shared systems)
-    with open(TOKEN_FILE, "w") as f:
-        f.write(client.client.dumps())
-    os.chmod(TOKEN_FILE, 0o600)
-    print(f"✓ Logged in to Garmin Connect (token saved to {TOKEN_FILE})\n")
-    return client
+from triathlon_core import (
+    STATE_DIR, TOKEN_FILE,
+    validate_prefix_en as _validate_prefix,
+    login_en as login,
+    _no_tgt, _pwr_tgt, _pace_tgt, _step,
+    bike_wu, bike_cd, bike_int, bike_rec,
+    run_wu, run_cd, run_int,
+    swim_wu, swim_cd, swim_int, swim_rest, swim_set, _r25,
+)
 
 def _http(client):
     return client.client
@@ -136,88 +97,6 @@ def _sport(key):
             "bike": {"sportTypeId":2,"sportTypeKey":"cycling",  "displayOrder":2},
             "swim": {"sportTypeId":4,"sportTypeKey":"swimming", "displayOrder":4}}[key]
 
-# ─── TARGET TYPES ────────────────────────────────────────────────────────────
-# CONFIRMED via Garmin API inspection:
-#   id=1  no.target     → no intensity target (warmup/cooldown)
-#   id=2  power.zone    → absolute watts (cycling intervals)
-#   id=4  heart.rate.zone → bpm range
-#   id=6  pace.zone     → m/s (running)
-
-def _no_tgt():
-    return {"workoutTargetTypeId":1,"workoutTargetTypeKey":"no.target","displayOrder":1}
-def _pwr_tgt(lo_w, hi_w):
-    return {"workoutTargetTypeId":2,"workoutTargetTypeKey":"power.zone","displayOrder":2}
-def _pace_tgt(lo_ms, hi_ms):
-    return {"workoutTargetTypeId":6,"workoutTargetTypeKey":"pace.zone","displayOrder":6}
-
-# ─── STEP FACTORIES ──────────────────────────────────────────────────────────
-
-def _step(order, type_id, type_key, end_type, end_val, tgt, v1=None, v2=None, extra=None):
-    s = {
-        "type":"ExecutableStepDTO",
-        "stepOrder":order,
-        "stepType":{"stepTypeId":type_id,"stepTypeKey":type_key,"displayOrder":type_id},
-        "childStepId":None,"description":None,
-        "endCondition":{"conditionTypeId":end_type,
-                        "conditionTypeKey":("time" if end_type==2 else "distance"),
-                        "displayOrder":end_type,"displayable":True},
-        "endConditionValue":float(end_val),
-        "targetType":tgt,
-        "targetValueOne":v1,"targetValueTwo":v2,
-        "targetValueUnit":None,"zoneNumber":None,
-        "secondaryTargetType":None,"secondaryTargetValueOne":None,
-        "secondaryTargetValueTwo":None,"secondaryTargetValueUnit":None,
-        "secondaryZoneNumber":None,"endConditionZone":None,
-        "strokeType":None,"equipmentType":None,
-    }
-    if extra:
-        s.update(extra)
-    return s
-
-def bike_wu(o, mins):
-    return _step(o, 1,"warmup",   2, mins*60, _no_tgt())
-def bike_cd(o, mins):
-    return _step(o, 2,"cooldown", 2, mins*60, _no_tgt())
-def bike_int(o, mins, lo_w, hi_w):
-    return _step(o, 3,"interval", 2, mins*60, _pwr_tgt(lo_w,hi_w), float(lo_w), float(hi_w))
-def bike_rec(o, mins, lo_w, hi_w):
-    return _step(o, 4,"recovery", 2, mins*60, _pwr_tgt(lo_w,hi_w), float(lo_w), float(hi_w))
-
-def run_wu(o, dist_m):
-    return _step(o, 1,"warmup",   3, dist_m, _no_tgt())
-def run_cd(o, dist_m):
-    return _step(o, 2,"cooldown", 3, dist_m, _no_tgt())
-def run_int(o, dist_m, lo_ms, hi_ms):
-    return _step(o, 3,"interval", 3, dist_m, _pace_tgt(lo_ms,hi_ms), lo_ms, hi_ms)
-
-def swim_wu(o, dist_m):
-    return _step(o, 1,"warmup",   3, dist_m, _no_tgt(),
-                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
-                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
-def swim_cd(o, dist_m):
-    return _step(o, 2,"cooldown", 3, dist_m, _no_tgt(),
-                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
-                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
-def swim_int(o, dist_m):
-    return _step(o, 3,"interval", 3, dist_m, _no_tgt(),
-                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
-                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
-def swim_rest(o, secs):
-    return _step(o, 5,"rest", 2, secs, _no_tgt(),
-                 extra={"strokeType":{"strokeTypeId":0,"strokeTypeKey":None,"displayOrder":0},
-                        "equipmentType":{"equipmentTypeId":0,"equipmentTypeKey":None,"displayOrder":0}})
-_r25 = lambda x: max(25, round(x / 25) * 25)  # round to nearest pool length (25m)
-
-def swim_set(start_order, total_dist, interval_dist, rest_secs):
-    interval_dist = min(interval_dist, total_dist)
-    n = max(1, round(total_dist / interval_dist))
-    each = _r25(total_dist / n)  # round to nearest 25m (pool length)
-    steps, o = [], start_order
-    for i in range(n):
-        steps.append(swim_int(o, each)); o += 1
-        if i < n - 1:
-            steps.append(swim_rest(o, rest_secs)); o += 1
-    return steps, o, n, each
 
 # ─── WORKOUT BUILDER ─────────────────────────────────────────────────────────
 

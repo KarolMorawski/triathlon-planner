@@ -17,34 +17,16 @@ Usage:
 import argparse
 import json
 import os
-import re
 import sys
 from datetime import date, timedelta
-
-STATE_DIR = os.path.expanduser("~/.triathlon_plans")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
+from triathlon_core import (
+    STATE_DIR,
+    validate_prefix_en as _validate_prefix,
+    load_state_en as load_state,
+)
 
 SPORT_ICON  = {"running": "🏃", "cycling": "🚲", "swimming": "🏊"}
 SPORT_LABEL = {"running": "Run", "cycling": "Bike", "swimming": "Swim"}
-
-
-# ─── STATE ────────────────────────────────────────────────────────────────────
-
-def load_state(prefix):
-    path = os.path.join(STATE_DIR, f"{prefix}.json")
-    if not os.path.exists(path):
-        sys.exit(
-            f"ERROR: No saved plan for '{prefix}'  ({path})\n"
-            f"  Run season_plan_en.py or generate_plan_en.py first."
-        )
-    with open(path) as f:
-        return json.load(f)
 
 
 def list_plans():

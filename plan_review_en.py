@@ -17,20 +17,15 @@ Usage:
 import argparse
 import json
 import os
-import re
 import sys
 import time
 from datetime import date, datetime, timedelta
-
-STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
-TOKEN_FILE = os.path.expanduser("~/.garmin_token")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
+from triathlon_core import (
+    STATE_DIR, TOKEN_FILE,
+    validate_prefix_en as _validate_prefix,
+    load_state_en as load_state,
+    login_en as login,
+)
 
 # Garmin activity type → plan sport type mapping
 GARMIN_SPORT = {
@@ -46,19 +41,6 @@ GARMIN_SPORT = {
     "lap_swimming":        "swimming",
     "open_water_swimming": "swimming",
 }
-
-
-# ─── STATE ────────────────────────────────────────────────────────────────────
-
-def load_state(prefix):
-    path = os.path.join(STATE_DIR, f"{prefix}.json")
-    if not os.path.exists(path):
-        sys.exit(
-            f"ERROR: No saved plan for '{prefix}'  ({path})\n"
-            f"  Run season_plan_en.py or generate_plan_en.py first."
-        )
-    with open(path) as f:
-        return json.load(f)
 
 
 def list_plans():
@@ -80,34 +62,6 @@ def list_plans():
         except Exception:
             pass
 
-
-# ─── GARMIN LOGIN ─────────────────────────────────────────────────────────────
-
-def login():
-    try:
-        from garminconnect import Garmin
-    except ImportError:
-        sys.exit("ERROR: garminconnect not installed.\n  pip install garminconnect")
-    import getpass
-    if os.path.isfile(TOKEN_FILE):
-        try:
-            client = Garmin()
-            with open(TOKEN_FILE) as f:
-                client.login(tokenstore=f.read())
-            print("✓ Logged in to Garmin Connect (cached token)\n")
-            return client
-        except Exception:
-            print("  Cached token expired — fresh login required.")
-    email    = input("Garmin email: ").strip()
-    password = getpass.getpass("Garmin password: ")
-    client   = Garmin(email=email, password=password, return_on_mfa=True)
-    result, state = client.login()
-    if result == "needs_mfa":
-        client.resume_login(state, input("MFA code: ").strip())
-    with open(TOKEN_FILE, "w") as f:
-        f.write(client.client.dumps())
-    os.chmod(TOKEN_FILE, 0o600)
-    return client
 
 
 # ─── GARMIN ACTIVITIES ────────────────────────────────────────────────────────

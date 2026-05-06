@@ -27,17 +27,10 @@ CLI:
 """
 
 import argparse
-import re
 import sys
 from datetime import date as _Date
 from pathlib import Path
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape the output dir or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
+from triathlon_core import validate_prefix_pl as _validate_prefix
 
 # ─── ELEMENTY XML ─────────────────────────────────────────────────────────────
 

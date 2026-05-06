@@ -16,59 +16,22 @@ Supported distances: 70.3 (Half Ironman), full (Ironman), olympic, sprint
 import argparse
 import json
 import os
-import re
 import sys
 import time
 import math
-import getpass
 from datetime import date, timedelta
 from collections import defaultdict
-
-# ─── GARMIN CONNECTION ───────────────────────────────────────────────────────
-
-TOKEN_FILE = os.path.expanduser("~/.garmin_token")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"ERROR: Invalid prefix '{p}'. Allowed: A-Z, 0-9, _, - (must start alphanumeric).")
-STATE_DIR  = os.path.expanduser("~/.triathlon_plans")
-
-def login():
-    try:
-        from garminconnect import Garmin
-    except ImportError:
-        print("ERROR: garminconnect not installed.")
-        print("Run: pip install garminconnect")
-        sys.exit(1)
-
-    # Try cached OAuth token first (valid for weeks/months, no SSO hit)
-    if os.path.isfile(TOKEN_FILE):
-        try:
-            client = Garmin()
-            with open(TOKEN_FILE) as f:
-                client.login(tokenstore=f.read())
-            print("✓ Logged in to Garmin Connect (cached token)\n")
-            return client
-        except Exception:
-            print("  Cached token expired or invalid — fresh login required.")
-
-    # Fresh login — saves token for future runs
-    email    = input("Garmin email: ").strip()
-    password = getpass.getpass("Garmin password: ")
-    client   = Garmin(email=email, password=password, return_on_mfa=True)
-    result, state = client.login()
-    if result == "needs_mfa":
-        client.resume_login(state, input("MFA/2FA code: ").strip())
-
-    # Save OAuth token with owner-only permissions (avoids token leak on shared systems)
-    with open(TOKEN_FILE, "w") as f:
-        f.write(client.client.dumps())
-    os.chmod(TOKEN_FILE, 0o600)
-    print(f"✓ Logged in to Garmin Connect (token saved to {TOKEN_FILE})\n")
-    return client
+from triathlon_core import (
+    STATE_DIR, TOKEN_FILE,
+    validate_prefix_pl as _validate_prefix,
+    login_pl as login,
+    _no_tgt as _no_target, _pwr_tgt as _power_target, _pace_tgt as _pace_target,
+    _step,
+    bike_wu as _bwu, bike_cd as _bcd, bike_int as _bint, bike_rec as _brec,
+    run_wu as _rwu, run_cd as _rcd, run_int as _rint,
+    swim_wu as _swu, swim_cd as _scd, swim_int as _sint, swim_rest as _srest,
+    swim_set as _swim_set, _r25,
+)
 
 def _get_http(client):
     return client.client
@@ -124,153 +87,6 @@ def sport(key):
         "swim": {"sportTypeId": 4, "sportTypeKey": "swimming", "displayOrder": 4},
     }[key]
 
-# ─── STEP BUILDERS ───────────────────────────────────────────────────────────
-
-def _no_target():
-    return {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target", "displayOrder": 1}
-
-def _power_target(lo_w, hi_w):
-    # CONFIRMED: workoutTargetTypeId=2 + power.zone = absolute watts in Garmin API
-    return {"workoutTargetTypeId": 2, "workoutTargetTypeKey": "power.zone", "displayOrder": 2}
-
-def _hr_target(lo_bpm, hi_bpm):
-    return {"workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4}
-
-def _pace_target(lo_ms, hi_ms):
-    # pace in m/s  (Garmin stores as m/s, displays as min/km)
-    return {"workoutTargetTypeId": 6, "workoutTargetTypeKey": "pace.zone", "displayOrder": 6}
-
-def _bike_step(order, type_id, type_key, mins, target_type, v1=None, v2=None):
-    return {
-        "type": "ExecutableStepDTO",
-        "stepOrder": order,
-        "stepType": {"stepTypeId": type_id, "stepTypeKey": type_key, "displayOrder": type_id},
-        "childStepId": None,
-        "description": None,
-        "endCondition": {"conditionTypeId": 2, "conditionTypeKey": "time",
-                         "displayOrder": 2, "displayable": True},
-        "endConditionValue": float(mins * 60),
-        "targetType": target_type,
-        "targetValueOne": v1,
-        "targetValueTwo": v2,
-        "targetValueUnit": None,
-        "zoneNumber": None,
-        "secondaryTargetType": None,
-        "secondaryTargetValueOne": None,
-        "secondaryTargetValueTwo": None,
-        "secondaryTargetValueUnit": None,
-        "secondaryZoneNumber": None,
-        "strokeType": None,
-        "equipmentType": None,
-    }
-
-def _run_step(order, type_id, type_key, mins=None, dist_m=None,
-              target_type=None, v1=None, v2=None):
-    if dist_m:
-        end_cond = {"conditionTypeId": 3, "conditionTypeKey": "distance",
-                    "displayOrder": 3, "displayable": True}
-        end_val = float(dist_m)
-    else:
-        end_cond = {"conditionTypeId": 2, "conditionTypeKey": "time",
-                    "displayOrder": 2, "displayable": True}
-        end_val = float(mins * 60)
-    return {
-        "type": "ExecutableStepDTO",
-        "stepOrder": order,
-        "stepType": {"stepTypeId": type_id, "stepTypeKey": type_key, "displayOrder": type_id},
-        "childStepId": None,
-        "description": None,
-        "endCondition": end_cond,
-        "endConditionValue": end_val,
-        "targetType": target_type or _no_target(),
-        "targetValueOne": v1,
-        "targetValueTwo": v2,
-        "targetValueUnit": None,
-        "zoneNumber": None,
-        "secondaryTargetType": None,
-        "secondaryTargetValueOne": None,
-        "secondaryTargetValueTwo": None,
-        "secondaryTargetValueUnit": None,
-        "secondaryZoneNumber": None,
-        "strokeType": None,
-        "equipmentType": None,
-    }
-
-def _swim_step(order, type_id, type_key, dist_m, target_type=None, v1=None, v2=None):
-    return {
-        "type": "ExecutableStepDTO",
-        "stepOrder": order,
-        "stepType": {"stepTypeId": type_id, "stepTypeKey": type_key, "displayOrder": type_id},
-        "childStepId": None,
-        "description": None,
-        "endCondition": {"conditionTypeId": 3, "conditionTypeKey": "distance",
-                         "displayOrder": 3, "displayable": True},
-        "endConditionValue": float(dist_m),
-        "targetType": target_type or _no_target(),
-        "targetValueOne": v1,
-        "targetValueTwo": v2,
-        "targetValueUnit": None,
-        "zoneNumber": None,
-        "secondaryTargetType": None,
-        "secondaryTargetValueOne": None,
-        "secondaryTargetValueTwo": None,
-        "secondaryTargetValueUnit": None,
-        "secondaryZoneNumber": None,
-        "strokeType": {"strokeTypeId": 0, "strokeTypeKey": None, "displayOrder": 0},
-        "equipmentType": {"equipmentTypeId": 0, "equipmentTypeKey": None, "displayOrder": 0},
-    }
-
-# ─── STEP CONVENIENCE WRAPPERS ───────────────────────────────────────────────
-
-def _bwu(o, mins):   return _bike_step(o, 1, "warmup",   mins, _no_target())
-def _bcd(o, mins):   return _bike_step(o, 2, "cooldown", mins, _no_target())
-def _bint(o, mins, lo, hi): return _bike_step(o, 3, "interval", mins, _power_target(lo, hi), float(lo), float(hi))
-def _brec(o, mins, lo, hi): return _bike_step(o, 4, "recovery", mins, _power_target(lo, hi), float(lo), float(hi))
-
-def _rwu(o, dist_m): return _run_step(o, 1, "warmup",   dist_m=dist_m)
-def _rcd(o, dist_m): return _run_step(o, 2, "cooldown", dist_m=dist_m)
-def _rint(o, dist_m, lo, hi):
-    return _run_step(o, 3, "interval", dist_m=dist_m,
-                    target_type=_pace_target(lo, hi), v1=lo, v2=hi)
-
-def _swu(o, dist_m): return _swim_step(o, 1, "warmup",   dist_m)
-def _scd(o, dist_m): return _swim_step(o, 2, "cooldown", dist_m)
-def _sint(o, dist_m): return _swim_step(o, 3, "interval", dist_m)
-
-def _srest(o, secs):
-    return {
-        "type": "ExecutableStepDTO",
-        "stepOrder": o,
-        "stepType": {"stepTypeId": 5, "stepTypeKey": "rest", "displayOrder": 5},
-        "childStepId": None,
-        "description": None,
-        "endCondition": {"conditionTypeId": 2, "conditionTypeKey": "time",
-                         "displayOrder": 2, "displayable": True},
-        "endConditionValue": float(secs),
-        "targetType": _no_target(),
-        "targetValueOne": None, "targetValueTwo": None, "targetValueUnit": None,
-        "zoneNumber": None,
-        "secondaryTargetType": None, "secondaryTargetValueOne": None,
-        "secondaryTargetValueTwo": None, "secondaryTargetValueUnit": None,
-        "secondaryZoneNumber": None,
-        "strokeType": {"strokeTypeId": 0, "strokeTypeKey": None, "displayOrder": 0},
-        "equipmentType": {"equipmentTypeId": 0, "equipmentTypeKey": None, "displayOrder": 0},
-    }
-
-_r25 = lambda x: max(25, round(x / 25) * 25)  # round to nearest pool length (25m)
-
-def _swim_set(start_order, total_dist, interval_dist, rest_secs):
-    """Generate alternating interval+rest steps for the main swim set.
-    Returns (steps_list, next_free_order, n_intervals, each_dist)."""
-    interval_dist = min(interval_dist, total_dist)
-    n = max(1, round(total_dist / interval_dist))
-    each = _r25(total_dist / n)  # round to nearest 25m (pool length)
-    steps, o = [], start_order
-    for i in range(n):
-        steps.append(_sint(o, each)); o += 1
-        if i < n - 1:
-            steps.append(_srest(o, rest_secs)); o += 1
-    return steps, o, n, each
 
 def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
     sp = sport(sport_key)
@@ -467,12 +283,10 @@ def generate_plan(race_date, distance, ftp, run_pace_ms, weight_kg, prefix="RACE
                 [_sint(1, profile["swim_m"])], profile["swim_m"]), D(race_day_offset)))
             workouts.append((_wkt("bike", f"{prefix} ZAWODY Rower {profile['bike_km']:.0f}km",
                 f"DZIEŃ WYŚCIGU — {lbl}",
-                [_run_step(1, 3, "interval", dist_m=int(profile["bike_km"]*1000),
-                           target_type=_no_target())]), D(race_day_offset)))
+                [_step(1, 3, "interval", 3, int(profile["bike_km"]*1000), _no_target())]), D(race_day_offset)))
             workouts.append((_wkt("run", f"{prefix} ZAWODY Bieg {profile['run_km']:.1f}km",
                 f"DZIEŃ WYŚCIGU — {lbl}",
-                [_run_step(1, 3, "interval", dist_m=int(profile["run_km"]*1000),
-                           target_type=_no_target())],
+                [_step(1, 3, "interval", 3, int(profile["run_km"]*1000), _no_target())],
                 int(profile["run_km"]*1000)), D(race_day_offset)))
             continue
 

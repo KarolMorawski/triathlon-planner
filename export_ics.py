@@ -17,37 +17,19 @@ Użycie:
 import argparse
 import json
 import os
-import re
 import sys
 from datetime import date, timedelta
-
-STATE_DIR = os.path.expanduser("~/.triathlon_plans")
-
-_PREFIX_RE = re.compile(r"^[A-Z0-9][A-Z0-9_-]*$")
-
-def _validate_prefix(p):
-    """Reject prefixes that could escape STATE_DIR or contain unsafe characters."""
-    if not _PREFIX_RE.match(p):
-        sys.exit(f"BŁĄD: Niepoprawny prefix '{p}'. Dozwolone: A-Z, 0-9, _, - (musi zaczynać się od znaku alfanumerycznego).")
+from triathlon_core import (
+    STATE_DIR,
+    validate_prefix_pl as _validate_prefix,
+    load_state_pl as load_state,
+)
 
 SPORT_ICON = {"running": "🏃", "cycling": "🚲", "swimming": "🏊"}
 SPORT_PL   = {"running": "Bieg", "cycling": "Rower", "swimming": "Pływanie"}
 
 # Szacowany czas trwania sesji [minuty] — do ustawienia DTEND
 SPORT_DUR  = {"running": 75, "cycling": 90, "swimming": 60}
-
-
-# ─── STAN ─────────────────────────────────────────────────────────────────────
-
-def load_state(prefix):
-    path = os.path.join(STATE_DIR, f"{prefix}.json")
-    if not os.path.exists(path):
-        sys.exit(
-            f"BŁĄD: Brak pliku stanu dla '{prefix}'  ({path})\n"
-            f"  Uruchom najpierw season_plan.py lub generate_plan.py."
-        )
-    with open(path) as f:
-        return json.load(f)
 
 
 def list_plans():

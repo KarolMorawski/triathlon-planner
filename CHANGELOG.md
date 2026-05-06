@@ -5,6 +5,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.22.0] — 2026-05-06
+
+### Added
+
+- `triathlon_core.py`: nowy moduł ze współdzielonymi funkcjami wszystkich skryptów. Zawiera: stałe (`STATE_DIR`, `TOKEN_FILE`), walidację prefiksów (`validate_prefix_pl/en`), wczytywanie stanu (`load_state_pl/en`), logowanie Garmin (`login`, `login_pl`, `login_en` z konfigurowalnymi komunikatami), fabryki kroków treningów (`_step`, `bike_wu/cd/int/rec`, `run_wu/cd/int`, `swim_wu/cd/int/rest`, `swim_set`, `_r25`) i aliasy dla kompatybilności z `generate_plan.py`.
+
+### Refactored
+
+- Wszystkie 13 skryptów (`season_plan.py/en`, `generate_plan.py/en`, `plan_review.py/en`, `update_plan.py/en`, `training_load.py/en`, `export_ics.py/en`, `mywhoosh_season.py`) importują teraz `STATE_DIR`, `TOKEN_FILE`, `_validate_prefix`, `load_state`, `login` i fabryki kroków z `triathlon_core.py` zamiast definiować je lokalnie. Usunięto ~400 duplikatów linii kodu.
+- Wyeliminowano rozbieżności: polskie skrypty (`season_plan.py`, `generate_plan.py`) używały angielskich komunikatów błędów walidacji i logowania — ujednolicono do polskich.
+- Fabryki kroków w `generate_plan.py/en` (osobne `_bike_step`/`_run_step`/`_swim_step`) zastąpione zunifikowaną `_step()` z `triathlon_core.py`; zachowano stare nazwy wrapperów jako aliasy (`_bwu`, `_bcd`, `_bint` itp.) bez zmian w call sites.
+
+---
+
 ## [1.21.0] — 2026-05-06
 
 ### Fixed
