@@ -5,6 +5,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.20.0] — 2026-05-06
+
+### Added
+
+- `mywhoosh_season.py`: nowy tryb `--from-plan` generuje pliki `.zwo` bezpośrednio z `generate_race_block()` — identyczne treningi rowerowe co w planie Garmin Connect, bez osobno utrzymywanego planu. Algorytm konwertuje każdy krok Garmin (warmup/cooldown/interval/recovery) na odpowiedni blok `.zwo` (`<Warmup>`, `<Cooldown>`, `<SteadyState>`, `<IntervalsT>`). Kolejne identyczne pary interval+recovery są grupowane w `<IntervalsT Repeat=N>`.
+- Przykład: `python3 mywhoosh_season.py --from-plan --race-date 2026-08-30 --distance 70.3 --ftp 255 --run-pace 5:20 --prefix POZNAN`
+
+---
+
 ## [1.19.0] — 2026-05-04
 
 ### Added

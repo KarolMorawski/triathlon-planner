@@ -15,11 +15,16 @@ Usage:
   python3 mywhoosh_season.py --ftp 255 --output ./moje_treningi
   python3 mywhoosh_season.py --race poznan --ftp 260
   python3 mywhoosh_season.py --list
+
+  # Generowanie z planu (sync z Garmin — identyczne treningi):
+  python3 mywhoosh_season.py --from-plan --race-date 2026-08-30 --distance 70.3 \\
+      --ftp 255 --run-pace 5:20 --prefix POZNAN --output ./mywhoosh_poznan
 """
 
 import argparse
 import re
 import sys
+from datetime import date as _Date
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -261,6 +266,130 @@ def make_prerace(prefix: str, week: int, ftp: int) -> tuple:
     ]
     return name, zwo(name, desc, blocks)
 
+# ─── KONWERSJA Z PLANU GARMIN → .ZWO ─────────────────────────────────────────
+
+def _step_power(step: dict, ftp: int) -> float:
+    """Return average power as fraction of FTP from a Garmin workout step."""
+    v1 = step.get("targetValueOne")
+    v2 = step.get("targetValueTwo")
+    if v1 is not None and v2 is not None:
+        return (v1 + v2) / 2 / ftp
+    if v1 is not None:
+        return v1 / ftp
+    return 0.65
+
+
+def workout_to_zwo(wkt: dict, ftp: int) -> str:
+    """
+    Convert a Garmin bike workout dict (from generate_race_block) to .zwo XML.
+    Consecutive (interval, recovery) pairs with equal duration/power are grouped
+    into <IntervalsT> blocks; all others become <SteadyState>.
+    """
+    name = wkt["workoutName"]
+    desc = wkt.get("description", name)
+    steps = wkt["workoutSegments"][0]["workoutSteps"]
+    blocks = []
+    i = 0
+
+    while i < len(steps):
+        step = steps[i]
+        key = step["stepType"]["stepTypeKey"]
+        dur_s = int(step["endConditionValue"])
+
+        if key == "warmup":
+            blocks.append(warmup(dur_s))
+            i += 1
+            continue
+        if key == "cooldown":
+            blocks.append(cooldown(dur_s))
+            i += 1
+            continue
+
+        if key == "interval":
+            on_s = dur_s
+            on_p = _step_power(step, ftp)
+
+            # Try to group repeating (interval + recovery) pairs
+            j = i + 1
+            off_s = off_p = None
+            if j < len(steps) and steps[j]["stepType"]["stepTypeKey"] == "recovery":
+                off_s = int(steps[j]["endConditionValue"])
+                off_p = _step_power(steps[j], ftp)
+                j += 1
+
+            if off_s is not None:
+                repeat = 1
+                while (j < len(steps) and
+                       steps[j]["stepType"]["stepTypeKey"] == "interval" and
+                       int(steps[j]["endConditionValue"]) == on_s and
+                       abs(_step_power(steps[j], ftp) - on_p) < 0.01 and
+                       j + 1 < len(steps) and
+                       steps[j + 1]["stepType"]["stepTypeKey"] == "recovery" and
+                       int(steps[j + 1]["endConditionValue"]) == off_s):
+                    repeat += 1
+                    j += 2
+
+                if repeat > 1:
+                    blocks.append(intervals(repeat, on_s, off_s, on_p, off_p,
+                                            on_msg=f"MOCNO! @{round(on_p * ftp)}W",
+                                            off_msg=f"Odpoczynek @{round(off_p * ftp)}W"))
+                    i = j
+                    continue
+                # Not repeating — emit first pair as SteadyState
+                blocks.append(steady(on_s, on_p,
+                    msgs=[(0, f"{round(on_p * ftp)}W — {on_p:.0%} FTP")]))
+                blocks.append(steady(off_s, off_p,
+                    msgs=[(0, f"Odpoczynek @{round(off_p * ftp)}W")]))
+                i = i + 2
+            else:
+                blocks.append(steady(on_s, on_p,
+                    msgs=[(0, f"{round(on_p * ftp)}W — {on_p:.0%} FTP")]))
+                i += 1
+            continue
+
+        if key == "recovery":
+            p = _step_power(step, ftp)
+            blocks.append(steady(dur_s, p, msgs=[(0, f"Odpoczynek @{round(p * ftp)}W")]))
+            i += 1
+            continue
+
+        i += 1  # skip unknown step types
+
+    return zwo(name, desc, blocks)
+
+
+def generate_from_season_plan(race_date: _Date, distance: str, ftp: int,
+                               run_pace_ms: float, prefix: str,
+                               output_dir: str = "./mywhoosh_from_plan",
+                               **kwargs) -> int:
+    """
+    Generate .zwo files for all bike workouts from generate_race_block().
+    Output is always in sync with the Garmin plan — no separate plan to maintain.
+    """
+    from season_plan import generate_race_block
+    workouts = generate_race_block(race_date, distance, ftp, run_pace_ms, prefix, **kwargs)
+    bike = [(w, d) for w, d in workouts if w["sportType"]["sportTypeKey"] == "cycling"]
+
+    out_dir = Path(output_dir) / prefix.lower()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    count = 0
+    for wkt, d in sorted(bike, key=lambda x: x[1]):
+        content = workout_to_zwo(wkt, ftp)
+        safe = wkt["workoutName"].replace("/", "-").replace(" ", "_")
+        path = out_dir / f"{d}_{safe}.zwo"
+        path.write_text(content, encoding="utf-8")
+        print(f"    ✓ {d}  {wkt['workoutName']}")
+        count += 1
+
+    print(f"  Wygenerowano: {count} plików .zwo w {out_dir.resolve()}")
+    print(f"  Skopiuj do:")
+    print(f"    Mac:     ~/Documents/MyWhoosh/Workouts/")
+    print(f"    Windows: Documents\\MyWhoosh\\Workouts\\")
+    print(f"    Zwift:   ~/Documents/Zwift/Workouts/<TWOJ_ID>/")
+    return count
+
+
 # ─── PLANY WEDŁUG DYSTANSU ────────────────────────────────────────────────────
 
 # Plany dla generate_for_distance() — skalują się z dystansem
@@ -474,20 +603,30 @@ def generate(races: list, ftp: int, output_dir: str):
 
 def main():
     p = argparse.ArgumentParser(description="Generator .zwo dla MyWhoosh/Zwift")
-    p.add_argument("--ftp",      type=int, default=255,
+    p.add_argument("--ftp",       type=int, default=255,
                    help="FTP w watach (domyślnie 255)")
-    p.add_argument("--output",   default="./mywhoosh_2026",
+    p.add_argument("--output",    default="./mywhoosh_2026",
                    help="Folder wyjściowy (domyślnie ./mywhoosh_2026)")
-    p.add_argument("--race",     nargs="+",
+    p.add_argument("--race",      nargs="+",
                    choices=list(RACE_PLAN.keys()) + ["all"],
                    default=["all"],
                    help="Które zawody wygenerować (po nazwie)")
-    p.add_argument("--distance", choices=list(DISTANCE_WORKOUTS.keys()),
-                   help="Generuj plan według dystansu zamiast nazwy zawodów")
-    p.add_argument("--prefix",   default="RACE",
-                   help="Prefix nazw treningów gdy używasz --distance (domyślnie RACE)")
-    p.add_argument("--list",     action="store_true",
+    p.add_argument("--distance",
+                   choices=list(DISTANCE_WORKOUTS.keys()) + ["quarter"],
+                   help="Generuj plan według dystansu")
+    p.add_argument("--prefix",    default="RACE",
+                   help="Prefix nazw treningów (domyślnie RACE)")
+    p.add_argument("--list",      action="store_true",
                    help="Wyświetl dostępne zawody i dystanse")
+
+    # --from-plan: generuj z season_plan.py — identyczne z planem Garmin
+    p.add_argument("--from-plan", action="store_true",
+                   help="Generuj .zwo bezpośrednio z season_plan.py (sync z Garmin)")
+    p.add_argument("--race-date", type=str,
+                   help="Data wyścigu YYYY-MM-DD (wymagane z --from-plan)")
+    p.add_argument("--run-pace",  type=str, default="5:20",
+                   help="Tempo biegu MM:SS/km (domyślnie 5:20, używane z --from-plan)")
+
     args = p.parse_args()
 
     if args.ftp <= 0:
@@ -500,6 +639,11 @@ def main():
         print("\nDostępne dystanse (--distance):")
         for key, wkts in DISTANCE_WORKOUTS.items():
             print(f"  {key:10s} — {len(wkts)} treningów")
+        print("\nTryb sync z Garmin (--from-plan):")
+        print("  Generuje identyczne .zwo jak treningi rowerowe wgrywane do Garmin Connect.")
+        print("  Wymaga: --race-date, --distance, --prefix (opcjonalnie --run-pace)")
+        print("  Przykład: --from-plan --race-date 2026-08-30 --distance 70.3 "
+              "--ftp 255 --prefix POZNAN")
         return
 
     print(f"\n{'='*50}")
@@ -507,7 +651,30 @@ def main():
     print(f"  FTP: {args.ftp}W")
     print(f"{'='*50}")
 
-    if args.distance:
+    if args.from_plan:
+        if not args.race_date:
+            p.error("--from-plan wymaga --race-date YYYY-MM-DD")
+        if not args.distance:
+            p.error("--from-plan wymaga --distance")
+        try:
+            race_date = _Date.fromisoformat(args.race_date)
+        except ValueError:
+            p.error(f"Niepoprawna data: {args.race_date!r} — użyj formatu YYYY-MM-DD")
+        try:
+            from season_plan import pace_to_ms
+            run_pace_ms = pace_to_ms(args.run_pace)
+        except (ImportError, Exception) as e:
+            p.error(f"Nie można załadować season_plan.py: {e}")
+        prefix = args.prefix.upper()
+        _validate_prefix(prefix)
+        print(f"  Tryb: sync z planem Garmin")
+        print(f"  Wyścig: {race_date}  Dystans: {args.distance}  Prefix: {prefix}")
+        print(f"  Tempo biegu: {args.run_pace}/km  FTP: {args.ftp}W")
+        generate_from_season_plan(race_date, args.distance, args.ftp, run_pace_ms,
+                                  prefix, args.output)
+    elif args.distance:
+        if args.distance not in DISTANCE_WORKOUTS:
+            p.error(f"Tryb --distance nie obsługuje '{args.distance}' bez --from-plan")
         prefix = args.prefix.upper()
         _validate_prefix(prefix)
         generate_for_distance(prefix, args.distance, args.ftp, args.output)
