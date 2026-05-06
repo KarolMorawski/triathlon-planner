@@ -361,13 +361,25 @@ def workout_to_zwo(wkt: dict, ftp: int) -> str:
 def generate_from_season_plan(race_date: _Date, distance: str, ftp: int,
                                run_pace_ms: float, prefix: str,
                                output_dir: str = "./mywhoosh_from_plan",
+                               bridge_block: bool = False,
                                **kwargs) -> int:
     """
-    Generate .zwo files for all bike workouts from generate_race_block().
-    Output is always in sync with the Garmin plan — no separate plan to maintain.
+    Generate .zwo files for all bike workouts from generate_race_block()
+    or generate_bridge_block(). Always in sync with the Garmin plan.
+    Pass bridge_block=True + plan_start + gap_weeks for bridge races.
     """
-    from season_plan import generate_race_block
-    workouts = generate_race_block(race_date, distance, ftp, run_pace_ms, prefix, **kwargs)
+    import math
+    if bridge_block:
+        from season_plan import generate_bridge_block
+        plan_start = kwargs.get("plan_start")
+        if plan_start is not None:
+            ps = plan_start - __import__("datetime").timedelta(days=plan_start.weekday())
+            gap_weeks = math.ceil((race_date - ps).days / 7)
+            kwargs["gap_weeks"] = gap_weeks
+        workouts = generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix, **kwargs)
+    else:
+        from season_plan import generate_race_block
+        workouts = generate_race_block(race_date, distance, ftp, run_pace_ms, prefix, **kwargs)
     bike = [(w, d) for w, d in workouts if w["sportType"]["sportTypeKey"] == "cycling"]
 
     out_dir = Path(output_dir) / prefix.lower()
@@ -620,12 +632,18 @@ def main():
                    help="Wyświetl dostępne zawody i dystanse")
 
     # --from-plan: generuj z season_plan.py — identyczne z planem Garmin
-    p.add_argument("--from-plan", action="store_true",
+    p.add_argument("--from-plan",     action="store_true",
                    help="Generuj .zwo bezpośrednio z season_plan.py (sync z Garmin)")
-    p.add_argument("--race-date", type=str,
+    p.add_argument("--race-date",     type=str,
                    help="Data wyścigu YYYY-MM-DD (wymagane z --from-plan)")
-    p.add_argument("--run-pace",  type=str, default="5:20",
+    p.add_argument("--run-pace",      type=str, default="5:20",
                    help="Tempo biegu MM:SS/km (domyślnie 5:20, używane z --from-plan)")
+    p.add_argument("--bridge-block",  action="store_true",
+                   help="Generuj bridge block zamiast race block (wyścigi po poprzednim)")
+    p.add_argument("--plan-start",    type=str,
+                   help="Data początku planu YYYY-MM-DD (opcjonalne, wyrówna do pon.)")
+    p.add_argument("--race-bike-pct", type=float,
+                   help="Docelowe %% FTP na rower w wyścigu (np. 0.908 dla sub-5h)")
 
     args = p.parse_args()
 
@@ -667,11 +685,21 @@ def main():
             p.error(f"Nie można załadować season_plan.py: {e}")
         prefix = args.prefix.upper()
         _validate_prefix(prefix)
-        print(f"  Tryb: sync z planem Garmin")
+        block_type = "bridge block" if args.bridge_block else "race block"
+        print(f"  Tryb: sync z planem Garmin ({block_type})")
         print(f"  Wyścig: {race_date}  Dystans: {args.distance}  Prefix: {prefix}")
         print(f"  Tempo biegu: {args.run_pace}/km  FTP: {args.ftp}W")
+        kwargs = {}
+        if args.plan_start:
+            try:
+                kwargs["plan_start"] = _Date.fromisoformat(args.plan_start)
+            except ValueError:
+                p.error(f"Niepoprawna data --plan-start: {args.plan_start!r}")
+        if args.race_bike_pct:
+            kwargs["race_bike_pct"] = args.race_bike_pct
         generate_from_season_plan(race_date, args.distance, args.ftp, run_pace_ms,
-                                  prefix, args.output)
+                                  prefix, args.output,
+                                  bridge_block=args.bridge_block, **kwargs)
     elif args.distance:
         if args.distance not in DISTANCE_WORKOUTS:
             p.error(f"Tryb --distance nie obsługuje '{args.distance}' bez --from-plan")
