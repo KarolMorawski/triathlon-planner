@@ -22,7 +22,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **`tests/test_core_logic.py`** — stały zestaw testów logiki czystej (pytest, bez sieci): spójność `PROFILES` (anti-drift guard: ten sam obiekt we wszystkich modułach, brak `race_pace_pct`), round-trip tempa, `calc_splits` (wartości referencyjne + walidacje), oraz niezmienniki harmonogramu siłowego. `conftest.py` w root dla `sys.path`.
 - **`requirements.txt`** — pin `garminconnect~=0.3.3` (API Garmina jest wersjozależne).
-- **`.github/workflows/ci.yml`** — CI na push/PR: `py_compile` wszystkich skryptów (łapie rozjazd PL/EN) + `pytest`, na Pythonie 3.10 i 3.12.
 
 ### Convention
 
