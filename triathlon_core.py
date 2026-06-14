@@ -8,6 +8,7 @@ Constants:       STATE_DIR, TOKEN_FILE
 Validation:      validate_prefix_pl, validate_prefix_en
 State I/O:       load_state_pl, load_state_en
 Garmin login:    login, login_pl, login_en
+Garmin library:  get_all_workouts
 Step factories:  _no_tgt, _pwr_tgt, _pace_tgt, _step,
                  bike_wu, bike_cd, bike_int, bike_rec,
                  run_wu, run_cd, run_int,
@@ -119,6 +120,27 @@ def login(msgs=None):
 
 def login_pl(): return login(_LOGIN_PL)
 def login_en(): return login(_LOGIN_EN)
+
+# ─── GARMIN LIBRARY ───────────────────────────────────────────────────────────
+
+def get_all_workouts(client, page=200, cap=5000):
+    """Page through the whole Garmin workout library.
+
+    A single client.get_workouts() call caps at 500 results, but the library
+    can hold more — a one-shot fetch silently misses the tail, so stale
+    prefixed workouts survive a --reset and reappear as duplicates on
+    re-upload. Loop until a short page (or the safety cap) is hit.
+    """
+    out, start = [], 0
+    while len(out) < cap:
+        batch = client.get_workouts(start=start, limit=page)
+        if not batch:
+            break
+        out.extend(batch)
+        if len(batch) < page:
+            break
+        start += page
+    return out
 
 # ─── TARGET TYPES ─────────────────────────────────────────────────────────────
 # CONFIRMED via Garmin API inspection:

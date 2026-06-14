@@ -5,6 +5,32 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.24.0] — 2026-06-14
+
+### Added
+
+- **Treningi siłowe + mobilności** (`strength_core.py`, nowy moduł) — deterministyczny, offline, gotowy do uploadu, **bez LLM**. Buduje natywny JSON Garmina dla siły (`sportType 5 strength_training`) i mobilności (`sportType 7 yoga`) i wstawia sesje uzupełniające do planu pływanie/rower/bieg z uwzględnieniem fazy (więcej siły w bazie/build, redukcja w kierunku startu; siła w najlżejsze dni, mobilność jako aktywna regeneracja przy cięższych). Port deterministycznej części z projektu garmin-analyzer.
+- Nowa flaga **`--strength`** (domyślnie wyłączona) we wszystkich 4 głównych skryptach — `season_plan.py/en` (sezon) i `generate_plan.py/en` (pojedynczy wyścig) — dołącza sesje siłowe/mobilności. Nazwy z prefiksem wyścigu (`PREFIX-T{nn} Strength · build`), więc grupują się z planem, są czyszczone przy `--reset` i liczone w podsumowaniu (`💪 siła  🧘 mobilność`).
+
+### Notes
+
+- Pary `(category, exerciseName)` w szablonach zweryfikowane wobec autorytatywnej taksonomii Garmina (47 kategorii / ~1510 ćwiczeń, MIT — Nabil Noh). Zamiast wgrywać 548 KB pliku, osadzono w `strength_core._VALID_PAIRS` tylko zweryfikowane pary; `build_strength_workout` odrzuca każdą parę spoza listy (typo nigdy nie trafi na zegarek). Dodanie nowego ćwiczenia wymaga wcześniejszej weryfikacji jego enuma wobec tej taksonomii.
+
+---
+
+## [1.23.0] — 2026-06-14
+
+### Fixed
+
+- **Reset/czyszczenie biblioteki Garmin nie pomija już treningów** — `clean_all` (`generate_plan.py/en`) i `clean_prefix` (`season_plan.py/en`) pobierały bibliotekę pojedynczym `get_workouts(start=0, limit=500)`. Przy bibliotece >500 szablonów ogon był po cichu pomijany, więc stare treningi z prefiksem przeżywały `--reset` i wracały jako duplikaty przy ponownym uploadzie. Wprowadzono stronicowanie. (backport poprawki z projektu garmin-analyzer)
+- **Nieudane usunięcia treningów są teraz raportowane** — dotychczas `except Exception: pass` po cichu połykał błędy `DELETE`, zostawiając osierocone wpisy w kalendarzu/bibliotece, które narastały niewidocznie. Teraz liczone są błędy usunięć i dopisywany komunikat `(N failed — possible orphans left)`. (backport z garmin-analyzer)
+
+### Added
+
+- `triathlon_core.py`: nowa funkcja `get_all_workouts(client, page=200, cap=5000)` — stronicuje całą bibliotekę treningów Garmin (pojedyncze `get_workouts` ogranicza się do 500 wyników). Używana przez wszystkie 4 ścieżki resetu.
+
+---
+
 ## [1.22.1] — 2026-05-06
 
 ### Documentation

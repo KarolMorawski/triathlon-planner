@@ -25,6 +25,7 @@ from triathlon_core import (
     STATE_DIR, TOKEN_FILE,
     validate_prefix_pl as _validate_prefix,
     login_pl as login,
+    get_all_workouts,
     _no_tgt as _no_target, _pwr_tgt as _power_target, _pace_tgt as _pace_target,
     _step,
     bike_wu as _bwu, bike_cd as _bcd, bike_int as _bint, bike_rec as _brec,
@@ -32,6 +33,7 @@ from triathlon_core import (
     swim_wu as _swu, swim_cd as _scd, swim_int as _sint, swim_rest as _srest,
     swim_set as _swim_set, _r25,
 )
+from strength_core import augment_plan as _augment_strength
 
 def _get_http(client):
     return client.client
@@ -437,7 +439,7 @@ def clean_all(client, prefix):
 
     # Clean calendar: 12 months
     today = date.today()
-    removed_schedule = 0
+    removed_schedule = failed_schedule = 0
     for delta_m in range(-1, 14):
         y = today.year + (today.month + delta_m - 1) // 12
         m = (today.month + delta_m - 1) % 12
@@ -453,22 +455,32 @@ def clean_all(client, prefix):
                             f"/workout-service/schedule/{sid}", api=True)
                         removed_schedule += 1
                         time.sleep(0.1)
-                    except Exception: pass
+                    except Exception:
+                        # A failed delete leaves an orphan calendar entry that
+                        # accumulates silently — count it so it gets surfaced.
+                        failed_schedule += 1
         except Exception: pass
-    print(f"  Removed {removed_schedule} calendar entries")
+    msg = f"  Removed {removed_schedule} calendar entries"
+    if failed_schedule:
+        msg += f" ({failed_schedule} failed — possible orphans left)"
+    print(msg)
 
     print(f"Cleaning library for prefix '{prefix}'...")
-    workouts = client.get_workouts(start=0, limit=500)
+    workouts = get_all_workouts(client)
     to_del = [w for w in workouts if w.get("workoutName", "").startswith(prefix)]
-    removed_lib = 0
+    removed_lib = failed_lib = 0
     for w in to_del:
         try:
             http.request("DELETE", "connectapi",
                 f"/workout-service/workout/{w['workoutId']}", api=True)
             removed_lib += 1
             time.sleep(0.1)
-        except Exception: pass
-    print(f"  Removed {removed_lib} library workouts\n")
+        except Exception:
+            failed_lib += 1
+    msg = f"  Removed {removed_lib} library workouts"
+    if failed_lib:
+        msg += f" ({failed_lib} failed — possible orphans left)"
+    print(msg + "\n")
 
 def upload_all(client, workouts, dry_run=False):
     """Upload workouts and schedule them."""
@@ -534,6 +546,8 @@ def main():
                    help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
     p.add_argument("--dry-run",      action="store_true", help="Preview without uploading")
     p.add_argument("--reset",        action="store_true", help="Full reset before uploading")
+    p.add_argument("--strength",     action="store_true",
+                   help="Dodaj sesje siłowe i mobilności do planu (zależne od fazy)")
     args = p.parse_args()
 
     if args.ftp is not None and args.ftp <= 0:
@@ -630,6 +644,10 @@ def main():
                              race_bike_pct=race_bike_pct, vol_scale=args.vol_scale,
                              plan_start=today_monday,
                              override_weeks=None)
+    if args.strength:
+        strength_wkts = _augment_strength(workouts, race_date, name_prefix=prefix)
+        workouts = workouts + strength_wkts
+        print(f"  + {len(strength_wkts)} sesji siłowych/mobilności (--strength)")
     print(f"Generated {len(workouts)} workouts\n")
 
     # Show schedule preview

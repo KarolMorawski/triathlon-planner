@@ -18,6 +18,8 @@ Obsługiwane dystanse: 70.3, full, olympic, sprint.
 - generate_plan.py    — plan jednych zawodów (interaktywny lub CLI)
 - generate_plan_en.py — angielska wersja generate_plan.py
 - mywhoosh_season.py  — generator plików .zwo dla MyWhoosh / Zwift
+- strength_core.py    — sesje siłowe + mobilności (flaga --strength w season_plan)
+- triathlon_core.py   — współdzielone funkcje (login, walidacja, fabryki kroków, get_all_workouts)
 - season_example.json — szablon konfiguracji sezonu
 - CHANGELOG.md        — historia zmian (aktualizuj przy każdej zmianie)
 - INSTRUKCJA.html     — instrukcja dla użytkowników końcowych
@@ -73,9 +75,30 @@ targetValueOne/Two   = null
 
 ### Sport IDs
 ```
-running  = 1
-cycling  = 2
-swimming = 4
+running           = 1
+cycling           = 2
+swimming          = 4
+strength_training = 5
+yoga (mobilność)  = 7
+```
+
+### Siła / mobilność (strength_core.py) — potwierdzone empirycznie
+```
+SIŁA = sportType {5, "strength_training"}
+  Ćwiczenie = ExecutableStepDTO z endCondition {10,"reps"} (lub {2,"time"} dla
+  pozycji trzymanych), niosący pola category + exerciseName.
+  Serie = RepeatGroupDTO (stepType {6,"repeat"}, endCondition {7,"iterations"})
+  opakowujący krok ćwiczenia + krok rest.
+  conditionType: 1 lap.button, 2 time, 7 iterations, 10 reps
+  stepType: 1 warmup, 2 cooldown, 3 interval, 5 rest, 6 repeat
+
+MOBILNOŚĆ = sportType {7, "yoga"}: jeden blok czasowy (atleta sam dobiera pozycje)
+
+weightValue/weightUnit ZAWSZE null w SZABLONACH — obciążenie atleta loguje na
+zegarku; sprzęt wynika z NAZWY ćwiczenia (BARBELL_*/DUMBBELL_*/GOBLET_*/KETTLEBELL_*)
+
+Walidacja: (category, exerciseName) musi być w strength_core._VALID_PAIRS
+(zweryfikowane wobec taksonomii Garmina). Zła para = pusty trening na zegarku.
 ```
 
 ### garminconnect 0.3.x

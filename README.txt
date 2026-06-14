@@ -85,6 +85,23 @@ AUTO FTP FROM GARMIN
   python3 generate_plan_en.py --race-date 2026-09-15 --distance 70.3 \
       --auto-ftp --target-time 5:00:00 --weight 92 --reset
 
+STRENGTH & MOBILITY (--strength)
+  Add the --strength flag to season_plan(.py/_en) or generate_plan(.py/_en) to
+  append phase-aware supplementary sessions to the plan:
+    - Strength (Garmin sportType strength_training): on the lightest days,
+      kept >=2 days before the race. Reps/sets taper by phase
+      (base -> build -> peak -> taper).
+    - Mobility (Garmin sportType yoga): a timed block on the harder days as
+      active recovery; you pick the stretches/poses yourself.
+  Sessions are named "{PREFIX}-T{nn} Strength · build" so they group with the
+  plan, get cleaned up by --reset, and show in the summary (strength / mobility).
+  Off by default — existing behaviour is unchanged unless you pass --strength.
+  Not exported to .zwo (MyWhoosh/Zwift handle cycling only).
+
+  python3 season_plan.py --config season_example.json --strength --reset
+  python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+      --ftp 255 --run-pace 5:20 --prefix WARSAW --strength
+
 UPDATING AN EXISTING PLAN (mid-season recalibration)
   After uploading a plan, its state is saved to: ~/.triathlon_plans/{PREFIX}.json
   Use update_plan.py to replace future weeks with new parameters
@@ -589,6 +606,23 @@ AUTO FTP Z GARMIN
 
   python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
       --auto-ftp --run-pace 5:20 --weight 80 --reset
+
+SIŁA I MOBILNOŚĆ (--strength)
+  Dodaj flagę --strength do season_plan(.py/_en) lub generate_plan(.py/_en),
+  aby dołączyć do planu sesje uzupełniające zależne od fazy:
+    - Siła (Garmin sportType strength_training): w najlżejsze dni, zawsze
+      >=2 dni przed startem. Powtórzenia/serie maleją z fazą
+      (baza -> build -> peak -> taper).
+    - Mobilność (Garmin sportType yoga): blok czasowy w cięższe dni jako
+      aktywna regeneracja; rozciąganie/pozycje dobierasz samodzielnie.
+  Sesje mają nazwy "{PREFIX}-T{nn} Strength · build", więc grupują się z planem,
+  są czyszczone przez --reset i widoczne w podsumowaniu (💪 siła / 🧘 mobilność).
+  Domyślnie wyłączone — bez --strength zachowanie jest niezmienione.
+  Nie są eksportowane do .zwo (MyWhoosh/Zwift obsługują tylko rower).
+
+  python3 season_plan.py --config season_example.json --strength --reset
+  python3 generate_plan.py --race-date 2026-09-15 --distance 70.3 \
+      --ftp 255 --run-pace 5:20 --prefix WARSAW --strength
 
 AKTUALIZACJA ISTNIEJĄCEGO PLANU (rekalibracja w trakcie sezonu)
   Po wgraniu planu jego stan jest zapisywany do: ~/.triathlon_plans/{PREFIX}.json

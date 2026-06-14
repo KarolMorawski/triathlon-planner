@@ -643,6 +643,7 @@ td code{font-size:11px;}
     <div class="cmd-row"><div class="cmd-code">--cda 0.32</div><div class="cmd-desc">Współczynnik aerodynamiczny CdA [m²]. Domyślnie 0.32 (pozycja TT/triathlonowa). Niższe = bardziej aerodynamiczne. Rower szosowy w standardowej pozycji ≈ 0.40.</div></div>
     <div class="cmd-row"><div class="cmd-code">--prefix BERLIN</div><div class="cmd-desc">Prefix nazw treningów (np. BERLIN-T01). Domyślnie: nazwa wyścigu z interaktywnego kreatorze.</div></div>
     <div class="cmd-row"><div class="cmd-code">--vol-scale 1.0</div><div class="cmd-desc">Mnożnik objętości treningów (zakres 0.1–3.0). 1.1 = 10% więcej, 0.8 = 20% mniej. Użyj <code>strava_suggest.py</code> aby dobrać optymalnie.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--strength</div><div class="cmd-desc">Dodaje sesje <strong>siłowe</strong> (Garmin: strength_training) i <strong>mobilności</strong> (yoga) zależne od fazy planu: siła w najlżejsze dni i ≥2 dni przed startem, mobilność jako aktywna regeneracja. Nazwy z prefixem (np. BERLIN-T03 Strength · build), więc <code>--reset</code> je czyści. Domyślnie wyłączone. Nie trafiają do plików .zwo.</div></div>
   </div>
 
   <div class="alert ok" style="margin-top:14px;">
@@ -687,6 +688,7 @@ td code{font-size:11px;}
     <div class="cmd-row"><div class="cmd-code">--auto-ftp</div><div class="cmd-desc">Pobiera FTP automatycznie z Garmin Connect zamiast pytać lub używać wartości z pliku JSON.</div></div>
     <div class="cmd-row"><div class="cmd-code">--run-pace 5:10</div><div class="cmd-desc">Nadpisuje tempo biegu dla wszystkich wyścigów w sezonie.</div></div>
     <div class="cmd-row"><div class="cmd-code">--vol-scale 1.1</div><div class="cmd-desc">Mnożnik objętości dla całego sezonu (0.1–3.0). Domyślnie 1.0.</div></div>
+    <div class="cmd-row"><div class="cmd-code">--strength</div><div class="cmd-desc">Dodaje sesje <strong>siłowe</strong> i <strong>mobilności</strong> zależne od fazy do każdego wyścigu w sezonie (siła w najlżejsze dni i ≥2 dni przed startem). Nazwy z prefixem wyścigu, więc <code>--reset</code> je czyści; widoczne w podsumowaniu (💪 siła / 🧘 mobilność). Domyślnie wyłączone.</div></div>
   </div>
 
   <div class="alert info">

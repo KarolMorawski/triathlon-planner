@@ -35,11 +35,13 @@ from triathlon_core import (
     STATE_DIR, TOKEN_FILE,
     validate_prefix_pl as _validate_prefix,
     login_pl as login,
+    get_all_workouts,
     _no_tgt, _pwr_tgt, _pace_tgt, _step,
     bike_wu, bike_cd, bike_int, bike_rec,
     run_wu, run_cd, run_int,
     swim_wu, swim_cd, swim_int, swim_rest, swim_set, _r25,
 )
+from strength_core import augment_plan as _augment_strength
 
 def _http(client):
     return client.client
@@ -641,7 +643,7 @@ def clean_prefix(client, prefix):
     """Remove all workouts/schedules with given prefix. Safe full reset."""
     http = _http(client)
     print(f"  Cleaning '{prefix}' from calendar...")
-    removed_s = 0
+    removed_s = failed_s = 0
     today = date.today()
     for dm in range(-1, 14):  # -1 month back, 13 months ahead
         y = today.year + (today.month + dm - 1) // 12
@@ -658,22 +660,32 @@ def clean_prefix(client, prefix):
                             f"/workout-service/schedule/{sid}", api=True)
                         removed_s += 1
                         time.sleep(0.08)
-                    except Exception: pass
+                    except Exception:
+                        # A failed delete leaves an orphan calendar entry that
+                        # accumulates silently — count it so it gets surfaced.
+                        failed_s += 1
         except Exception: pass
-    print(f"    Removed {removed_s} scheduled entries")
+    msg = f"    Removed {removed_s} scheduled entries"
+    if failed_s:
+        msg += f" ({failed_s} failed — possible orphans left)"
+    print(msg)
 
     print(f"  Cleaning '{prefix}' from library...")
-    workouts = client.get_workouts(start=0, limit=500)
+    workouts = get_all_workouts(client)
     to_del   = [w for w in workouts if w.get("workoutName","").startswith(prefix)]
-    removed_l = 0
+    removed_l = failed_l = 0
     for w in to_del:
         try:
             http.request("DELETE","connectapi",
                 f"/workout-service/workout/{w['workoutId']}", api=True)
             removed_l += 1
             time.sleep(0.08)
-        except Exception: pass
-    print(f"    Removed {removed_l} library workouts")
+        except Exception:
+            failed_l += 1
+    msg = f"    Removed {removed_l} library workouts"
+    if failed_l:
+        msg += f" ({failed_l} failed — possible orphans left)"
+    print(msg)
 
 def upload_workouts(client, workouts, dry_run=False):
     ok = fail = 0
@@ -778,6 +790,8 @@ def main():
                    help="Volume multiplier (default: 1.0). Use strava_suggest.py to calibrate.")
     p.add_argument("--long-run-day", type=int, choices=[5, 6], default=None,
                    help="Day for long run: 5=Saturday, 6=Sunday (default: 6)")
+    p.add_argument("--strength", action="store_true",
+                   help="Dodaj sesje siłowe i mobilności do planu (zależne od fazy)")
     args = p.parse_args()
 
     # Load config
@@ -927,6 +941,8 @@ def main():
                                         race_bike_pct=race_bike_pct, vol_scale=vol_scale,
                                         long_run_day=long_run_day,
                                         plan_start=plan_start_mon)
+        if args.strength:
+            wkts = wkts + _augment_strength(wkts, rdate, name_prefix=prefix)
         all_workouts_by_prefix[prefix] = wkts
         race_configs[prefix] = {
             "race_date":    race["date"],
@@ -946,10 +962,13 @@ def main():
         by_sport = defaultdict(int)
         for wkt, _ in wkts:
             by_sport[wkt["sportType"]["sportTypeKey"]] += 1
-        print(f"    Sessions: {len(wkts)} total — "
-              f"🏃{by_sport['running']} biegi  "
-              f"🏊{by_sport['swimming']} pływanie  "
-              f"🚲{by_sport['cycling']} rower")
+        sess_line = (f"    Sessions: {len(wkts)} total — "
+                     f"🏃{by_sport['running']} biegi  "
+                     f"🏊{by_sport['swimming']} pływanie  "
+                     f"🚲{by_sport['cycling']} rower")
+        if by_sport["strength_training"] or by_sport["yoga"]:
+            sess_line += f"  💪{by_sport['strength_training']} siła  🧘{by_sport['yoga']} mobilność"
+        print(sess_line)
         print()
 
         for wkt, d in wkts:
