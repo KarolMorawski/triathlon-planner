@@ -1,0 +1,9 @@
+# Triathlon Training Planner — runtime dependencies
+#
+# The Garmin Connect API is reverse-engineered and version-sensitive (see
+# CLAUDE.md): the workout/calendar payloads and the http-client access path
+# (client.client) are confirmed against garminconnect 0.3.x. Pin to that minor
+# line so an unattended `pip install -U` can't silently break uploads.
+garminconnect~=0.3.3
+
+# Test-only (not needed to run the planner): pip install pytest

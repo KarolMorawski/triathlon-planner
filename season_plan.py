@@ -35,7 +35,8 @@ from triathlon_core import (
     STATE_DIR, TOKEN_FILE,
     validate_prefix_pl as _validate_prefix,
     login_pl as login,
-    get_all_workouts,
+    clean_calendar_prefix, clean_library_prefix,
+    PROFILES, calc_splits, pace_to_ms, ms_to_pace, _parse_hms, _fmt_hm,
     _no_tgt, _pwr_tgt, _pace_tgt, _step,
     bike_wu, bike_cd, bike_int, bike_rec,
     run_wu, run_cd, run_int,
@@ -59,14 +60,8 @@ def get_garmin_ftp(client):
     return None
 
 # ─── RACE PROFILES ───────────────────────────────────────────────────────────
-
-PROFILES = {
-    "70.3":    {"label":"Half Ironman 70.3",  "weeks":12, "swim_m":1900, "bike_km":90,  "run_km":21.1,  "race_bike_pct":0.82},
-    "full":    {"label":"Full Ironman",       "weeks":16, "swim_m":3800, "bike_km":180, "run_km":42.2,  "race_bike_pct":0.72},
-    "olympic": {"label":"Olympic Distance",   "weeks":10, "swim_m":1500, "bike_km":40,  "run_km":10,    "race_bike_pct":0.88},
-    "quarter": {"label":"Quarter Ironman",    "weeks":9,  "swim_m":950,  "bike_km":45,  "run_km":10.55, "race_bike_pct":0.90},
-    "sprint":  {"label":"Sprint Distance",    "weeks":8,  "swim_m":750,  "bike_km":20,  "run_km":5,     "race_bike_pct":0.95},
-}
+# PROFILES + SPLIT_RATIOS + calc_splits + pace helpers live in triathlon_core.py
+# (single source of truth, imported above).
 
 
 def _validate_config(cfg, source="config"):
@@ -118,105 +113,6 @@ def _wkt(sport_key, name, desc, steps, dist_m=None, dur_s=None):
         "workoutProvider": None,
         "workoutSourceId": None,
         "isAtp": False,
-    }
-
-def ms_to_pace(ms):
-    spk = 1000.0/ms; m=int(spk//60); s=round(spk%60)
-    if s == 60: m += 1; s = 0
-    return f"{m}:{s:02d}"
-
-def pace_to_ms(s):
-    p = s.strip().split(":")
-    return 1000.0/(int(p[0])*60+int(p[1]))
-
-# ─── TARGET TIME / SPLIT CALCULATOR ──────────────────────────────────────────
-
-# Default split ratios (pct of active time after T1+T2) — based on age-group data
-SPLIT_RATIOS = {
-    "sprint":  {"t1t2_min":  5, "swim_pct": 0.13, "bike_pct": 0.47, "run_pct": 0.40},
-    "quarter": {"t1t2_min":  6, "swim_pct": 0.12, "bike_pct": 0.51, "run_pct": 0.37},
-    "olympic": {"t1t2_min":  7, "swim_pct": 0.12, "bike_pct": 0.52, "run_pct": 0.36},
-    "70.3":    {"t1t2_min": 10, "swim_pct": 0.11, "bike_pct": 0.53, "run_pct": 0.36},
-    "full":    {"t1t2_min": 12, "swim_pct": 0.11, "bike_pct": 0.52, "run_pct": 0.37},
-}
-
-def _parse_hms(s):
-    """Parse 'H:MM:SS', 'H:MM', or 'MM:SS' → total minutes (float)."""
-    parts = s.strip().split(":")
-    if len(parts) == 3:
-        return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
-    if len(parts) == 2:
-        return int(parts[0]) * 60 + int(parts[1])
-    raise ValueError(f"Cannot parse time: {s!r} — use H:MM:SS or H:MM")
-
-def _fmt_hm(minutes):
-    """Format minutes → 'H:MM'."""
-    h, m = int(minutes // 60), int(round(minutes % 60))
-    return f"{h}:{m:02d}"
-
-def calc_splits(distance, target_time_str, ftp, weight_kg=75, cda=0.32,
-                custom_swim_min=None, custom_t1t2_min=None):
-    """
-    Back-calculate per-sport split targets from a finish time goal.
-
-    Physics model (flat course):
-      P = (0.5 × rho × CdA × v³  +  Crr × m × g × v) / eta
-      CdA  = 0.32 m²  (triathlon/TT position, override via config 'cda')
-      Crr  = 0.004    (triathlon tires on tarmac)
-      rho  = 1.225 kg/m³ (sea level, 15°C)
-      eta  = 0.975    (drivetrain efficiency)
-
-    Returns dict with all split times, paces, watts and run_pace_ms for
-    use in generate_race_block().
-    """
-    if ftp <= 0:
-        raise ValueError(f"FTP must be > 0 (got {ftp})")
-    prof   = PROFILES[distance]
-    ratios = SPLIT_RATIOS[distance]
-    if prof["swim_m"] <= 0:
-        raise ValueError(f"Swim distance must be > 0 (got {prof['swim_m']})")
-
-    total_min = _parse_hms(target_time_str)
-    t1t2      = float(custom_t1t2_min) if custom_t1t2_min is not None else ratios["t1t2_min"]
-    active    = total_min - t1t2
-    if active <= 0:
-        raise ValueError(f"Target time {target_time_str} too short for {distance} (must exceed {t1t2} min T1+T2)")
-
-    if custom_swim_min is not None:
-        swim_min = float(custom_swim_min)
-        left     = active - swim_min
-        bike_rel = ratios["bike_pct"] / (ratios["bike_pct"] + ratios["run_pct"])
-        bike_min = left * bike_rel
-        run_min  = left * (1 - bike_rel)
-    else:
-        swim_min = active * ratios["swim_pct"]
-        bike_min = active * ratios["bike_pct"]
-        run_min  = active * ratios["run_pct"]
-
-    # Run pace
-    run_pace_ms = (prof["run_km"] * 1000) / (run_min * 60)
-
-    # Bike power — simplified road physics
-    v     = (prof["bike_km"] * 1000) / (bike_min * 60)   # m/s
-    watts = (0.5 * 1.225 * cda * v**3 + 0.004 * weight_kg * 9.81 * v) / 0.975
-    pct   = watts / ftp
-
-    # Swim pace
-    s100  = (swim_min * 60) / (prof["swim_m"] / 100)
-    swim_pace = f"{int(s100 // 60)}:{int(s100 % 60):02d}/100m"
-
-    return {
-        "total_min":    total_min,
-        "t1t2_min":     t1t2,
-        "swim_min":     swim_min,
-        "bike_min":     bike_min,
-        "run_min":      run_min,
-        "swim_pace":    swim_pace,
-        "bike_kmh":     round(v * 3.6, 1),
-        "bike_watts":   round(watts),
-        "bike_pct_ftp": pct,
-        "run_pace_ms":  run_pace_ms,
-        "run_pace_str": ms_to_pace(run_pace_ms),
     }
 
 # ─── PLAN GENERATOR ──────────────────────────────────────────────────────────
@@ -640,48 +536,17 @@ def generate_bridge_block(race_date, distance, ftp, run_pace_ms, prefix,
 # ─── GARMIN RESET & UPLOAD ───────────────────────────────────────────────────
 
 def clean_prefix(client, prefix):
-    """Remove all workouts/schedules with given prefix. Safe full reset."""
-    http = _http(client)
+    """Remove all workouts/schedules with given prefix. Safe full reset.
+    Pagination + orphan-surfacing logic lives in triathlon_core."""
     print(f"  Cleaning '{prefix}' from calendar...")
-    removed_s = failed_s = 0
-    today = date.today()
-    for dm in range(-1, 14):  # -1 month back, 13 months ahead
-        y = today.year + (today.month + dm - 1) // 12
-        m = (today.month + dm - 1) % 12
-        try:
-            data = client.connectapi(f"/calendar-service/year/{y}/month/{m}")
-            for item in data.get("calendarItems", []):
-                if item.get("itemType") != "workout": continue
-                if not item.get("title","").startswith(prefix): continue
-                sid = item.get("id") or item.get("scheduleId")
-                if sid:
-                    try:
-                        http.request("DELETE","connectapi",
-                            f"/workout-service/schedule/{sid}", api=True)
-                        removed_s += 1
-                        time.sleep(0.08)
-                    except Exception:
-                        # A failed delete leaves an orphan calendar entry that
-                        # accumulates silently — count it so it gets surfaced.
-                        failed_s += 1
-        except Exception: pass
+    removed_s, failed_s = clean_calendar_prefix(client, prefix, sleep_s=0.08)
     msg = f"    Removed {removed_s} scheduled entries"
     if failed_s:
         msg += f" ({failed_s} failed — possible orphans left)"
     print(msg)
 
     print(f"  Cleaning '{prefix}' from library...")
-    workouts = get_all_workouts(client)
-    to_del   = [w for w in workouts if w.get("workoutName","").startswith(prefix)]
-    removed_l = failed_l = 0
-    for w in to_del:
-        try:
-            http.request("DELETE","connectapi",
-                f"/workout-service/workout/{w['workoutId']}", api=True)
-            removed_l += 1
-            time.sleep(0.08)
-        except Exception:
-            failed_l += 1
+    removed_l, failed_l = clean_library_prefix(client, prefix, sleep_s=0.08)
     msg = f"    Removed {removed_l} library workouts"
     if failed_l:
         msg += f" ({failed_l} failed — possible orphans left)"

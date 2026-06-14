@@ -5,6 +5,31 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.25.0] — 2026-06-14
+
+### Refactored (DRY — jedno źródło prawdy)
+
+- **Usunięto zduplikowaną i już rozjechaną logikę** między `season_plan.py` a `generate_plan.py`. Do `triathlon_core.py` przeniesiono: `PROFILES`, `SPLIT_RATIOS`, `calc_splits`, `pace_to_ms`/`ms_to_pace`/`_parse_hms`/`_fmt_hm`. Wszystkie 4 główne skrypty (PL+EN) importują je teraz z core (`PROFILES is` ten sam obiekt we wszystkich modułach).
+- **Ujednolicono klucz `race_bike_pct`** — `generate_plan.py` miało w swojej kopii `PROFILES` klucz `race_pace_pct` (drift schematu wobec pozostałych 6 plików). Teraz jeden klucz `race_bike_pct` w core.
+- **`calc_splits`**: kopia w `generate_plan` była uboższa (brak `custom_swim_min`/`custom_t1t2_min`). Core ma wersję pełną — `generate_plan` zyskał brakujące parametry, wartości wyjściowe bez zmian (zweryfikowane).
+- **Cleanup biblioteki/kalendarza** (`clean_all`/`clean_prefix`) korzysta teraz ze wspólnych `clean_calendar_prefix`/`clean_library_prefix` w core (paginacja + raport orphanów w jednym miejscu zamiast 4 kopii).
+
+### Fixed
+
+- Ostatnie 2 ciche `except Exception: pass` na odczycie miesiąca kalendarza zastąpione `logging.warning` (nie połykamy już po cichu błędu odczytu).
+
+### Added
+
+- **`tests/test_core_logic.py`** — stały zestaw testów logiki czystej (pytest, bez sieci): spójność `PROFILES` (anti-drift guard: ten sam obiekt we wszystkich modułach, brak `race_pace_pct`), round-trip tempa, `calc_splits` (wartości referencyjne + walidacje), oraz niezmienniki harmonogramu siłowego. `conftest.py` w root dla `sys.path`.
+- **`requirements.txt`** — pin `garminconnect~=0.3.3` (API Garmina jest wersjozależne).
+- **`.github/workflows/ci.yml`** — CI na push/PR: `py_compile` wszystkich skryptów (łapie rozjazd PL/EN) + `pytest`, na Pythonie 3.10 i 3.12.
+
+### Convention
+
+- CLAUDE.md: testy logiki czystej w `tests/` są STAŁE (regresja core); usuwamy tylko testy integracyjne/sieciowe/jednorazowe.
+
+---
+
 ## [1.24.0] — 2026-06-14
 
 ### Added

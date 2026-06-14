@@ -18,9 +18,11 @@ Obsługiwane dystanse: 70.3, full, olympic, sprint.
 - generate_plan.py    — plan jednych zawodów (interaktywny lub CLI)
 - generate_plan_en.py — angielska wersja generate_plan.py
 - mywhoosh_season.py  — generator plików .zwo dla MyWhoosh / Zwift
-- strength_core.py    — sesje siłowe + mobilności (flaga --strength w season_plan)
-- triathlon_core.py   — współdzielone funkcje (login, walidacja, fabryki kroków, get_all_workouts)
+- strength_core.py    — sesje siłowe + mobilności (flaga --strength w season_plan/generate_plan)
+- triathlon_core.py   — JEDYNE źródło prawdy współdzielone: login, walidacja, fabryki kroków, PROFILES, SPLIT_RATIOS, calc_splits, konwersje tempa, get_all_workouts, clean_calendar_prefix/clean_library_prefix
 - season_example.json — szablon konfiguracji sezonu
+- requirements.txt    — zależności runtime (garminconnect~=0.3.3)
+- tests/              — stałe testy logiki czystej (pytest); .github/workflows/ci.yml uruchamia je w CI
 - CHANGELOG.md        — historia zmian (aktualizuj przy każdej zmianie)
 - INSTRUKCJA.html     — instrukcja dla użytkowników końcowych
 
@@ -165,9 +167,10 @@ client.login(tokenstore=open(TOKEN_FILE).read())
 - Wersja angielska różni się tylko napisami wyświetlanymi użytkownikowi — logika identyczna
 
 ### Pliki testowe
-- Po napisaniu testów i potwierdzeniu, że wszystkie przechodzą — usuń plik testowy
-- Testy służą do weryfikacji logiki podczas developmentu, nie są częścią produktu końcowego
-- Wyjątek: nie usuwaj jeśli użytkownik wyraźnie prosi o zachowanie testów
+- **Testy logiki czystej w `tests/` są STAŁE** — to regresja pilnująca m.in. spójności współdzielonego `triathlon_core` (PROFILES/calc_splits już raz się rozjechały). Uruchamiane przez CI. NIE usuwać.
+- Tymczasowe testy ad-hoc (np. szybka weryfikacja przez sieć do Garmina, jednorazowe skrypty): po potwierdzeniu, że przechodzą — usuń. Nie są częścią produktu.
+- Reguła: czyste/deterministyczne (bez sieci) → `tests/` na stałe; integracyjne/sieciowe/jednorazowe → usuń po użyciu.
+- `pytest -q` z katalogu głównego (root `conftest.py` dokłada root do `sys.path`).
 
 ### Format commitów git
 - feat: nowa funkcja
